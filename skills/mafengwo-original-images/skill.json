@@ -1,0 +1,18 @@
+{
+  "name": "mafengwo-original-images",
+  "title": "马蜂窝原图下载",
+  "version": "0.1.0",
+  "description": "从马蜂窝图片/游记页面提取原始图片链接，下载原图，并生成链接与文件大小清单。",
+  "license": "MIT",
+  "entry": "SKILL.md",
+  "requirements": ["python>=3.10", "curl recommended"],
+  "supportedAgents": ["claude-code", "openclaw", "codex", "generic"],
+  "sideEffects": ["network", "filesystem-write", "browser"],
+  "adapters": {
+    "claude-code": "adapters/claude-code.md",
+    "openclaw": "adapters/openclaw.md",
+    "codex": "adapters/codex.md",
+    "generic": "adapters/generic-browser.md"
+  }
+}
+

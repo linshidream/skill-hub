@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+import argparse
+import json
+import zipfile
+from pathlib import Path
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Package a skill as a zip archive.")
+    parser.add_argument("skill_name")
+    parser.add_argument("--out-dir", default="dist")
+    args = parser.parse_args()
+
+    root = Path(__file__).resolve().parents[1]
+    skill_dir = root / "skills" / args.skill_name
+    if not (skill_dir / "skill.json").exists():
+        raise SystemExit(f"skill not found: {args.skill_name}")
+
+    manifest = json.loads((skill_dir / "skill.json").read_text(encoding="utf-8"))
+    version = manifest.get("version", "0.0.0")
+    out_dir = root / args.out_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
+    archive = out_dir / f"{args.skill_name}-{version}.zip"
+
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for path in sorted(skill_dir.rglob("*")):
+            if path.is_file():
+                zf.write(path, path.relative_to(skill_dir.parent))
+
+    print(archive)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+

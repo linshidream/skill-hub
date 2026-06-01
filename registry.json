@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "0.1.0",
+  "name": "skill-hub",
+  "description": "Agent-neutral reusable skills for Claude Code, OpenClaw, Codex, and other SKILL.md-compatible agents.",
+  "skills": [
+    {
+      "name": "mafengwo-original-images",
+      "title": "马蜂窝游记原图下载",
+      "version": "0.1.0",
+      "path": "skills/mafengwo-original-images",
+      "description": "从马蜂窝图片/游记页面提取原始图片链接，下载原图，并生成链接与文件大小清单。",
+      "supportedAgents": ["claude-code", "openclaw", "codex", "generic"],
+      "sideEffects": ["network", "filesystem-write"]
+    }
+  ]
+}
+

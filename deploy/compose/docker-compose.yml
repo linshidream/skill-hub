@@ -1,0 +1,13 @@
+services:
+  skill-hub:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        RELEASE_DIR: dist/releases/latest
+    image: skill-hub:local
+    volumes:
+      - skill_hub_runtime:/opt/skill-hub/current:ro
+
+volumes:
+  skill_hub_runtime:

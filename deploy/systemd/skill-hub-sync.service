@@ -1,0 +1,7 @@
+[Unit]
+Description=Sync Skill Hub release
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/skill-hub
+ExecStart=/bin/sh -lc 'echo "replace this with artifact download and current symlink switch"'

@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Skill Hub sync periodically
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+Unit=skill-hub-sync.service
+
+[Install]
+WantedBy=timers.target

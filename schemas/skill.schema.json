@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/skill-hub/schemas/skill.schema.json",
+  "title": "Skill Hub Skill Manifest",
+  "type": "object",
+  "required": ["name", "title", "version", "description", "license", "entry", "supportedAgents", "sideEffects"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10
+    },
+    "license": {
+      "type": "string"
+    },
+    "entry": {
+      "type": "string",
+      "const": "SKILL.md"
+    },
+    "requirements": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "supportedAgents": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "sideEffects": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["none", "network", "filesystem-read", "filesystem-write", "shell", "browser", "external-service"]
+      }
+    },
+    "adapters": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "additionalProperties": true
+}
+
