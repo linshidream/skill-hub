@@ -1,5 +1,21 @@
 # Skill Hub
 
+<p align="center">
+  <img src="assets/agent-skill-hub-cover.png" alt="Skill Hub cover" width="100%">
+</p>
+
+<p align="center">
+  <strong>像管理软件包一样管理 Agent Skill</strong><br>
+  <span>共建 · 校验 · 打包 · 发布 · 部署 · 运行时加载 · 回滚</span>
+</p>
+
+<p align="center">
+  <a href="AGENTS.md"><img alt="Agent Neutral" src="https://img.shields.io/badge/Agent--neutral-SKILL.md-2f80ed"></a>
+  <a href="DEPLOYMENT.md"><img alt="Deployable" src="https://img.shields.io/badge/Deployable-release%20%2F%20current-16a34a"></a>
+  <a href="SKILL_RELEASES.md"><img alt="Skill Releases" src="https://img.shields.io/badge/Skill--releases-tracked-f59e0b"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-MIT-111827"></a>
+</p>
+
 一个面向多 Agent、企业自建 Agent 和服务器运行时的通用 Skill Hub。
 
 它不是简单的提示词集合，也不是某个 Agent 的私有配置目录，而是一个可以像软件一样经历共建、校验、打包、发布、部署、加载和回滚的 Agent 能力目录。
