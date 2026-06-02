@@ -20,6 +20,31 @@
 
 它不是简单的提示词集合，也不是某个 Agent 的私有配置目录，而是一个可以像软件一样经历共建、校验、打包、发布、部署、加载和回滚的 Agent 能力目录。
 
+## 自然语言安装
+
+现在很多 skill 安装不再需要使用者手动敲命令，而是直接交给当前 Agent 完成。你可以把下面这段话发给 Claude Code、Codex、OpenClaw 或其他具备文件操作能力的 Agent：
+
+```text
+请帮我从这个仓库安装 <skill-name> skill 到当前 Agent：
+
+https://github.com/linshidream/skill-hub
+
+要求：
+1. 先阅读 README.md、USAGE.md 和 registry.json。
+2. 在 registry.json 中找到 <skill-name> 对应的 skill 目录。
+3. 根据当前 Agent 类型选择合适的安装位置。
+4. 安装完成后告诉我 SKILL.md 的最终路径。
+5. 不要修改无关文件，不要自动提交 git。
+```
+
+如果你还不确定要安装哪个 skill，可以这样说：
+
+```text
+请读取 https://github.com/linshidream/skill-hub 的 registry.json 和 SKILL_RELEASES.md，告诉我当前有哪些 skill 可以安装，并根据我的任务推荐一个。
+```
+
+`<skill-name>` 来自 [SKILL_RELEASES.md](SKILL_RELEASES.md) 或 [registry.json](registry.json)。命令行安装方式见 [USAGE.md](USAGE.md)。
+
 ## 完整设计思路
 
 Skill Hub 的目标是把“用户和 Agent 在真实任务中共同探索出的能力”沉淀成可复用、可审计、可部署的 skill，并让这些 skill 能被不同运行环境读取：
