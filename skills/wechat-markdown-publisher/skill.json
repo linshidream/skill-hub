@@ -1,0 +1,16 @@
+{
+  "name": "wechat-markdown-publisher",
+  "title": "微信公众号 Markdown 发布排版",
+  "version": "0.1.0",
+  "description": "将 Typora/Markdown 文章转换为微信公众号编辑器可粘贴的多主题富文本，并生成预览页、复制入口和兼容性检查报告。",
+  "license": "MIT",
+  "entry": "SKILL.md",
+  "requirements": ["python>=3.10", "beautifulsoup4", "pandoc recommended"],
+  "supportedAgents": ["claude-code", "codex", "generic"],
+  "sideEffects": ["filesystem-read", "filesystem-write", "shell", "browser"],
+  "adapters": {
+    "claude-code": "adapters/claude-code.md",
+    "codex": "adapters/codex.md",
+    "generic": "adapters/generic-browser.md"
+  }
+}
