@@ -24,6 +24,31 @@ webpage-research-notes
 video-script-outline
 ```
 
+## Branching
+
+The main branch is `master`.
+
+When exploring or creating a new skill, use a local branch named:
+
+```text
+skill/<skill-name>
+```
+
+Rules:
+
+- Create the branch from `master`.
+- `<skill-name>` must exactly match the future or existing `skills/<skill-name>/` directory.
+- Use lowercase letters, digits, and hyphens only.
+- Do not create the branch automatically in an agent workflow. The agent should propose the branch name and wait for explicit user approval before running git commands.
+- If the skill name is not settled yet, decide the name first, then create the branch.
+
+After approval:
+
+```bash
+git checkout master
+git checkout -b skill/<skill-name>
+```
+
 ## Validation
 
 Run before opening a PR:

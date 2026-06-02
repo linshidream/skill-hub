@@ -35,11 +35,29 @@
 10. 如需发布 hub release，运行 `python3 scripts/build-hub.py --release-id <release-id>`。
 11. 发布前运行 `python3 scripts/verify-release.py <artifact>`。
 
+## 分支规范
+
+- 主分支为 `master`。
+- 当用户想探讨、共建或新增一个 skill 时，先确认 skill 名称，再使用 `skill/<skill-name>` 作为本地探索分支名。
+- `<skill-name>` 必须与未来或当前目录 `skills/<skill-name>/` 的目录名完全一致。
+- `<skill-name>` 使用 lowercase-hyphen 命名，只允许小写字母、数字和连字符。
+- 新 skill 探索分支必须从 `master` checkout。
+- Agent 不要自动创建分支；只能先说明建议分支名和将执行的命令，等待用户明确同意后再创建本地分支。
+- 如果 skill 名称还没有确定，先和用户一起收敛名称，不要提前创建临时分支。
+
+用户确认后，推荐命令：
+
+```bash
+git checkout master
+git checkout -b skill/<skill-name>
+```
+
 ## 编辑原则
 
 - 不要把某个 agent 的私有工具调用写死到通用 `SKILL.md` 里。
 - 不要在根 `README.md` 增加具体 skill 清单。
 - 不要自动提交 git，除非用户明确要求。
+- 不要在用户未明确同意前自动创建 `skill/<skill-name>` 分支。
 - 修改既有文件前先理解当前结构，避免覆盖用户未提交的改动。
 - 新增文件和说明尽量保持简洁，优先让未来 agent 能快速判断“该读哪个文件、该跑哪个脚本、该验证什么”。
 - 修改构建、部署、运行时目录约定时，同步更新 `DEPLOYMENT.md`、`USAGE.md` 和相关 adapter。

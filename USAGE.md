@@ -106,6 +106,28 @@ description: What this skill does and when to use it.
 
 `skill.json` 用于 hub、安装器、CI 和安全审阅。
 
+## 分支规范
+
+探索或创建新 skill 时，使用独立本地分支：
+
+```text
+skill/<skill-name>
+```
+
+规则：
+
+- 从 `master` 分支 checkout。
+- `<skill-name>` 必须与 `skills/<skill-name>/` 目录名完全一致。
+- `<skill-name>` 使用 lowercase-hyphen 命名。
+- Agent 不能自动创建分支；需要先给出建议分支名和命令，等待用户明确同意后再执行。
+
+用户同意后再运行：
+
+```bash
+git checkout master
+git checkout -b skill/<skill-name>
+```
+
 ## 验证
 
 ```bash
