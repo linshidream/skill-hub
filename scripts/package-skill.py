@@ -12,8 +12,24 @@ def main() -> int:
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parents[1]
-    skill_dir = root / "skills" / args.skill_name
-    if not (skill_dir / "skill.json").exists():
+
+    skill_dir = None
+    registry_path = root / "registry.json"
+    if registry_path.exists():
+        registry = json.loads(registry_path.read_text(encoding="utf-8"))
+        for entry in registry.get("skills", []):
+            if entry["name"] == args.skill_name:
+                skill_dir = root / entry["path"]
+                break
+
+    if skill_dir is None:
+        for cat in sorted((root / "skills").iterdir()):
+            candidate = cat / args.skill_name
+            if candidate.is_dir() and (candidate / "skill.json").exists():
+                skill_dir = candidate
+                break
+
+    if skill_dir is None or not (skill_dir / "skill.json").exists():
         raise SystemExit(f"skill not found: {args.skill_name}")
 
     manifest = json.loads((skill_dir / "skill.json").read_text(encoding="utf-8"))

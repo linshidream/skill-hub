@@ -75,7 +75,7 @@ Skill Hub 的目标是把“用户和 Agent 在真实任务中共同探索出的
 
 ```text
 /opt/skill-hub/current/registry.json
-/opt/skill-hub/current/skills/*/SKILL.md
+/opt/skill-hub/current/skills/<category>/<skill-name>/SKILL.md
 ```
 
 这样 Spring AI Alibaba、Claude Code、OpenClaw、Codex 或其他自建 Agent 都可以基于文件系统、`Resource`、classpath、挂载卷、对象存储同步目录等方式加载同一套 skill。

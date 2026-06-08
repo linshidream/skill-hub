@@ -2,12 +2,35 @@
   "schemaVersion": "0.1.0",
   "name": "skill-hub",
   "description": "Agent-neutral reusable skills for Claude Code, OpenClaw, Codex, and other SKILL.md-compatible agents.",
+  "categories": {
+    "dev": {
+      "title": "开发与运维",
+      "titleEn": "Development & DevOps",
+      "description": "项目脚手架、部署、代码组织、CI/CD、监控运维"
+    },
+    "office": {
+      "title": "办公与数据",
+      "titleEn": "Office & Data",
+      "description": "Office 文件处理、文档识别制作、数据搜索、HR/财务/运营流程"
+    },
+    "creative": {
+      "title": "创意与媒体",
+      "titleEn": "Creative & Media",
+      "description": "图片、视频、音频、文章排版、设计发布"
+    },
+    "product": {
+      "title": "产品与设计",
+      "titleEn": "Product & Design",
+      "description": "UI/UX、PRD、流程图、Figma、产品语义设计"
+    }
+  },
   "skills": [
     {
       "name": "mafengwo-original-images",
       "title": "马蜂窝游记原图下载",
       "version": "0.1.0",
-      "path": "skills/mafengwo-original-images",
+      "category": "creative",
+      "path": "skills/creative/mafengwo-original-images",
       "description": "从马蜂窝图片/游记页面提取原始图片链接，下载原图，并生成链接与文件大小清单。",
       "supportedAgents": ["claude-code", "openclaw", "codex", "generic"],
       "sideEffects": ["network", "filesystem-write"]
@@ -16,7 +39,8 @@
       "name": "wechat-markdown-publisher",
       "title": "微信公众号 Markdown 发布排版",
       "version": "0.1.0",
-      "path": "skills/wechat-markdown-publisher",
+      "category": "creative",
+      "path": "skills/creative/wechat-markdown-publisher",
       "description": "将 Typora/Markdown 文章转换为微信公众号编辑器可粘贴的多主题富文本，并生成预览和检查报告。",
       "supportedAgents": ["claude-code", "codex", "generic"],
       "sideEffects": ["filesystem-read", "filesystem-write", "shell", "browser"]

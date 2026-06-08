@@ -55,7 +55,7 @@ def validate_skill(skill_dir: Path) -> list[str]:
         except json.JSONDecodeError as exc:
             errors.append(f"{name}: invalid skill.json: {exc}")
             manifest = {}
-        required = ["name", "title", "version", "description", "license", "entry", "supportedAgents", "sideEffects"]
+        required = ["name", "title", "version", "description", "category", "license", "entry", "supportedAgents", "sideEffects"]
         for key in required:
             if key not in manifest:
                 errors.append(f"{name}: skill.json missing {key}")
@@ -83,9 +83,22 @@ def main() -> int:
         path = Path(args.skill)
         if not path.exists():
             path = root / "skills" / args.skill
+        if not path.exists():
+            for cat in sorted((root / "skills").iterdir()):
+                candidate = cat / args.skill
+                if candidate.is_dir():
+                    path = candidate
+                    break
         skill_dirs = [path]
     else:
-        skill_dirs = sorted((root / "skills").iterdir())
+        skills_root = root / "skills"
+        skill_dirs = sorted(
+            skill_dir
+            for cat in skills_root.iterdir()
+            if cat.is_dir()
+            for skill_dir in cat.iterdir()
+            if skill_dir.is_dir()
+        )
 
     all_errors: list[str] = []
     for skill_dir in skill_dirs:

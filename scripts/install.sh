@@ -59,8 +59,30 @@ if [ -z "$AGENT" ]; then
   exit 2
 fi
 
-SKILL_DIR="$ROOT_DIR/skills/$SKILL_NAME"
-if [ ! -f "$SKILL_DIR/SKILL.md" ]; then
+SKILL_DIR=""
+REGISTRY="$ROOT_DIR/registry.json"
+if [ -f "$REGISTRY" ] && command -v python3 >/dev/null 2>&1; then
+  SKILL_DIR=$(python3 -c "
+import json, sys
+reg = json.load(open('$REGISTRY'))
+for s in reg.get('skills', []):
+    if s['name'] == '$SKILL_NAME':
+        print('$ROOT_DIR/' + s['path'])
+        sys.exit(0)
+sys.exit(1)
+" 2>/dev/null) || true
+fi
+
+if [ -z "$SKILL_DIR" ]; then
+  for candidate in "$ROOT_DIR"/skills/*/"$SKILL_NAME"; do
+    if [ -f "$candidate/SKILL.md" ]; then
+      SKILL_DIR="$candidate"
+      break
+    fi
+  done
+fi
+
+if [ -z "$SKILL_DIR" ] || [ ! -f "$SKILL_DIR/SKILL.md" ]; then
   echo "Skill not found: $SKILL_NAME" >&2
   exit 1
 fi

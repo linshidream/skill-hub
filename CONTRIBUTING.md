@@ -2,7 +2,7 @@
 
 ## Skill Requirements
 
-Each skill lives in `skills/<skill-name>/` and must include:
+Each skill lives in `skills/<category>/<skill-name>/` and must include:
 
 - `SKILL.md`
 - `skill.json`
@@ -24,6 +24,8 @@ webpage-research-notes
 video-script-outline
 ```
 
+Each skill must belong to one of the four categories: `dev`, `office`, `creative`, `product`. The skill directory must be placed under the corresponding category folder. See `AGENTS.md` for category definitions.
+
 ## Branching
 
 The main branch is `master`.
@@ -31,22 +33,23 @@ The main branch is `master`.
 When exploring or creating a new skill, use a local branch named:
 
 ```text
-skill/<skill-name>
+skill/<category>/<skill-name>
 ```
 
 Rules:
 
 - Create the branch from `master`.
-- `<skill-name>` must exactly match the future or existing `skills/<skill-name>/` directory.
+- `<category>` must be one of `dev`, `office`, `creative`, `product`.
+- `<skill-name>` must exactly match the future or existing `skills/<category>/<skill-name>/` directory.
 - Use lowercase letters, digits, and hyphens only.
 - Do not create the branch automatically in an agent workflow. The agent should propose the branch name and wait for explicit user approval before running git commands.
-- If the skill name is not settled yet, decide the name first, then create the branch.
+- If the skill name is not settled yet, decide the category and name first, then create the branch.
 
 After approval:
 
 ```bash
 git checkout master
-git checkout -b skill/<skill-name>
+git checkout -b skill/<category>/<skill-name>
 ```
 
 ## Validation
@@ -62,7 +65,7 @@ python3 scripts/validate-skill.py
 When adding, renaming, deprecating, or publishing a new skill version:
 
 - Update `SKILL_RELEASES.md` with release time, version, status, summary, and entry path.
-- Update `registry.json` so installers and indexers can discover the same skill.
+- Update `registry.json` so installers and indexers can discover the same skill. Ensure `category` and `path` fields match the directory placement.
 - Keep the root `README.md` as a file index. Do not add concrete skill listings there.
 
 ## Package And Deploy

@@ -3,7 +3,7 @@
   "$id": "https://example.com/skill-hub/schemas/skill.schema.json",
   "title": "Skill Hub Skill Manifest",
   "type": "object",
-  "required": ["name", "title", "version", "description", "license", "entry", "supportedAgents", "sideEffects"],
+  "required": ["name", "title", "version", "description", "category", "license", "entry", "supportedAgents", "sideEffects"],
   "properties": {
     "name": {
       "type": "string",
@@ -20,6 +20,11 @@
     "description": {
       "type": "string",
       "minLength": 10
+    },
+    "category": {
+      "type": "string",
+      "enum": ["dev", "office", "creative", "product"],
+      "description": "Skill 所属分类：dev=开发与运维, office=办公与数据, creative=创意与媒体, product=产品与设计"
     },
     "license": {
       "type": "string"

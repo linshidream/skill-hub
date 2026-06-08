@@ -145,7 +145,7 @@ def main() -> int:
         },
         "runtime": {
             "recommendedRoot": "/opt/skill-hub/current",
-            "skillPattern": "skills/*/SKILL.md",
+            "skillPattern": "skills/**/SKILL.md",
         },
         "skills": packaged_skills,
     }

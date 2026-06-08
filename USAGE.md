@@ -68,13 +68,17 @@ skill-hub/
 │   ├── validate-skill.py
 │   └── package-skill.py
 └── skills/
-    └── <skill-name>/
-        ├── SKILL.md
-        ├── skill.json
-        ├── README.md
-        ├── scripts/
-        ├── examples/
-        └── adapters/
+    ├── dev/
+    ├── office/
+    ├── creative/
+    │   └── <skill-name>/
+    │       ├── SKILL.md
+    │       ├── skill.json
+    │       ├── README.md
+    │       ├── scripts/
+    │       ├── examples/
+    │       └── adapters/
+    └── product/
 ```
 
 ## Skill 规范
@@ -111,13 +115,14 @@ description: What this skill does and when to use it.
 探索或创建新 skill 时，使用独立本地分支：
 
 ```text
-skill/<skill-name>
+skill/<category>/<skill-name>
 ```
 
 规则：
 
 - 从 `master` 分支 checkout。
-- `<skill-name>` 必须与 `skills/<skill-name>/` 目录名完全一致。
+- `<category>` 必须是 `dev`、`office`、`creative`、`product` 之一。
+- `<skill-name>` 必须与 `skills/<category>/<skill-name>/` 目录名完全一致。
 - `<skill-name>` 使用 lowercase-hyphen 命名。
 - Agent 不能自动创建分支；需要先给出建议分支名和命令，等待用户明确同意后再执行。
 
@@ -125,7 +130,7 @@ skill/<skill-name>
 
 ```bash
 git checkout master
-git checkout -b skill/<skill-name>
+git checkout -b skill/<category>/<skill-name>
 ```
 
 ## 验证
@@ -185,7 +190,7 @@ python3 scripts/deploy-release.py dist/skill-hub-20260601-001.tar.gz --deploy-ro
 
 ```text
 .tmp/server/skill-hub/current/registry.json
-.tmp/server/skill-hub/current/skills/*/SKILL.md
+.tmp/server/skill-hub/current/skills/<category>/<skill-name>/SKILL.md
 ```
 
 ## 安全说明

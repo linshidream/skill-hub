@@ -3,6 +3,7 @@
   "title": "马蜂窝原图下载",
   "version": "0.1.0",
   "description": "从马蜂窝图片/游记页面提取原始图片链接，下载原图，并生成链接与文件大小清单。",
+  "category": "creative",
   "license": "MIT",
   "entry": "SKILL.md",
   "requirements": ["python>=3.10", "curl recommended"],
