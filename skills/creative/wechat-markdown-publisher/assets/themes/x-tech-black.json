@@ -1,0 +1,201 @@
+{
+  "name": "x-tech-black",
+  "title": "科技黑 X 风格",
+  "description": "参考 X.com 黑白信息流和个人主页的黑色纸面气质，使用白底、黑字、细线、低饱和强调和 H2 自动编号，适合技术评论、AI Agent、产品工程和科技媒体专栏文章。",
+  "aliases": ["默认", "科技", "科技类", "技术", "技术类", "科技黑", "推特黑", "X风", "黑色科技"],
+  "headingDecorations": {
+    "h2": {
+      "numbering": true,
+      "format": "zero-padded",
+      "stripExistingPrefix": true,
+      "mark": ""
+    }
+  },
+  "styles": {
+    "article": [
+      "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue','PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif",
+      "font-size:16px",
+      "line-height:1.86",
+      "color:#0f1419",
+      "background:#ffffff",
+      "word-break:break-word",
+      "letter-spacing:0"
+    ],
+    "h1": [
+      "font-size:27px",
+      "line-height:1.32",
+      "font-weight:800",
+      "color:#0f1419",
+      "margin:8px 0 24px",
+      "padding:0",
+      "letter-spacing:0"
+    ],
+    "h2": [
+      "font-size:20px",
+      "line-height:1.45",
+      "font-weight:780",
+      "color:#0f1419",
+      "margin:46px 0 24px",
+      "padding:0 0 16px",
+      "text-align:center",
+      "background:transparent",
+      "border-bottom:1px solid rgba(15,20,25,0.10)",
+      "letter-spacing:0"
+    ],
+    "h2_index": [
+      "display:inline-block",
+      "margin:0 10px 0 0",
+      "line-height:1",
+      "text-align:center",
+      "vertical-align:baseline",
+      "white-space:nowrap"
+    ],
+    "h2_mark": [
+      "display:none"
+    ],
+    "h2_number": [
+      "display:inline-block",
+      "font-size:24px",
+      "line-height:1",
+      "font-weight:850",
+      "color:rgba(15,20,25,0.08)",
+      "-webkit-text-stroke:1px rgba(15,20,25,0.86)",
+      "letter-spacing:0.04em",
+      "vertical-align:baseline"
+    ],
+    "h2_title": [
+      "display:inline",
+      "margin:0",
+      "font-size:20px",
+      "line-height:1.45",
+      "font-weight:780",
+      "color:#0f1419"
+    ],
+    "h3": [
+      "font-size:17px",
+      "line-height:1.55",
+      "font-weight:760",
+      "color:#0f1419",
+      "margin:32px 0 13px",
+      "padding:2px 0 2px 11px",
+      "border-left:2px solid #0f1419",
+      "letter-spacing:0"
+    ],
+    "h4": [
+      "font-size:16px",
+      "line-height:1.55",
+      "font-weight:720",
+      "color:#292f33",
+      "margin:24px 0 10px",
+      "padding:0",
+      "letter-spacing:0"
+    ],
+    "p": ["margin:0 0 16px", "line-height:1.86", "color:#0f1419", "font-size:16px"],
+    "strong": ["font-weight:760", "color:#0f1419"],
+    "em": ["font-style:italic", "color:#4c4a45"],
+    "a": ["color:#8f1f18", "text-decoration:none", "border-bottom:1px solid rgba(143,31,24,0.24)"],
+    "blockquote": [
+      "margin:22px 0",
+      "padding:15px 16px",
+      "border-left:3px solid #0f1419",
+      "background:#fbfaf6",
+      "color:#292f33"
+    ],
+    "ul": ["margin:0 0 18px 0", "padding-left:22px", "color:#0f1419"],
+    "ol": ["margin:0 0 18px 0", "padding-left:22px", "color:#0f1419"],
+    "li": ["margin:7px 0", "line-height:1.78", "color:#0f1419"],
+    "code": [
+      "font-family:'SFMono-Regular','Cascadia Code','Roboto Mono','Menlo','Consolas',monospace",
+      "font-size:0.88em",
+      "color:#0f1419",
+      "background:#f5f1ea",
+      "border:1px solid rgba(15,20,25,0.14)",
+      "border-radius:4px",
+      "padding:2px 5px"
+    ],
+    "pre": [
+      "margin:20px 0",
+      "padding:16px 16px",
+      "line-height:1.68",
+      "background:#11110f",
+      "border:1px solid #11110f",
+      "border-radius:6px",
+      "overflow-x:auto",
+      "white-space:pre"
+    ],
+    "pre_code": [
+      "font-family:'SFMono-Regular','Cascadia Code','Roboto Mono','Menlo','Consolas',monospace",
+      "font-size:13px",
+      "line-height:1.68",
+      "color:#fffdf8",
+      "background:transparent",
+      "border:0",
+      "border-radius:0",
+      "padding:0",
+      "white-space:pre"
+    ],
+    "table": [
+      "width:100%",
+      "border-collapse:collapse",
+      "margin:22px 0",
+      "font-size:14px",
+      "line-height:1.65",
+      "color:#0f1419"
+    ],
+    "th": [
+      "border:1px solid rgba(15,20,25,0.18)",
+      "background:#fbfaf6",
+      "color:#0f1419",
+      "padding:9px 10px",
+      "font-weight:760",
+      "text-align:left"
+    ],
+    "td": ["border:1px solid rgba(15,20,25,0.12)", "padding:9px 10px", "text-align:left"],
+    "hr": ["border:0", "border-top:1px solid rgba(15,20,25,0.14)", "margin:30px 0"],
+    "img": ["display:block", "max-width:100%", "height:auto", "margin:22px auto 8px", "border-radius:4px"],
+    "figcaption": [
+      "font-size:13px",
+      "line-height:1.6",
+      "color:#71767b",
+      "text-align:center",
+      "margin:0 auto 18px"
+    ],
+    "sub": [
+      "display:block",
+      "font-size:12px",
+      "line-height:1.5",
+      "color:#71767b",
+      "text-align:center",
+      "margin:-10px auto 18px"
+    ],
+    "cover": [
+      "margin:18px 0 30px",
+      "padding:0",
+      "text-align:center"
+    ],
+    "cover_img": [
+      "display:block",
+      "width:100%",
+      "max-width:100%",
+      "height:auto",
+      "margin:0 auto",
+      "border-radius:4px"
+    ],
+    "toc": [
+      "margin:24px 0 30px",
+      "padding:14px 16px",
+      "border:1px solid rgba(15,20,25,0.14)",
+      "background:#fbfaf6",
+      "border-radius:6px"
+    ],
+    "toc_title": ["font-size:14px", "font-weight:760", "color:#0f1419", "margin:0 0 8px"],
+    "toc_item": ["margin:6px 0", "font-size:14px", "line-height:1.6", "color:#4c4a45"],
+    "footnotes": [
+      "margin:30px 0 0",
+      "padding-top:14px",
+      "border-top:1px solid rgba(15,20,25,0.14)",
+      "font-size:13px",
+      "color:#4c4a45"
+    ]
+  }
+}

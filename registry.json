@@ -38,10 +38,10 @@
     {
       "name": "wechat-markdown-publisher",
       "title": "微信公众号 Markdown 发布排版",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "category": "creative",
       "path": "skills/creative/wechat-markdown-publisher",
-      "description": "将 Typora/Markdown 文章转换为微信公众号编辑器可粘贴的多主题富文本，并生成预览页、复制入口和兼容性检查报告。",
+      "description": "将 Typora/Markdown 文章转换为微信公众号编辑器可粘贴的多主题富文本，默认使用科技黑 X 风格并支持 H2 自动编号、目录编号、可选封面图、可选本地 PDF、预览页、复制入口和兼容性检查报告。",
       "supportedAgents": ["claude-code", "codex", "generic"],
       "sideEffects": ["filesystem-read", "filesystem-write", "shell", "browser"]
     }

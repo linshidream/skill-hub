@@ -1,12 +1,12 @@
 {
   "name": "wechat-markdown-publisher",
   "title": "微信公众号 Markdown 发布排版",
-  "version": "0.1.0",
-  "description": "将 Typora/Markdown 文章转换为微信公众号编辑器可粘贴的多主题富文本，并生成预览页、复制入口和兼容性检查报告。",
+  "version": "0.2.0",
+  "description": "将 Typora/Markdown 文章转换为微信公众号编辑器可粘贴的多主题富文本，默认使用科技黑 X 风格并支持 H2 自动编号、目录编号、可选封面图、可选本地 PDF、预览页、复制入口和兼容性检查报告。",
   "category": "creative",
   "license": "MIT",
   "entry": "SKILL.md",
-  "requirements": ["python>=3.10", "beautifulsoup4", "pandoc recommended"],
+  "requirements": ["python>=3.10", "local Chrome/Edge/Chromium optional for --pdf", "reportlab optional for --pdf-engine reportlab", "pandoc optional via WECHAT_MARKDOWN_USE_PANDOC=1"],
   "supportedAgents": ["claude-code", "codex", "generic"],
   "sideEffects": ["filesystem-read", "filesystem-write", "shell", "browser"],
   "adapters": {

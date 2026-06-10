@@ -3,10 +3,22 @@
   "title": "新主题显示名",
   "description": "说明主题气质、适合文章类型和颜色倾向。",
   "aliases": ["用户可能说的中文别名", "另一个别名"],
+  "headingDecorations": {
+    "h2": {
+      "numbering": false,
+      "format": "zero-padded",
+      "stripExistingPrefix": true,
+      "mark": ""
+    }
+  },
   "styles": {
     "article": [],
     "h1": [],
     "h2": [],
+    "h2_index": [],
+    "h2_mark": [],
+    "h2_number": [],
+    "h2_title": [],
     "h3": [],
     "h4": [],
     "p": [],
@@ -26,6 +38,9 @@
     "hr": [],
     "img": [],
     "figcaption": [],
+    "sub": [],
+    "cover": [],
+    "cover_img": [],
     "toc": [],
     "toc_title": [],
     "toc_item": [],

@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/skill-hub/schemas/registry.schema.json",
+  "title": "Skill Hub Registry",
+  "type": "object",
+  "required": ["schemaVersion", "name", "description", "categories", "skills"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "const": "skill-hub"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "categories": {
+      "type": "object",
+      "required": ["dev", "office", "creative", "product"],
+      "additionalProperties": false,
+      "properties": {
+        "dev": { "$ref": "#/$defs/category" },
+        "office": { "$ref": "#/$defs/category" },
+        "creative": { "$ref": "#/$defs/category" },
+        "product": { "$ref": "#/$defs/category" }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "title", "version", "category", "path", "description", "supportedAgents", "sideEffects"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["dev", "office", "creative", "product"]
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^skills/(dev|office|creative|product)/[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10
+          },
+          "supportedAgents": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          "sideEffects": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["none", "network", "filesystem-read", "filesystem-write", "shell", "browser", "external-service"]
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "$defs": {
+    "category": {
+      "type": "object",
+      "required": ["title", "titleEn", "description"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "titleEn": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

@@ -30,6 +30,49 @@ Add aliases so users can request the theme naturally in conversation:
 
 The converter resolves `--theme` by matching the file name, `name`, `title`, or any alias.
 
+## Optional Heading Decorations
+
+Themes may add real DOM decorations to headings when inline style alone is not enough.
+The first supported decoration is H2 auto-numbering:
+
+```json
+"headingDecorations": {
+  "h2": {
+    "numbering": true,
+    "format": "zero-padded",
+    "stripExistingPrefix": true,
+    "mark": "X"
+  }
+}
+```
+
+When enabled, each H2 is rewritten from plain heading text into:
+
+```html
+<h2>
+  <span data-role="h2-index">
+    <span data-role="h2-mark">X</span>
+    <span data-role="h2-number">01</span>
+  </span>
+  <span data-role="h2-title">Heading text</span>
+</h2>
+```
+
+The generated report uses the body heading text, not the decorated number.
+The generated table of contents uses the body H2 heading text and automatically prefixes items with `1、`, `2、`, `3、`, and so on.
+When `stripExistingPrefix` is true, existing prefixes such as `01 `, `01、`, or `一、` are removed before the theme-generated number is inserted.
+
+## Optional Cover Styles
+
+Cover image generation is handled by the current agent's available image generation skill, not by the theme.
+When a cover image is passed to the converter, it is inserted below the generated table of contents without a caption.
+Themes may style the cover wrapper and image with optional keys:
+
+```text
+cover
+cover_img
+```
+
 ## Required Keys
 
 Every theme must provide styles for:
@@ -63,6 +106,18 @@ toc_item
 footnotes
 ```
 
+Optional style keys are allowed and will be loaded if present:
+
+```text
+h2_index
+h2_mark
+h2_number
+h2_title
+sub
+cover
+cover_img
+```
+
 ## Style Format
 
 Each style value may be an array of CSS declarations:
@@ -89,7 +144,8 @@ The converter joins these declarations and writes them inline for WeChat compati
 - Design both `code` and `pre_code`; they solve different problems.
 - Ensure tables remain legible with many columns.
 - Ensure images are centered and not wider than the container.
-- Keep `toc` compact. The default generated TOC includes H2 only.
+- Keep `toc` compact. The default generated TOC includes H2 only and automatically numbers each item.
+- Keep `cover_img` centered, landscape-friendly, and free of caption assumptions.
 - Test with `examples/sample.md` and at least one real long article before using the theme.
 
 ## Command

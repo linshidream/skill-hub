@@ -2,7 +2,7 @@
   "name": "media-flat",
   "title": "科技媒体专栏风格",
   "description": "克制但不干枯的科技媒体排版。黑白灰为主体，蓝色作为信息强调，适合长篇技术文章。",
-  "aliases": ["科技", "科技类", "技术", "技术类", "默认"],
+  "aliases": ["科技蓝", "媒体蓝", "旧科技蓝", "蓝色科技", "media-blue"],
   "styles": {
     "article": [
       "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif",
