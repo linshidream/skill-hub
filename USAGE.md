@@ -62,6 +62,7 @@ skill-hub/
 ├── CONTRIBUTING.md
 ├── registry.json
 ├── schemas/
+│   ├── registry.schema.json
 │   └── skill.schema.json
 ├── scripts/
 │   ├── install.sh

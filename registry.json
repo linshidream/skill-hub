@@ -33,7 +33,7 @@
       "path": "skills/creative/mafengwo-original-images",
       "description": "从马蜂窝图片/游记页面提取原始图片链接，下载原图，并生成链接与文件大小清单。",
       "supportedAgents": ["claude-code", "openclaw", "codex", "generic"],
-      "sideEffects": ["network", "filesystem-write"]
+      "sideEffects": ["network", "filesystem-write", "browser"]
     },
     {
       "name": "wechat-markdown-publisher",
@@ -41,7 +41,7 @@
       "version": "0.1.0",
       "category": "creative",
       "path": "skills/creative/wechat-markdown-publisher",
-      "description": "将 Typora/Markdown 文章转换为微信公众号编辑器可粘贴的多主题富文本，并生成预览和检查报告。",
+      "description": "将 Typora/Markdown 文章转换为微信公众号编辑器可粘贴的多主题富文本，并生成预览页、复制入口和兼容性检查报告。",
       "supportedAgents": ["claude-code", "codex", "generic"],
       "sideEffects": ["filesystem-read", "filesystem-write", "shell", "browser"]
     }

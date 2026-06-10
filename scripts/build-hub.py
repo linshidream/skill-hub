@@ -51,6 +51,14 @@ def copy_tree(src: Path, dst: Path) -> None:
     shutil.copytree(src, dst, ignore=ignore)
 
 
+def should_package(path: Path) -> bool:
+    return (
+        path.is_file()
+        and not any(part in SKIP_NAMES for part in path.parts)
+        and not path.name.endswith(".pyc")
+    )
+
+
 def package_skill(skill_dir: Path, packages_dir: Path) -> Path:
     manifest = json.loads((skill_dir / "skill.json").read_text(encoding="utf-8"))
     name = manifest["name"]
@@ -59,8 +67,8 @@ def package_skill(skill_dir: Path, packages_dir: Path) -> Path:
 
     with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for path in sorted(skill_dir.rglob("*")):
-            if path.is_file() and path.name not in SKIP_NAMES and not path.name.endswith(".pyc"):
-                zf.write(path, path.relative_to(skill_dir.parent.parent))
+            if should_package(path):
+                zf.write(path, path.relative_to(skill_dir.parent))
 
     return archive
 

@@ -8,7 +8,7 @@
 
 ```text
 /opt/skill-hub/current/registry.json
-/opt/skill-hub/current/skills/*/SKILL.md
+/opt/skill-hub/current/skills/**/SKILL.md
 ```
 
 示例配置：
@@ -18,7 +18,7 @@ agent:
   skills:
     registry: file:/opt/skill-hub/current/registry.json
     locations:
-      - file:/opt/skill-hub/current/skills/*/SKILL.md
+      - file:/opt/skill-hub/current/skills/**/SKILL.md
 ```
 
 ## 运行时模型

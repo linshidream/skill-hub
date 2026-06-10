@@ -5,6 +5,20 @@ import zipfile
 from pathlib import Path
 
 
+SKIP_NAMES = {
+    ".DS_Store",
+    "__pycache__",
+}
+
+
+def should_package(path: Path) -> bool:
+    return (
+        path.is_file()
+        and not any(part in SKIP_NAMES for part in path.parts)
+        and not path.name.endswith(".pyc")
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Package a skill as a zip archive.")
     parser.add_argument("skill_name")
@@ -40,7 +54,7 @@ def main() -> int:
 
     with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for path in sorted(skill_dir.rglob("*")):
-            if path.is_file():
+            if should_package(path):
                 zf.write(path, path.relative_to(skill_dir.parent))
 
     print(archive)
@@ -49,4 +63,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
