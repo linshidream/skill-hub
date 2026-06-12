@@ -1,0 +1,15 @@
+{
+  "name": "git-flow",
+  "title": "开发分支生命周期管理",
+  "version": "0.1.0",
+  "description": "管理 feature 分支创建、提交、推送、合并测试分支的完整流程，支持冲突自动分类与解决建议。Manage feature branch lifecycle: init, commit, push, and integrate into test branch with smart conflict handling.",
+  "category": "dev",
+  "license": "MIT",
+  "entry": "SKILL.md",
+  "requirements": ["git>=2.20", "python>=3.10"],
+  "supportedAgents": ["claude-code", "codex", "generic"],
+  "sideEffects": ["shell", "filesystem-read", "filesystem-write", "network"],
+  "adapters": {
+    "claude-code": "adapters/claude-code.md"
+  }
+}

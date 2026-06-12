@@ -26,6 +26,16 @@
   },
   "skills": [
     {
+      "name": "git-flow",
+      "title": "开发分支生命周期管理",
+      "version": "0.1.0",
+      "category": "dev",
+      "path": "skills/dev/git-flow",
+      "description": "管理 feature 分支创建、提交、推送、合并测试分支的完整流程，支持冲突自动分类与解决建议。Manage feature branch lifecycle: init, commit, push, and integrate into test branch with smart conflict handling.",
+      "supportedAgents": ["claude-code", "codex", "generic"],
+      "sideEffects": ["shell", "filesystem-read", "filesystem-write", "network"]
+    },
+    {
       "name": "mafengwo-original-images",
       "title": "马蜂窝游记原图下载",
       "version": "0.1.0",
