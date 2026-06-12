@@ -36,6 +36,16 @@
       "sideEffects": ["shell", "filesystem-read", "filesystem-write", "network"]
     },
     {
+      "name": "ci-trigger",
+      "title": "CI/CD 触发与监控",
+      "version": "0.1.0",
+      "category": "dev",
+      "path": "skills/dev/ci-trigger",
+      "description": "触发 CI 构建、轮询状态、拉取失败日志、分析原因并报告结果。支持 Jenkins、GitHub Actions、GitLab CI。Trigger CI builds, monitor status, fetch failure logs and report results.",
+      "supportedAgents": ["claude-code", "codex", "generic"],
+      "sideEffects": ["shell", "network", "external-service"]
+    },
+    {
       "name": "mafengwo-original-images",
       "title": "马蜂窝游记原图下载",
       "version": "0.1.0",

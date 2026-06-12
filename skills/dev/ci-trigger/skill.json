@@ -1,0 +1,15 @@
+{
+  "name": "ci-trigger",
+  "title": "CI/CD 触发与监控",
+  "version": "0.1.0",
+  "description": "触发 CI 构建、轮询状态、拉取失败日志、分析原因并报告结果。支持 Jenkins、GitHub Actions、GitLab CI。Trigger CI builds, monitor status, fetch failure logs and report results.",
+  "category": "dev",
+  "license": "MIT",
+  "entry": "SKILL.md",
+  "requirements": ["curl"],
+  "supportedAgents": ["claude-code", "codex", "generic"],
+  "sideEffects": ["shell", "network", "external-service"],
+  "adapters": {
+    "claude-code": "adapters/claude-code.md"
+  }
+}
