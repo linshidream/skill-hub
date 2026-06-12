@@ -1,0 +1,15 @@
+{
+  "name": "dev-spec",
+  "title": "开发需求规格化",
+  "version": "0.1.0",
+  "description": "将需求对话转化为结构化 spec 文档，支持多模板、自动输出到项目 docs 目录。Turn requirement conversations into structured spec documents.",
+  "category": "dev",
+  "license": "MIT",
+  "entry": "SKILL.md",
+  "requirements": [],
+  "supportedAgents": ["claude-code", "codex", "generic"],
+  "sideEffects": ["filesystem-read", "filesystem-write"],
+  "adapters": {
+    "claude-code": "adapters/claude-code.md"
+  }
+}

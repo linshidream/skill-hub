@@ -1,0 +1,94 @@
+# ============================================================
+# .dev-flow.yml — Java + Maven + Jenkins + Gitee 项目模板
+# 位置：项目仓库根目录
+# 此文件提交进仓库，但其中不包含任何明文凭据
+# ============================================================
+
+# --- 项目标识（必填）---
+project:
+  name: marketing-customer              # 项目标识符
+  language: java
+  build-tool: maven
+
+# --- 开发者（必填）---
+developers:
+  zx:
+    name: 郑星
+  # 按需添加更多开发者
+  # zzy:
+  #   name: 赵振宇
+
+# --- 分支模型（必填，仅 production 必填）---
+branching:
+  production: master                     # 生产分支
+  test: puup-new-version-mk-test         # 测试分支
+  pattern: "feat/{developer}/{feature}"  # 分支命名模式
+
+# --- 集成策略 ---
+integration:
+  strategy: merge-local                  # merge-local | pull-request [V2]
+  conflict:
+    auto-resolve: trivial                # trivial | none
+    max-auto-files: 3                    # 自动解决的最大文件数
+
+# --- CI/CD ---
+ci:
+  system: jenkins
+  auto-trigger: true
+
+  jenkins:
+    url: "${JENKINS_URL}"                # 环境变量引用，绝不写明文
+    job: marketing-customer-pipeline
+    auth:
+      method: token
+      user: "${JENKINS_USER}"
+      token: "${JENKINS_TOKEN}"
+    params:
+      CURRENT_VERSION: "{{version}}"     # {{双花括号}} = 运行时动态值
+      ACTIVE: test
+      GIT_BRANCH: "{{branch}}"
+    poll:
+      interval: 30                       # 秒
+      timeout: 900                       # 15 分钟
+
+# --- Spec 文档 ---
+spec:
+  output-dir: docs/specs
+  naming: "YYYYMMDD-{feature}.md"
+  template: default
+  required-sections:
+    - background
+    - features
+    - acceptance-criteria
+
+# --- 自动化程度 ---
+automation:
+  spec-confirm: prompt                   # prompt | quick
+  completion-check: manual               # manual | auto
+  build-trigger: auto                    # auto | confirm
+
+  review:
+    reminder:
+      enabled: true
+      after: 4h
+    cascade:
+      after-spec-approved:
+        - git-flow:init
+      after-code-approved:
+        - git-flow:commit
+        - git-flow:push
+        - git-flow:integrate
+        - ci-trigger:build
+        - ci-trigger:notify
+    cascade-interrupt:
+      on-conflict: pause
+      on-build-failure: analyze-and-pause
+
+# --- 通知（可选）---
+notify:
+  on-build-success:
+    - channel: dingtalk
+      webhook: "${DINGTALK_WEBHOOK}"
+  on-build-failure:
+    - channel: dingtalk
+      webhook: "${DINGTALK_WEBHOOK}"

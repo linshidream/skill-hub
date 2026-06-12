@@ -26,6 +26,26 @@
   },
   "skills": [
     {
+      "name": "dev-lifecycle",
+      "title": "开发全流程编排",
+      "version": "0.1.0",
+      "category": "dev",
+      "path": "skills/dev/dev-lifecycle",
+      "description": "编排 dev-spec、git-flow、ci-trigger 三个 skill，实现从需求到部署测试环境的全自动开发流程。Orchestrate the full development lifecycle from requirements to test deployment.",
+      "supportedAgents": ["claude-code", "codex", "generic"],
+      "sideEffects": ["shell", "filesystem-read", "filesystem-write", "network", "external-service"]
+    },
+    {
+      "name": "dev-spec",
+      "title": "开发需求规格化",
+      "version": "0.1.0",
+      "category": "dev",
+      "path": "skills/dev/dev-spec",
+      "description": "将需求对话转化为结构化 spec 文档，支持多模板、自动输出到项目 docs 目录。Turn requirement conversations into structured spec documents.",
+      "supportedAgents": ["claude-code", "codex", "generic"],
+      "sideEffects": ["filesystem-read", "filesystem-write"]
+    },
+    {
       "name": "git-flow",
       "title": "开发分支生命周期管理",
       "version": "0.1.0",

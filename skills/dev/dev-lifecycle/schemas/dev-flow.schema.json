@@ -1,0 +1,264 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dev-flow.schema.json",
+  "title": ".dev-flow.yml",
+  "description": "项目开发流配置文件的 JSON Schema",
+  "type": "object",
+  "required": ["project", "developers", "branching"],
+  "properties": {
+    "project": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "项目标识符"
+        },
+        "language": {
+          "type": "string",
+          "enum": ["java", "python", "node", "go", "rust", "kotlin"],
+          "description": "项目语言"
+        },
+        "build-tool": {
+          "type": "string",
+          "enum": ["maven", "gradle", "npm", "pnpm", "yarn", "pip", "poetry", "go", "cargo"],
+          "description": "构建工具"
+        }
+      }
+    },
+    "developers": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "开发者姓名"
+          }
+        }
+      },
+      "description": "开发者列表，key 为缩写标识符"
+    },
+    "branching": {
+      "type": "object",
+      "required": ["production"],
+      "properties": {
+        "production": {
+          "type": "string",
+          "description": "生产分支"
+        },
+        "test": {
+          "type": "string",
+          "description": "测试分支"
+        },
+        "pattern": {
+          "type": "string",
+          "default": "feat/{developer}/{feature}",
+          "description": "分支命名模式"
+        }
+      }
+    },
+    "integration": {
+      "type": "object",
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": ["merge-local", "pull-request"],
+          "default": "merge-local"
+        },
+        "conflict": {
+          "type": "object",
+          "properties": {
+            "auto-resolve": {
+              "type": "string",
+              "enum": ["trivial", "none"],
+              "default": "trivial"
+            },
+            "max-auto-files": {
+              "type": "integer",
+              "default": 3
+            }
+          }
+        },
+        "pull-request": {
+          "type": "object",
+          "properties": {
+            "target": { "type": "string" },
+            "draft": { "type": "boolean", "default": true },
+            "reviewers": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "ci": {
+      "type": "object",
+      "properties": {
+        "system": {
+          "type": "string",
+          "enum": ["jenkins", "github-actions", "gitlab-ci"]
+        },
+        "auto-trigger": {
+          "type": "boolean",
+          "default": true
+        },
+        "jenkins": {
+          "type": "object",
+          "properties": {
+            "url": { "type": "string" },
+            "job": { "type": "string" },
+            "auth": {
+              "type": "object",
+              "properties": {
+                "method": { "type": "string", "enum": ["token", "basic"] },
+                "user": { "type": "string" },
+                "token": { "type": "string" }
+              }
+            },
+            "params": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            },
+            "poll": {
+              "type": "object",
+              "properties": {
+                "interval": { "type": "integer", "default": 30 },
+                "timeout": { "type": "integer", "default": 900 }
+              }
+            }
+          }
+        },
+        "github-actions": {
+          "type": "object",
+          "properties": {
+            "workflow": { "type": "string" },
+            "ref": { "type": "string" },
+            "inputs": { "type": "object" }
+          }
+        },
+        "gitlab-ci": {
+          "type": "object",
+          "properties": {
+            "trigger-token": { "type": "string" },
+            "ref": { "type": "string" },
+            "variables": { "type": "object" }
+          }
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "properties": {
+        "output-dir": {
+          "type": "string",
+          "default": "docs/specs"
+        },
+        "naming": {
+          "type": "string",
+          "default": "YYYYMMDD-{feature}.md"
+        },
+        "template": {
+          "type": "string",
+          "enum": ["default", "minimal"],
+          "default": "default"
+        },
+        "required-sections": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "automation": {
+      "type": "object",
+      "properties": {
+        "spec-confirm": {
+          "type": "string",
+          "enum": ["prompt", "quick"],
+          "default": "prompt"
+        },
+        "completion-check": {
+          "type": "string",
+          "enum": ["manual", "auto"],
+          "default": "manual"
+        },
+        "build-trigger": {
+          "type": "string",
+          "enum": ["auto", "confirm"],
+          "default": "auto"
+        },
+        "review": {
+          "type": "object",
+          "properties": {
+            "reminder": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean", "default": true },
+                "after": { "type": "string", "default": "4h" }
+              }
+            },
+            "cascade": {
+              "type": "object",
+              "properties": {
+                "after-spec-approved": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "default": ["git-flow:init"]
+                },
+                "after-code-approved": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "default": ["git-flow:commit", "git-flow:push", "git-flow:integrate", "ci-trigger:build", "ci-trigger:notify"]
+                }
+              }
+            },
+            "cascade-interrupt": {
+              "type": "object",
+              "properties": {
+                "on-conflict": {
+                  "type": "string",
+                  "enum": ["pause", "abort"],
+                  "default": "pause"
+                },
+                "on-build-failure": {
+                  "type": "string",
+                  "enum": ["analyze-and-pause", "abort"],
+                  "default": "analyze-and-pause"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "notify": {
+      "type": "object",
+      "properties": {
+        "on-build-success": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["channel"],
+            "properties": {
+              "channel": { "type": "string", "enum": ["dingtalk", "wechat-work", "feishu", "slack", "webhook"] },
+              "webhook": { "type": "string" }
+            }
+          }
+        },
+        "on-build-failure": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["channel"],
+            "properties": {
+              "channel": { "type": "string", "enum": ["dingtalk", "wechat-work", "feishu", "slack", "webhook"] },
+              "webhook": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

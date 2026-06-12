@@ -13,6 +13,8 @@
 
 | 发布时间 | Skill | 版本 | 分类 | 变更类型 | 状态 | 支持 Agent | 变更摘要 | 入口 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-06-12 21:30 +0800 | `dev-lifecycle` | `0.1.0` | `dev` | 新增 | 可用 | Claude Code / Codex / Generic | 编排 dev-spec、git-flow、ci-trigger 全流程，含状态机协议、Review Loop（跨会话审查循环）、Auto Cascade（自动级联执行）、JSON Schema 和 Java+Maven+Jenkins 项目模板。 | `skills/dev/dev-lifecycle` |
+| 2026-06-12 21:00 +0800 | `dev-spec` | `0.1.0` | `dev` | 新增 | 可用 | Claude Code / Codex / Generic | 将需求对话转化为结构化 spec 文档，支持 default 和 minimal 两种模板，自动输出到项目 docs/specs 目录。 | `skills/dev/dev-spec` |
 | 2026-06-12 20:30 +0800 | `ci-trigger` | `0.1.0` | `dev` | 新增 | 可用 | Claude Code / Codex / Generic | 触发 CI 构建、轮询状态、拉取失败日志并分析原因，V1 实现 Jenkins 适配，含环境变量校验、配置验证、构建监控和失败日志提取。 | `skills/dev/ci-trigger` |
 | 2026-06-12 20:00 +0800 | `git-flow` | `0.1.0` | `dev` | 新增 | 可用 | Claude Code / Codex / Generic | 管理 feature 分支创建、提交、推送、合并测试分支，支持冲突自动分类（4 种 trivial + business），V1 仅实现 merge-local 集成策略，优先适配 Gitee + Java/Maven + Jenkins。 | `skills/dev/git-flow` |
 | 2026-06-10 18:04 +0800 | `wechat-markdown-publisher` | `0.2.0` | `creative` | 更新 | 可用 | Claude Code / Codex / Generic | 新增默认 `x-tech-black` 科技黑 X 风格主题，H2 自动生成前置序号，目录自动编号，支持当前 Agent 生图 skill 插入无图注封面图；复制公众号格式时不复制 H1 标题，并可选本地 Python PDF 导出。 | `skills/creative/wechat-markdown-publisher` |

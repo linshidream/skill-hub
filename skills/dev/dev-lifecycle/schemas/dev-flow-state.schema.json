@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dev-flow-state.schema.json",
+  "title": ".dev-flow-state.json",
+  "description": "开发流运行时状态文件的 JSON Schema",
+  "type": "object",
+  "required": ["phase", "reviews", "cascade"],
+  "properties": {
+    "phase": {
+      "type": "string",
+      "enum": [
+        "not-started",
+        "spec:producing",
+        "spec:awaiting-review",
+        "spec:revising",
+        "spec:approved",
+        "branched",
+        "code:developing",
+        "code:awaiting-review",
+        "code:revising",
+        "code:approved",
+        "pushed",
+        "integrating",
+        "building",
+        "deployed-test",
+        "done"
+      ],
+      "description": "当前阶段"
+    },
+    "sub-phase": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "子阶段（保留字段）"
+    },
+    "branch": {
+      "type": ["string", "null"],
+      "description": "当前 feature 分支名"
+    },
+    "developer": {
+      "type": ["string", "null"],
+      "description": "开发者标识"
+    },
+    "feature": {
+      "type": ["string", "null"],
+      "description": "功能 slug"
+    },
+    "spec": {
+      "type": ["string", "null"],
+      "description": "Spec 文件路径"
+    },
+    "started-at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "流程开始时间"
+    },
+    "reviews": {
+      "type": "object",
+      "properties": {
+        "spec": { "$ref": "#/$defs/review-loop" },
+        "code": { "$ref": "#/$defs/review-loop" }
+      },
+      "description": "Review Loop 状态"
+    },
+    "cascade": {
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "boolean",
+          "default": false
+        },
+        "type": {
+          "type": ["string", "null"],
+          "enum": ["after-spec-approved", "after-code-approved", null]
+        },
+        "steps-completed": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "steps-remaining": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "interrupted-at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "interrupt-reason": {
+          "type": ["string", "null"]
+        }
+      },
+      "description": "Auto Cascade 状态"
+    },
+    "commits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "hash": { "type": "string" },
+          "message": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "files": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "description": "提交记录"
+    },
+    "integration": {
+      "type": "object",
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": ["merge-local", "pull-request"]
+        },
+        "attempted-at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "conflicts": {
+          "type": ["object", "null"]
+        },
+        "resolved": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "description": "集成状态"
+    },
+    "build": {
+      "type": "object",
+      "properties": {
+        "system": {
+          "type": ["string", "null"],
+          "enum": ["jenkins", "github-actions", "gitlab-ci", null]
+        },
+        "number": {
+          "type": ["integer", "null"]
+        },
+        "status": {
+          "type": ["string", "null"],
+          "enum": ["triggered", "building", "success", "failure", "aborted", "timeout", null]
+        },
+        "url": {
+          "type": ["string", "null"]
+        }
+      },
+      "description": "CI 构建状态"
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "timestamp": { "type": "string", "format": "date-time" },
+          "event": { "type": "string" },
+          "detail": { "type": "string" }
+        }
+      },
+      "description": "关键事件时间线"
+    }
+  },
+  "$defs": {
+    "review-loop": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["not-started", "producing", "awaiting-review", "revising", "approved"]
+        },
+        "rounds": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "round": { "type": "integer" },
+              "produced-at": { "type": ["string", "null"], "format": "date-time" },
+              "review-started-at": { "type": ["string", "null"], "format": "date-time" },
+              "feedback-at": { "type": ["string", "null"], "format": "date-time" },
+              "approved-at": { "type": ["string", "null"], "format": "date-time" },
+              "feedback-summary": { "type": ["string", "null"] },
+              "files-changed": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "total-rounds": {
+          "type": "integer",
+          "default": 0
+        },
+        "approved-at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "total-review-duration": {
+          "type": ["string", "null"]
+        }
+      }
+    }
+  }
+}
