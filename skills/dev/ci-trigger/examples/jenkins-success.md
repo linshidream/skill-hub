@@ -8,7 +8,7 @@
   "result": "SUCCESS",
   "duration": 255000,
   "timestamp": 1717833600000,
-  "url": "https://jenkins.example.com/job/marketing-customer-pipeline/142/",
+  "url": "https://jenkins.example.com/job/your-project-pipeline/142/",
   "displayName": "#142",
   "building": false,
   "actions": [
@@ -17,7 +17,7 @@
       "parameters": [
         { "name": "CURRENT_VERSION", "value": "v1.0.1" },
         { "name": "ACTIVE", "value": "test" },
-        { "name": "GIT_BRANCH", "value": "puup-new-version-mk-test" }
+        { "name": "GIT_BRANCH", "value": "test" }
       ]
     }
   ]
@@ -32,6 +32,6 @@
   "system": "jenkins",
   "build_number": 142,
   "duration": "4m15s",
-  "url": "https://jenkins.example.com/job/marketing-customer-pipeline/142/"
+  "url": "https://jenkins.example.com/job/your-project-pipeline/142/"
 }
 ```

@@ -33,14 +33,14 @@ bash scripts/trigger.sh --validate-config
 Claude Code 从 `.dev-flow.yml` 读取 `ci.jenkins.params`，替换 `{{branch}}` 和 `{{version}}` 后拼接参数字符串：
 
 ```bash
-bash scripts/trigger.sh --system jenkins --job marketing-customer-pipeline \
-  --params "CURRENT_VERSION=v1.0.1&ACTIVE=test&GIT_BRANCH=puup-new-version-mk-test"
+bash scripts/trigger.sh --system jenkins --job your-project-pipeline \
+  --params "CURRENT_VERSION=v1.0.1&ACTIVE=test&GIT_BRANCH=test"
 ```
 
 ### 监控构建
 
 ```bash
-bash scripts/poll-status.sh --system jenkins --job marketing-customer-pipeline \
+bash scripts/poll-status.sh --system jenkins --job your-project-pipeline \
   --build 142 --interval 30 --timeout 900
 ```
 
@@ -52,7 +52,7 @@ Claude Code 应解析 stderr 中的进度信息，定期向用户报告：
 构建失败时拉取日志：
 
 ```bash
-bash scripts/fetch-log.sh --system jenkins --job marketing-customer-pipeline --build 142
+bash scripts/fetch-log.sh --system jenkins --job your-project-pipeline --build 142
 ```
 
 Claude Code 应解析返回的 JSON：

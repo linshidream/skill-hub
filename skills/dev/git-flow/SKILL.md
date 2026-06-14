@@ -28,7 +28,7 @@ description: "Manage feature branch lifecycle: init, commit, push, and integrate
 project:
   name: my-app
 developers:
-  zx: { name: 郑星 }
+  zx: { name: your-name }
 branching:
   production: master
 ```

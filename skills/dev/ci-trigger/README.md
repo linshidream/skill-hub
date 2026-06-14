@@ -18,21 +18,21 @@
 ### 触发构建
 
 ```bash
-bash scripts/trigger.sh --system jenkins --job marketing-customer-pipeline \
-  --params "CURRENT_VERSION=v1.0.1&ACTIVE=test&GIT_BRANCH=puup-new-version-mk-test"
+bash scripts/trigger.sh --system jenkins --job your-project-pipeline \
+  --params "CURRENT_VERSION=v1.0.1&ACTIVE=test&GIT_BRANCH=test"
 ```
 
 ### 监控构建状态
 
 ```bash
-bash scripts/poll-status.sh --system jenkins --job marketing-customer-pipeline \
+bash scripts/poll-status.sh --system jenkins --job your-project-pipeline \
   --build 142 --interval 30 --timeout 900
 ```
 
 ### 拉取失败日志
 
 ```bash
-bash scripts/fetch-log.sh --system jenkins --job marketing-customer-pipeline --build 142
+bash scripts/fetch-log.sh --system jenkins --job your-project-pipeline --build 142
 ```
 
 ## 验证

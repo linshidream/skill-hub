@@ -9,7 +9,7 @@
 + mvn -s /tmp/settings.xml clean package -P test -Dmaven.test.skip=true -U
 [INFO] Scanning for projects...
 [INFO]
-[INFO] --- marketing-customer-web ---
+[INFO] --- your-project-web ---
 [INFO]
 [ERROR] /src/main/java/com/example/UserService.java:[45,23] cannot find symbol
 [ERROR]   symbol:   variable pointsConfig

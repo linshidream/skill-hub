@@ -6,7 +6,7 @@
 
 # --- 项目标识（必填）---
 project:
-  name: marketing-customer
+  name: your-project
   language: java
   build-tool: maven
 
@@ -14,14 +14,14 @@ project:
 # key 是缩写标识符，用于分支命名的 {developer} 变量
 developers:
   zx:
-    name: 郑星
+    name: your-name
   zzy:
-    name: 赵振宇
+    name: your-name
 
 # --- 分支模型（必填，仅 production 必填，其余可省）---
 branching:
   production: master                         # 生产分支，创建 feature 分支的起点
-  test: puup-new-version-mk-test             # 测试分支
+  test: test             # 测试分支
   pattern: "feat/{developer}/{feature}"      # 分支命名模式
   # 可用变量：{developer}=开发者key, {feature}=功能slug, {date}=YYYYMMDD
 
@@ -41,7 +41,7 @@ ci:
 
   jenkins:
     url: "${JENKINS_URL}"                    # 环境变量引用，绝不写明文
-    job: marketing-customer-pipeline
+    job: your-project-pipeline
     auth:
       method: token
       user: "${JENKINS_USER}"

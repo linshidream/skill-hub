@@ -20,7 +20,9 @@
 - 可选主题名或主题 JSON。
 - 可选：是否生成目录。
 - 可选：是否嵌入本地图片。
+- 可选：开头引用文本；当原文开头没有 `>` 引用块时，用于自动插入一段约 100 字的正文总结与阅读钩子。
 - 可选：封面图风格描述，或已有封面图路径/URL。
+- 可选：封面图上传命令；命令可用时把本地封面转成公网 URL，命令缺失或失败时自动降级为本地封面路径。
 - 可选：是否额外生成本地 PDF。
 
 ## 输出
@@ -120,6 +122,18 @@ python3 scripts/convert_markdown_to_wechat.py article.md --out-dir out/article -
 python3 scripts/convert_markdown_to_wechat.py article.md --out-dir out/article --toc --cover-image out/article/images/cover.png
 ```
 
+带封面图，并尝试上传封面为公网 URL：
+
+```bash
+python3 scripts/convert_markdown_to_wechat.py article.md --out-dir out/article --toc --cover-image out/article/images/cover.png --cover-upload-command "~/bin/upload-image.sh"
+```
+
+上传命令也可以通过环境变量配置：
+
+```bash
+WECHAT_MARKDOWN_COVER_UPLOAD_COMMAND="~/bin/upload-image.sh" python3 scripts/convert_markdown_to_wechat.py article.md --out-dir out/article --toc --cover-image out/article/images/cover.png
+```
+
 默认使用内置 Markdown 解析器，覆盖标题、段落、列表、引用、代码块、pipe table、图片和链接等常用写作元素。若本机 Pandoc 环境稳定，并希望显式启用 Pandoc：
 
 ```bash
@@ -130,6 +144,18 @@ WECHAT_MARKDOWN_USE_PANDOC=1 python3 scripts/convert_markdown_to_wechat.py artic
 
 ```bash
 python3 scripts/convert_markdown_to_wechat.py article.md --out-dir out/article --toc --theme life-style
+```
+
+原文没有开头引用时，传入一段生成好的引用：
+
+```bash
+python3 scripts/convert_markdown_to_wechat.py article.md --out-dir out/article --toc --lead-quote "这篇文章真正要解决的，不只是 Markdown 如何变成公众号排版，而是如何把反复出现的发布流程沉淀成一个可安装、可复用、可继续迭代的 Skill。"
+```
+
+如果引用较长，或担心 shell 引号问题，使用文件传入：
+
+```bash
+python3 scripts/convert_markdown_to_wechat.py article.md --out-dir out/article --toc --lead-quote-file out/article/lead-quote.txt
 ```
 
 使用自定义主题文件：
@@ -165,9 +191,27 @@ python3 scripts/convert_markdown_to_wechat.py article.md --out-dir out/article -
 
 ## 复制策略
 
-`preview.html` 中“复制公众号格式”不会复制文章 H1 标题，只复制目录、封面图和正文内容，避免微信公众号标题栏与正文标题重复。
+`preview.html` 中“复制公众号格式”不会复制文章 H1 标题，只复制目录、封面图、开头引用和正文内容，避免微信公众号标题栏与正文标题重复。
 
 “复制纯文本”仍复制完整纯文本，方便另作校对或归档。
+
+## 开头引用策略
+
+很多公众号文章开头会用一段引用承接标题和正文，对应 Markdown 中的：
+
+```markdown
+> 这里是引用文本
+```
+
+处理规则：
+
+- 如果文章开头已有 `>` 引用块，保持原文，不生成、不改写。
+- 检测时会忽略 YAML front matter、空行和首个 H1 标题；也就是说，`# 标题` 后面的第一段如果是 `>`，仍视为已有开头引用。
+- 如果文章开头没有引用，Agent 应阅读全文主体，生成一段约 100 字引用，再通过 `--lead-quote` 或 `--lead-quote-file` 传入。
+- 引用内容应精炼总结正文主体，并保留悬念、关键问题、实际收益或反常识观察，让读者愿意继续下滑阅读。
+- 引用不要写成目录、广告语、空泛鸡汤，也不要使用“本文将介绍...”这类模板句。
+- 输出顺序为：H1、目录、封面图、开头引用、正文。复制到微信公众号时会去掉 H1，因此实际粘贴顺序为：目录、封面图、开头引用、正文。
+- `report.json.leadQuote` 和 `report.md` 会记录引用状态：已有引用为 `kept-existing`，补写引用为 `inserted`。
 
 ## PDF 策略
 
@@ -181,11 +225,100 @@ python3 scripts/convert_markdown_to_wechat.py article.md --out-dir out/article -
 
 ## 图片策略
 
-- 远程图片保留原链接。
-- 本地图片会复制到输出目录的 `images/`。
+- 远程图片保留原公网链接，`preview.html` 复制公众号格式时仍使用该公网链接。
+- 远程图片会尽量备份到输出目录的 `images/`，用于本地归档和排查；备份失败不影响复制公网链接。
+- 本地图片会复制到输出目录的 `images/`，用于 `wechat.html`、`preview.html` 和 PDF 本地预览。
 - Typora 图片路径中的空格和 `%20` 会被解析。
-- 使用 `--embed-local-images` 时，本地图片会嵌入为 data URI。
+- 使用 `--embed-local-images` 时，本地图片会嵌入为 data URI，但不建议把它作为微信公众号发布图片来源。
+- 如果复制内容中仍包含本地图片，`preview.html` 点击“复制公众号格式”时会提示：本地、相对路径或 data URI 图片粘贴到微信公众号后无法稳定加载。
+- 推荐在 Typora 写作阶段先把图片上传到公网图床或对象存储，让 Markdown 中的图片源本身就是 `https://...`。
 - 粘贴到微信公众号后仍需抽查图片是否被平台正确接收。
+
+## Typora 图片上传建议
+
+本 skill 不负责上传图片，也不绑定七牛云、OSS、COS、S3 或微信公众号素材接口。推荐把图片上传放在 Typora 写作阶段完成：Markdown 中已经是公网 HTTPS 图片时，本 skill 只负责排版和复制。
+
+Typora 支持图片上传器和自定义命令。配置入口通常是：
+
+```text
+Typora -> Settings / Preferences -> Image
+```
+
+建议配置：
+
+```text
+When Insert: Upload Image
+Image Uploader: Custom Command
+Apply above rules to local images: enabled
+```
+
+也可以对单篇文章使用 YAML front matter：
+
+```yaml
+typora-copy-images-to: upload
+```
+
+写作时粘贴或拖入本地图片后，Typora 会调用上传器；上传成功后，应把 Markdown 中的图片地址替换为公网 URL，例如：
+
+```markdown
+![架构图](https://cdn.example.com/wechat/2026/architecture.png)
+```
+
+如果文章已经写完但还有本地图片，可在 Typora 中执行：
+
+```text
+Format -> Image -> Upload All Local Images
+```
+
+## Typora + 七牛云示例
+
+七牛云推荐使用公开 HTTPS CDN 域名作为图片访问域名。以下示例只展示 Typora 自定义命令的形态，实际 bucket、域名、路径前缀按你的七牛云配置填写。
+
+先安装并配置 `qshell`：
+
+```bash
+qshell account <AccessKey> <SecretKey> <account-name>
+```
+
+然后准备一个上传脚本，例如 `~/bin/typora-qiniu-upload.sh`：
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+BUCKET="your-bucket"
+CDN_DOMAIN="https://cdn.example.com"
+PREFIX="wechat/$(date +%Y/%m)"
+
+for file in "$@"; do
+  name="$(basename "$file")"
+  safe_name="$(date +%s)-${name// /-}"
+  key="$PREFIX/$safe_name"
+  qshell fput "$BUCKET" "$key" "$file" >/dev/null
+  echo "$CDN_DOMAIN/$key"
+done
+```
+
+给脚本加执行权限：
+
+```bash
+chmod +x ~/bin/typora-qiniu-upload.sh
+```
+
+Typora 的 `Custom Command` 填：
+
+```bash
+/Users/<your-name>/bin/typora-qiniu-upload.sh
+```
+
+然后点击 Typora 的 `Test Uploader` 验证。Typora 会把待上传图片路径追加到这个命令后面，并读取命令最后输出的图片 URL；因此脚本必须按输入图片顺序逐行输出公网图片地址。
+
+注意：
+
+- 不要把 AccessKey、SecretKey 写进 Markdown、文章、Skill 文档或对话输出。
+- 七牛云空间如果是私有访问，返回的签名 URL 可能过期，不适合作为长期公众号图片源。
+- 推荐使用绑定 CDN 的公开 HTTPS 域名。
+- 如果你使用 PicGo、PicList、uPic 等工具，也可以让 Typora 调它们；只要最终 Markdown 中是公网 HTTPS 图片，本 skill 就会按公网图片处理。
 
 ## 封面图策略
 
@@ -194,6 +327,31 @@ python3 scripts/convert_markdown_to_wechat.py article.md --out-dir out/article -
 - 默认比例为 `9:3.83`，横图，高保真、高清；除非用户在封面图描述中明确指定其他尺寸。
 - 默认根据文章内容生成最合适的封面图；用户也可以在对话里指定风格。
 - 封面图插入目录下方，居中显示，不输出任何图注或介绍。
+- 封面图上传不是默认能力。开源迁移时，如果用户没有七牛云、OSS、PicGo、uPic 或其他上传命令，直接使用本地封面路径输出。
+- 如果提供 `--cover-upload-command` 或 `WECHAT_MARKDOWN_COVER_UPLOAD_COMMAND`，转换脚本会把本地封面路径传给该命令；命令 stdout 中第一个或最后一个公网 `http(s)` URL 会被用于正文封面。
+- 上传命令失败、超时、不可执行，或没有输出公网 URL 时，不中断转换，自动降级为本地 `images/cover*.png` 路径，并在 `report.md` 中记录原因。
+- 使用本地封面降级时，`preview.html` 的“复制公众号格式”会提示本地图片无法在微信公众号中稳定加载；这是预期保护。
+- 上传命令可以直接接收路径，也可以使用 `{path}` 占位符。
+
+上传命令示例：
+
+```bash
+python3 scripts/convert_markdown_to_wechat.py article.md \
+  --out-dir out/article \
+  --toc \
+  --cover-image out/article/images/cover.png \
+  --cover-upload-command "~/bin/upload-image.sh"
+```
+
+带 `{path}` 占位符示例：
+
+```bash
+python3 scripts/convert_markdown_to_wechat.py article.md \
+  --out-dir out/article \
+  --toc \
+  --cover-image out/article/images/cover.png \
+  --cover-upload-command "picgo upload {path}"
+```
 
 对话示例：
 
@@ -207,8 +365,9 @@ Agent 执行含义：
 ```text
 1. 读取文章标题、摘要和 H2 结构。
 2. 如果当前环境有生图 skill，生成 9:3.83 横图封面，保存到 out/article/images/cover.png。
-3. 运行转换命令并传入 --cover-image out/article/images/cover.png。
-4. 如果没有生图 skill，直接运行不带 --cover-image 的转换命令。
+3. 如果用户或环境提供上传命令，传入 --cover-upload-command 或设置 WECHAT_MARKDOWN_COVER_UPLOAD_COMMAND。
+4. 上传成功时正文使用公网封面 URL；上传不可用时正文使用本地 images/cover*.png 路径。
+5. 如果没有生图 skill，直接运行不带 --cover-image 的转换命令。
 ```
 
 ## 目录策略

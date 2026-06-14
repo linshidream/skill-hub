@@ -6,22 +6,22 @@
 
 # --- 项目标识（必填）---
 project:
-  name: marketing-customer              # 项目标识符
+  name: your-project            # 项目标识符
   language: java
   build-tool: maven
 
 # --- 开发者（必填）---
 developers:
   zx:
-    name: 郑星
+    name: your-name
   # 按需添加更多开发者
   # zzy:
-  #   name: 赵振宇
+  #   name: your-name
 
 # --- 分支模型（必填，仅 production 必填）---
 branching:
   production: master                     # 生产分支
-  test: puup-new-version-mk-test         # 测试分支
+  test: test         # 测试分支
   pattern: "feat/{developer}/{feature}"  # 分支命名模式
 
 # --- 集成策略 ---
@@ -38,7 +38,7 @@ ci:
 
   jenkins:
     url: "${JENKINS_URL}"                # 环境变量引用，绝不写明文
-    job: marketing-customer-pipeline
+    job: your-project-pipeline
     auth:
       method: token
       user: "${JENKINS_USER}"

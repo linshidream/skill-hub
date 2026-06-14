@@ -42,7 +42,7 @@ description: "Trigger CI builds, monitor status, fetch failure logs and report r
 
    Jenkins（V1）：
    ```bash
-   bash scripts/trigger.sh --system jenkins --job marketing-customer-pipeline \
+   bash scripts/trigger.sh --system jenkins --job your-project-pipeline \
      --params "CURRENT_VERSION=v1.0.1&ACTIVE=test&GIT_BRANCH=feat/zx/xxx"
    ```
 
@@ -110,7 +110,7 @@ Agent **不应**读取、展示或传输这些环境变量的值。脚本在 she
 
 | 变量 | 示例 |
 |------|------|
-| `{{project}}` | marketing-customer |
+| `{{project}}` | your-project |
 | `{{branch}}` | feat/zx/user-points |
 | `{{status}}` | 成功 / 失败 |
 | `{{duration}}` | 3m42s |
@@ -124,12 +124,12 @@ Agent **不应**读取、展示或传输这些环境变量的值。脚本在 she
 {
   "status": "triggered",
   "system": "jenkins",
-  "job": "marketing-customer-pipeline",
+  "job": "your-project-pipeline",
   "build_number": 142,
   "params": {
     "CURRENT_VERSION": "v1.0.1",
     "ACTIVE": "test",
-    "GIT_BRANCH": "puup-new-version-mk-test"
+    "GIT_BRANCH": "test"
   }
 }
 ```
@@ -142,7 +142,7 @@ Agent **不应**读取、展示或传输这些环境变量的值。脚本在 she
   "system": "jenkins",
   "build_number": 142,
   "duration": "4m15s",
-  "url": "https://jenkins.example.com/job/marketing-customer-pipeline/142/"
+  "url": "https://jenkins.example.com/job/your-project-pipeline/142/"
 }
 ```
 

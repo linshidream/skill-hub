@@ -88,7 +88,7 @@ skills/dev/ci-trigger/scripts/trigger.sh --check-env --config .dev-flow.yml
 ## Prompt 示例
 
 ```text
-Use $dev-lifecycle to start developing user-points feature for project marketing-customer.
+Use $dev-lifecycle to start developing user-points feature for project your-project.
 ```
 
 ```text
