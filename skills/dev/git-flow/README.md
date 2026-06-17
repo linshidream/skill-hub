@@ -15,7 +15,7 @@
 - 结构化的 commit 历史；存在当前 step 时，commit 记录自动带上 step id
 - 合并到测试分支的结果（成功/冲突分类报告）
 - `.dev-flow-state.json` 中的 branch、commit、integration 状态更新
-- 冲突时的 GUI merge 建议或文本冲突块处理流程
+- 冲突时的可选 GUI merge 检测结果或文本冲突块处理流程
 
 ## 使用
 
@@ -41,8 +41,11 @@ bash scripts/integrate.sh --feature-branch feat/zx/user-points
 
 冲突时：
 
-- 已配置 `integration.conflict.merge-tool` 时，优先使用 `git mergetool --tool <tool>`。
-- 未配置 GUI 工具时，按 `<<<<<<<` / `=======` / `>>>>>>>` 三方语义人工确认业务逻辑。
+- GUI merge 默认关闭，不影响主流程。
+- 开启 `integration.conflict.gui-merge.enabled=true` 后，默认检测 `intellij` / `idea`。
+- 如果当前 Agent 进程没有继承 `$PATH`，`gui-merge.command` 可以填 IDEA 可执行文件完整路径。
+- `idea` 命令或 `mergetool.intellij.cmd` 不可用时，自动降级到文本冲突流程。
+- 文本流程按 `<<<<<<<` / `=======` / `>>>>>>>` 三方语义人工确认业务逻辑。
 - 继续前必须确认无冲突标记：
 
 ```bash

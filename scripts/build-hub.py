@@ -32,7 +32,7 @@ RUNTIME_DIRS = [
 ]
 
 RUNTIME_DOC_FILES = [
-    "docs/dev-workflow-guide.md",
+    "docs/dev-lifecycle-guide.md",
 ]
 
 SKIP_NAMES = {

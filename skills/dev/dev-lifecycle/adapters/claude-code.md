@@ -91,6 +91,8 @@ Code approved 后，Claude Code 自动：
 
 钉钉通知是可选项。只有 `.dev-flow.yml` 中 `notify.enabled=true` 且 `DINGTALK_WEBHOOK` 存在时，构建完成后才调用 `ci-trigger/scripts/notify-dingtalk.sh`。
 
+GUI merge 也是可选项。只有 `.dev-flow.yml` 中 `integration.conflict.gui-merge.enabled=true`，且 git-flow 冲突报告中 `gui_merge.available=true` 时，才提示用户运行 `git mergetool --tool intellij`。如果不可用，继续文本冲突流程，不要中断 lifecycle。
+
 ## 状态文件
 
 - `.dev-flow-state.json` 自动维护，不要手动编辑

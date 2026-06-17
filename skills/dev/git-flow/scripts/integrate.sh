@@ -12,13 +12,13 @@ FEATURE_BRANCH=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-	    --feature-branch) FEATURE_BRANCH="$2"; shift 2 ;;
-	    --config)         CONFIG="$2"; shift 2 ;;
-	    --state)          STATE="$2"; shift 2 ;;
-	    --no-state)       UPDATE_STATE=false; shift ;;
-	    *) echo "Unknown option: $1" >&2; exit 1 ;;
-	  esac
-	done
+    --feature-branch) FEATURE_BRANCH="$2"; shift 2 ;;
+    --config)         CONFIG="$2"; shift 2 ;;
+    --state)          STATE="$2"; shift 2 ;;
+    --no-state)       UPDATE_STATE=false; shift ;;
+    *) echo "Unknown option: $1" >&2; exit 1 ;;
+  esac
+done
 
 if [[ -z "$FEATURE_BRANCH" ]]; then
   FEATURE_BRANCH=$(git branch --show-current 2>/dev/null)
@@ -81,6 +81,82 @@ fi
 # 解析冲突配置
 MAX_AUTO_FILES=$(config_get "integration.conflict.max-auto-files" "3")
 AUTO_RESOLVE=$(config_get "integration.conflict.auto-resolve" "trivial")
+GUI_MERGE_ENABLED=$(config_get "integration.conflict.gui-merge.enabled" "false")
+GUI_MERGE_TOOL=$(config_get "integration.conflict.gui-merge.tool" "intellij")
+GUI_MERGE_COMMAND=$(config_get "integration.conflict.gui-merge.command" "idea")
+GUI_MERGE_FALLBACK=$(config_get "integration.conflict.gui-merge.fallback" "text")
+
+detect_gui_merge() {
+  local enabled="$1"
+  local tool="$2"
+  local command_name="$3"
+  local fallback="$4"
+  local available="false"
+  local reason="disabled"
+  local command_path=""
+  local tool_configured="false"
+  local cmd_config=""
+
+  if [[ "$enabled" == "true" ]]; then
+    if command_path=$(command -v "$command_name" 2>/dev/null); then
+      cmd_config=$(git config --get "mergetool.${tool}.cmd" 2>/dev/null || true)
+      if [[ "$tool" == "intellij" && -z "$cmd_config" ]]; then
+        reason="git_mergetool_not_configured"
+      else
+        available="true"
+        reason="available"
+        [[ -n "$cmd_config" ]] && tool_configured="true"
+      fi
+    else
+      reason="command_not_found"
+    fi
+  fi
+
+  python3 - "$enabled" "$tool" "$command_name" "$command_path" "$available" "$reason" "$tool_configured" "$fallback" <<'PY'
+import json
+import sys
+
+enabled, tool, command_name, command_path, available, reason, tool_configured, fallback = sys.argv[1:]
+data = {
+    "enabled": enabled == "true",
+    "tool": tool,
+    "command": command_name,
+    "command_path": command_path or None,
+    "available": available == "true",
+    "tool_configured": tool_configured == "true",
+    "fallback": fallback,
+    "fallback_active": enabled == "true" and available != "true",
+    "reason": reason,
+}
+if data["enabled"] and data["available"]:
+    data["command_line"] = f"git mergetool --tool {tool}"
+elif data["enabled"]:
+    data["setup_hint"] = (
+        "GUI merge is enabled but unavailable. Configure the local command "
+        "and Git mergetool, or use the text conflict flow."
+    )
+print(json.dumps(data, ensure_ascii=False))
+PY
+}
+
+attach_gui_merge() {
+  local report_json="$1"
+  local gui_json="$2"
+  python3 - "$report_json" "$gui_json" <<'PY'
+import json
+import sys
+
+report = json.loads(sys.argv[1])
+gui = json.loads(sys.argv[2])
+report["gui_merge"] = gui
+if gui.get("enabled") and not gui.get("available"):
+    report["message"] = (
+        (report.get("message") or "Merge conflicts detected.")
+        + " GUI merge is unavailable; fallback to text conflict flow."
+    )
+print(json.dumps(report, ensure_ascii=False, indent=2))
+PY
+}
 
 # 确保 feature 分支的改动已提交
 if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
@@ -147,6 +223,7 @@ else
 
   # 调用冲突分析器
   ANALYZER_RESULT=""
+  GUI_MERGE_META=$(detect_gui_merge "$GUI_MERGE_ENABLED" "$GUI_MERGE_TOOL" "$GUI_MERGE_COMMAND" "$GUI_MERGE_FALLBACK")
   if [[ -f "$SCRIPT_DIR/conflict-analyzer.py" ]]; then
     ANALYZER_RESULT=$(python3 "$SCRIPT_DIR/conflict-analyzer.py" \
       --max-auto-files "$MAX_AUTO_FILES" \
@@ -154,8 +231,9 @@ else
   fi
 
   if [[ -n "$ANALYZER_RESULT" && "$ANALYZER_RESULT" != *'"error"'* ]]; then
-    update_state_conflict "$ANALYZER_RESULT"
-    echo "$ANALYZER_RESULT"
+    REPORT_WITH_GUI=$(attach_gui_merge "$ANALYZER_RESULT" "$GUI_MERGE_META")
+    update_state_conflict "$REPORT_WITH_GUI"
+    echo "$REPORT_WITH_GUI"
   else
     # 分析器不可用时回退到基础信息
     conflict_list=$(echo "$CONFLICT_FILES" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip().split("\n")))' 2>/dev/null || echo '[]')
@@ -175,6 +253,7 @@ print(json.dumps({
 }, ensure_ascii=False, indent=2))
 PY
 )
+    fallback_json=$(attach_gui_merge "$fallback_json" "$GUI_MERGE_META")
     update_state_conflict "$fallback_json"
     echo "$fallback_json"
   fi

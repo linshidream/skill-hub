@@ -92,7 +92,7 @@ Skill Hub 的目标是把“用户和 Agent 在真实任务中共同探索出的
 - [DEPLOYMENT.md](DEPLOYMENT.md)：构建、发布、部署、服务器目录和回滚方案。
 - [CONTRIBUTING.md](CONTRIBUTING.md)：新增或修改 skill 的贡献规范。
 - [SECURITY.md](SECURITY.md)：安装和运行第三方 skill 前的安全检查说明。
-- [docs/dev-workflow-guide.md](docs/dev-workflow-guide.md)：dev skill 从需求到测试环境部署的真实项目试跑和组内推广指南。
+- [docs/](docs/)：复杂 skill 编排流程的详细操作说明书目录，承载比单个 skill README 更完整的使用步骤与落地指引。
 - [registry.json](registry.json)：机器可读的 skill 注册表，供安装器、CI 和索引工具使用。
 - [adapters/](adapters/)：企业框架或不同 agent 的运行时加载适配说明。
 - [deploy/](deploy/)：Docker、Compose、systemd 等部署模板。

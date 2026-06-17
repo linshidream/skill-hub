@@ -11,6 +11,8 @@ description: "Orchestrate dev-spec, git-flow, ci-trigger into a resumable develo
 
 V1 的外部系统边界：CI 仅支持 Jenkins；通知步骤不在默认 cascade 内，需由上层 agent 或 V2 adapter 实现；步骤化实施只支持 `single-branch`，worktree 和 step branch 仅作为 V2 设计预留。
 
+GUI merge 是非核心辅助能力，默认关闭。即使用户开启，如果本地 `idea` 命令或 Git mergetool 配置不可用，也必须自动降级到文本冲突流程，不能阻断 lifecycle 主流程。`gui-merge.command` 可以是 `idea`，也可以是 IDEA 可执行文件完整路径。
+
 ## 使用场景
 
 启动：
@@ -321,6 +323,14 @@ notify:
   on-build-failure:
     - channel: dingtalk
       webhook: "${DINGTALK_WEBHOOK}"
+
+integration:
+  conflict:
+    gui-merge:
+      enabled: false
+      tool: intellij
+      command: idea
+      fallback: text
 ```
 
 `.dev-flow.yml` 的 JSON Schema 见 `schemas/dev-flow.schema.json`。

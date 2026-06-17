@@ -61,10 +61,29 @@ bash scripts/integrate.sh --feature-branch feat/zx/user-points
 3. `needs_human` → 展示 business 冲突的上下文，请用户逐个决策
 4. `suggest_rebase` → 建议用户先 rebase 生产分支再重试
 
-如果 `.dev-flow.yml` 配置了 `integration.conflict.merge-tool`，Claude Code 可以提示用户打开：
+GUI merge 是非核心辅助能力。Claude Code 不能因为 GUI 不可用而中断 lifecycle 主流程。
+
+当冲突报告中 `gui_merge.enabled=true` 且 `gui_merge.available=true` 时，可以提示用户打开：
 
 ```bash
-git mergetool --tool <merge-tool>
+git mergetool --tool intellij
+```
+
+如果 `gui_merge.enabled=false`，或 `gui_merge.available=false`，使用文本冲突流程。`reason=command_not_found` 时提示安装 IDEA command-line launcher；`reason=git_mergetool_not_configured` 时提示配置 Git mergetool。
+
+IntelliJ IDEA 推荐配置：
+
+```bash
+git config --global merge.tool intellij
+git config --global mergetool.intellij.cmd 'idea merge "$LOCAL" "$REMOTE" "$BASE" "$MERGED"'
+git config --global mergetool.intellij.trustExitCode true
+git config --global mergetool.keepBackup false
+```
+
+如果当前 Agent 进程读不到 `idea`，但本地 IDEA 可执行文件存在，可以提示用户把 `integration.conflict.gui-merge.command` 改为完整路径，并同步配置：
+
+```bash
+git config --global mergetool.intellij.cmd '"/Applications/IntelliJ IDEA 2.app/Contents/MacOS/idea" merge "$LOCAL" "$REMOTE" "$BASE" "$MERGED"'
 ```
 
 如果只能处理文本冲突，Claude Code 必须解释 `<<<<<<< HEAD`、`=======`、`>>>>>>> branch` 的双方含义，等待用户确认业务取舍；解决后必须扫描冲突标记：

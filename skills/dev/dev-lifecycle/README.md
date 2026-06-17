@@ -11,6 +11,7 @@
 - **Auto Cascade**：review approved 后自动执行后续步骤，异常时暂停
 - **Operation Contract**：定义每个 cascade step 的输入、输出和 state patch，避免协议和脚本脱节
 - **Build Failure Loop**：Jenkins 失败后拉日志分析，回到 code/step revising，修复后再 review
+- **Optional GUI Merge**：默认关闭，开启后检测 IntelliJ IDEA 命令行和 Git mergetool 配置；不可用时降级文本冲突流程
 
 ## 配置
 
