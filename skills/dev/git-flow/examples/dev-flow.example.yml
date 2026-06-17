@@ -33,7 +33,11 @@ integration:
   conflict:
     auto-resolve: trivial                    # trivial | none
     max-auto-files: 3                        # 超过此数暂停等人工；V1 只生成候选方案
-    # merge-tool: vscode                     # 可选：vscode | idea | opendiff | meld 等 git mergetool 名称
+    gui-merge:
+      enabled: false                         # GUI merge 是非核心辅助能力，默认关闭
+      tool: intellij                         # enabled=true 时默认使用 intellij
+      command: idea                          # 本地 IDEA launcher 命令；不可用时自动降级
+      fallback: text                         # 仅支持降级到文本冲突流程
 
 # --- CI/CD ---
 ci:

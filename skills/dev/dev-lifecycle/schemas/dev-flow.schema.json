@@ -81,7 +81,33 @@
             },
             "merge-tool": {
               "type": "string",
-              "description": "可选 Git merge tool 名称，例如 vscode、idea、opendiff、meld；未配置时使用文本冲突流程"
+              "description": "Deprecated legacy field. Prefer gui-merge.enabled + gui-merge.tool. This field does not enable GUI merge by itself."
+            },
+            "gui-merge": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "GUI merge 是可选辅助能力，默认关闭；关闭或不可用时使用文本冲突流程"
+                },
+                "tool": {
+                  "type": "string",
+                  "default": "intellij",
+                  "description": "启用 GUI merge 后使用的 Git mergetool 名称，默认 intellij"
+                },
+                "command": {
+                  "type": "string",
+                  "default": "idea",
+                  "description": "本地命令行 launcher，intellij 默认检测 idea"
+                },
+                "fallback": {
+                  "type": "string",
+                  "enum": ["text"],
+                  "default": "text",
+                  "description": "GUI merge 不可用时自动降级到文本冲突流程"
+                }
+              }
             }
           }
         },
@@ -127,10 +153,10 @@
               "type": "object",
               "additionalProperties": { "type": "string" }
             },
-        "poll": {
-          "type": "object",
-          "properties": {
-            "interval": { "type": "integer", "default": 30 },
+            "poll": {
+              "type": "object",
+              "properties": {
+                "interval": { "type": "integer", "default": 30 },
                 "timeout": { "type": "integer", "default": 1800 },
                 "progress-log-lines": {
                   "type": "integer",
