@@ -34,7 +34,7 @@
 ## 文档约定
 
 - 根 `README.md` 只做文件索引和通用入口，不列具体 skill 名称。
-- 具体 skill 名称、发布时间、版本和变更摘要维护在 `SKILL_RELEASES.md`。
+- 当前 skill 名称、发布时间、版本和功能摘要维护在 `SKILL_CURRENT.md`；增量发布历史维护在 `SKILL_RELEASES.md`。
 - 机器可读索引维护在 `registry.json`。
 - 构建、部署、回滚和服务器目录说明维护在 `DEPLOYMENT.md`。
 - 面向中文用户的正文默认用中文；`name`、脚本参数、文件名、JSON key 使用英文。
@@ -48,11 +48,12 @@
 4. 如果要支持不同 agent 的安装或执行差异，添加 `adapters/`。
 5. 如果有输入样例或输出格式，添加 `examples/`。
 6. 更新 `registry.json`。
-7. 更新 `SKILL_RELEASES.md`，记录发布时间、版本、变更类型和入口。
-8. 运行 `python3 scripts/validate-skill.py`。
-9. 如需发布单 skill 压缩包，运行 `python3 scripts/package-skill.py <skill-name>`。
-10. 如需发布 hub release，运行 `python3 scripts/build-hub.py --release-id <release-id>`。
-11. 发布前运行 `python3 scripts/verify-release.py <artifact>`。
+7. 更新 `SKILL_CURRENT.md`，维护一条去重后的当前版本记录。
+8. 更新 `SKILL_RELEASES.md`，记录发布时间、版本、变更类型和入口。
+9. 运行 `python3 scripts/validate-skill.py`。
+10. 如需发布单 skill 压缩包，运行 `python3 scripts/package-skill.py <skill-name>`。
+11. 如需发布 hub release，运行 `python3 scripts/build-hub.py --release-id <release-id>`。
+12. 发布前运行 `python3 scripts/verify-release.py <artifact>`。
 
 ## 分支规范
 

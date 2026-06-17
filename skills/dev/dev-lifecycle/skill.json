@@ -1,0 +1,16 @@
+{
+  "name": "dev-lifecycle",
+  "title": "开发全流程编排",
+  "version": "0.1.3",
+  "description": "编排 dev-spec、git-flow、ci-trigger 三个 skill，实现业务闭环级步骤开发、实时 step 状态、构建失败回修和可中断恢复流程。Orchestrate business-slice steps, live step state, build-failure revision, Git flow, and Jenkins deployment.",
+  "category": "dev",
+  "license": "MIT",
+  "entry": "SKILL.md",
+  "requirements": ["git>=2.20", "python>=3.10", "curl"],
+  "supportedAgents": ["claude-code", "codex", "generic"],
+  "sideEffects": ["shell", "filesystem-read", "filesystem-write", "network", "external-service"],
+  "dependencies": ["dev-spec", "git-flow", "ci-trigger"],
+  "adapters": {
+    "claude-code": "adapters/claude-code.md"
+  }
+}

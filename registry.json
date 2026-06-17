@@ -26,6 +26,46 @@
   },
   "skills": [
     {
+      "name": "dev-lifecycle",
+      "title": "开发全流程编排",
+      "version": "0.1.3",
+      "category": "dev",
+      "path": "skills/dev/dev-lifecycle",
+      "description": "编排 dev-spec、git-flow、ci-trigger 三个 skill，实现业务闭环级步骤开发、实时 step 状态、构建失败回修和可中断恢复流程。Orchestrate business-slice steps, live step state, build-failure revision, Git flow, and Jenkins deployment.",
+      "supportedAgents": ["claude-code", "codex", "generic"],
+      "sideEffects": ["shell", "filesystem-read", "filesystem-write", "network", "external-service"]
+    },
+    {
+      "name": "dev-spec",
+      "title": "开发需求规格化",
+      "version": "0.1.3",
+      "category": "dev",
+      "path": "skills/dev/dev-spec",
+      "description": "将需求对话、需求文档、API 文档、本地 PDF/DOCX 和原型图整理为证据化 spec，按业务闭环拆分实施步骤并输出到 docs。Turn requirement materials into evidence-backed specs with business-slice implementation steps.",
+      "supportedAgents": ["claude-code", "codex", "generic"],
+      "sideEffects": ["filesystem-read", "filesystem-write", "network", "browser"]
+    },
+    {
+      "name": "git-flow",
+      "title": "开发分支生命周期管理",
+      "version": "0.1.3",
+      "category": "dev",
+      "path": "skills/dev/git-flow",
+      "description": "管理单 feature 分支创建、按业务 step 提交、推送、合并测试分支的完整流程，支持冲突分类、GUI merge 提示和冲突标记检查。Manage a single feature branch with step-aware commits, conflict classification, merge-tool guidance, and marker checks.",
+      "supportedAgents": ["claude-code", "codex", "generic"],
+      "sideEffects": ["shell", "filesystem-read", "filesystem-write", "network"]
+    },
+    {
+      "name": "ci-trigger",
+      "title": "CI/CD 触发与监控",
+      "version": "0.1.3",
+      "category": "dev",
+      "path": "skills/dev/ci-trigger",
+      "description": "触发 Jenkins CI 构建、轮询长流程、拉取失败日志、分析原因、更新 state，并可选发送钉钉通知。Trigger Jenkins builds, monitor long-running flows, fetch logs, update state, and optionally notify DingTalk.",
+      "supportedAgents": ["claude-code", "codex", "generic"],
+      "sideEffects": ["shell", "network", "external-service"]
+    },
+    {
       "name": "mafengwo-original-images",
       "title": "马蜂窝游记原图下载",
       "version": "0.1.0",

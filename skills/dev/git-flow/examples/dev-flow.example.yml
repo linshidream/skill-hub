@@ -1,0 +1,122 @@
+# ============================================================
+# .dev-flow.yml 示例 — Java + Maven + Jenkins + Gitee
+# 位置：项目仓库根目录
+# 此文件提交进仓库，但其中不包含任何明文凭据
+# ============================================================
+
+# --- 项目标识（必填）---
+project:
+  name: your-project
+  language: java
+  build-tool: maven
+
+# --- 开发者（必填）---
+# key 是缩写标识符，用于分支命名的 {developer} 变量
+developers:
+  zx:
+    name: your-name
+  zzy:
+    name: your-name
+
+# --- 分支模型（必填，仅 production 必填，其余可省）---
+branching:
+  production: master                         # 生产分支，创建 feature 分支的起点
+  test: test             # 测试分支
+  pattern: "feat/{developer}/{feature}"      # 分支命名模式
+  # 可用变量：{developer}=开发者key, {feature}=功能slug, {date}=YYYYMMDD
+
+# --- 集成策略 ---
+integration:
+  strategy: merge-local                      # merge-local | pull-request [V2]
+
+  # merge-local 特有配置
+  conflict:
+    auto-resolve: trivial                    # trivial | none
+    max-auto-files: 3                        # 超过此数暂停等人工；V1 只生成候选方案
+    # merge-tool: vscode                     # 可选：vscode | idea | opendiff | meld 等 git mergetool 名称
+
+# --- CI/CD ---
+ci:
+  system: jenkins
+  auto-trigger: true                         # integrate 成功后自动触发构建
+
+  jenkins:
+    url: "${JENKINS_URL}"                    # 环境变量引用，绝不写明文
+    job: your-project-pipeline
+    auth:
+      method: token
+      user: "${JENKINS_USER}"
+      token: "${JENKINS_TOKEN}"
+    params:
+      CURRENT_VERSION: "{{version}}"         # {{}} = 运行时动态值
+      ACTIVE: test                           # 静态值
+      GIT_BRANCH: "{{branch}}"
+    poll:
+      interval: 30                           # 轮询间隔（秒）
+      timeout: 1800                          # 最大等待时间（秒），package 较慢时可继续调大
+      progress-log-lines: 120
+      fetch-log-on-failure: true
+
+# --- Spec 文档 ---
+spec:
+  output-dir: docs/specs
+  naming: "YYYYMMDD-{feature}.md"
+  template: default                         # default | minimal | api-integration
+  required-sections:
+    - background
+    - sources
+    - features
+    - implementation-plan
+    - acceptance-criteria
+  materials:
+    allow-http: true
+    allow-local-files: true
+    allow-images: true
+    redact-sensitive: true
+    snapshot-dir: docs/specs/_sources
+
+# --- 实施步骤 ---
+implementation:
+  mode: single-branch                       # V1 only: single-branch
+  step-review: per-step                     # per-step | final-only
+  step-granularity: business-slice          # business-slice | technical-layer
+  max-steps-default: 3
+  max-steps-before-plan-review: 4
+  split-only-when:
+    - business-domain
+    - external-system
+    - risk-gate
+    - independent-acceptance
+
+# --- 自动化程度 ---
+automation:
+  spec-confirm: prompt                       # prompt | quick
+  completion-check: manual                   # manual | auto
+  build-trigger: auto                        # auto | confirm
+
+  review:
+    reminder:
+      enabled: true
+      after: 4h
+    cascade:
+      after-spec-approved:
+        - git-flow:init
+      after-code-approved:
+        - git-flow:commit
+        - git-flow:push
+        - git-flow:integrate
+        - ci-trigger:build
+    cascade-interrupt:
+      on-conflict: pause
+      on-build-failure: analyze-and-pause
+
+# --- 通知 ---
+# 默认关闭。开启后，构建完成可通过环境变量中的 webhook 通知钉钉。
+notify:
+  enabled: false
+  on-build-success:
+    - channel: dingtalk
+      webhook: "${DINGTALK_WEBHOOK}"
+  on-build-failure:
+    - channel: dingtalk
+      webhook: "${DINGTALK_WEBHOOK}"

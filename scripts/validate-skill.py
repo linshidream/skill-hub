@@ -243,6 +243,62 @@ def validate_schema(root: Path) -> list[str]:
     return errors
 
 
+def parse_markdown_table(section: str) -> list[list[str]]:
+    rows: list[list[str]] = []
+    for line in section.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|") or "---" in stripped:
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        rows.append(cells)
+    return rows
+
+
+def validate_current_log(root: Path, skill_dirs: list[Path], entry_by_name: dict[str, dict]) -> list[str]:
+    current_log = root / "SKILL_CURRENT.md"
+    if not current_log.exists():
+        return ["missing SKILL_CURRENT.md"]
+    text = current_log.read_text(encoding="utf-8")
+    errors: list[str] = []
+
+    current_section = text.split("## 当前版本表", 1)
+    if len(current_section) == 1:
+        errors.append("SKILL_CURRENT.md missing 当前版本表")
+        current_rows: list[list[str]] = []
+    else:
+        current_rows = parse_markdown_table(current_section[1])
+
+    current_entries: dict[str, list[str]] = {}
+    for row in current_rows[1:]:
+        if len(row) < 9:
+            continue
+        skill_name = row[0].strip("`")
+        if skill_name:
+            if skill_name in current_entries:
+                errors.append(f"{skill_name}: duplicate 当前版本表 entry")
+            current_entries[skill_name] = row
+
+    for skill_dir in skill_dirs:
+        rel = relative_to_root(skill_dir, root)
+        registry_entry = entry_by_name.get(skill_dir.name, {})
+        current_entry = current_entries.get(skill_dir.name)
+        if current_entry is None:
+            errors.append(f"{skill_dir.name}: missing SKILL_CURRENT.md entry")
+            continue
+        if current_entry[1].strip("`") != registry_entry.get("version"):
+            errors.append(
+                f"{skill_dir.name}: SKILL_CURRENT.md version {current_entry[1]} "
+                f"must match registry version {registry_entry.get('version')}"
+            )
+        if current_entry[8].strip("`") != rel:
+            errors.append(f"{skill_dir.name}: SKILL_CURRENT.md entry must include {rel}")
+
+    extra_current = set(current_entries) - {skill_dir.name for skill_dir in skill_dirs}
+    if extra_current:
+        errors.append(f"SKILL_CURRENT.md has unknown skills: {format_values(extra_current)}")
+    return errors
+
+
 def validate_release_log(root: Path, skill_dirs: list[Path]) -> list[str]:
     release_log = root / "SKILL_RELEASES.md"
     if not release_log.exists():
@@ -344,6 +400,7 @@ def main() -> int:
     all_errors.extend(discover_errors)
     all_errors.extend(validate_schema(root))
     all_errors.extend(registry_consistency_errors)
+    all_errors.extend(validate_current_log(root, all_skill_dirs, entry_by_name))
     all_errors.extend(validate_release_log(root, all_skill_dirs))
     for skill_dir in skill_dirs:
         if skill_dir.is_dir():
