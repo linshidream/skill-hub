@@ -1,13 +1,15 @@
 ---
 name: ci-trigger
-description: "Trigger CI builds, monitor status, fetch failure logs and report results. 触发 CI 构建、轮询状态、拉取失败日志、分析原因并报告结果。"
+description: "Trigger Jenkins builds, monitor long-running packaging flows, fetch failure logs, analyze errors, and optionally notify DingTalk. 触发 Jenkins 构建、监控长流程、拉取失败日志、分析原因并可选通知钉钉。"
 ---
 
 # CI/CD 触发与监控
 
 ## 目标
 
-当用户的代码已合并到测试分支，需要部署到测试环境时，使用本 skill 触发 CI 构建、监控构建状态、拉取失败日志分析原因，并在完成后通知相关人员。
+当用户的代码已合并到测试分支，需要部署到测试环境时，使用本 skill 触发 Jenkins CI 构建、监控构建状态、等待较长 package 流程、拉取失败日志分析原因，并输出可继续处理的结构化报告。
+
+V1 实现 Jenkins 和可选钉钉通知。GitHub Actions、GitLab CI、企业微信、飞书和 Slack 属于 V2，只有对应 adapter 实现后才能在元数据和 `.dev-flow.yml` schema 中声明为可用。
 
 ## 使用场景
 
@@ -40,45 +42,42 @@ description: "Trigger CI builds, monitor status, fetch failure logs and report r
 
 5. 调用 `scripts/trigger.sh`，根据 `ci.system` 分发到对应适配脚本
 
-   Jenkins（V1）：
+   Jenkins：
    ```bash
    bash scripts/trigger.sh --system jenkins --job your-project-pipeline \
      --params "CURRENT_VERSION=v1.0.1&ACTIVE=test&GIT_BRANCH=feat/zx/xxx"
    ```
 
-   GitHub Actions [V2]：
-   ```bash
-   bash scripts/trigger.sh --system github-actions --workflow deploy-test.yml --ref feat/zx/xxx
-   ```
-
-   GitLab CI [V2]：
-   ```bash
-   bash scripts/trigger.sh --system gitlab-ci --ref feat/zx/xxx
-   ```
-
 6. 获取构建编号 / Run ID
+7. 更新 `.dev-flow-state.json`：`phase=building`，记录 `build.system`、`build.number`、`build.status`
 
 ### 阶段 3: 监控
 
 7. 按 `ci.{system}.poll.interval` 轮询构建状态
-8. 超过 `ci.{system}.poll.timeout` 则超时报告
-9. 每次轮询输出简短进度
+8. package 或镜像构建较慢时继续等待，直到 `ci.{system}.poll.timeout`
+   - 默认建议 `timeout=1800` 秒，项目 package 更慢时可继续调大
+   - 每次轮询输出简短进度，不把长日志刷屏
+9. 超过 `timeout` 则超时报告，并保留 build number 供下次继续查询
+10. 每次轮询输出简短进度
 
 ### 阶段 4: 报告
 
-10. 构建成功：
+11. 构建成功：
     - 输出部署信息（版本号、环境、耗时）
     - 更新 `.dev-flow-state.json` phase 为 `deployed-test`
-    - 如果配置了 `notify` → 触发通知
-11. 构建失败：
-    - 拉取失败日志（`scripts/fetch-log.sh`）
+    - 如果 `notify.enabled=true` 且配置了钉钉，调用 `scripts/notify-dingtalk.sh`
+12. 构建失败：
+    - 立即拉取失败日志（`scripts/fetch-log.sh`）
     - 分析失败原因：
       - 编译失败 → 定位报错文件和行号
       - 测试失败 → 列出失败的 test case
+      - package 失败 → 定位 Maven/Gradle/npm 打包阶段错误
       - Docker 构建失败 → 检查 Dockerfile
       - 网络/依赖问题 → 建议重试
     - 输出分析结果
-    - 建议下一步操作
+    - 更新 state：`build.status=failure`，phase 回到 `code:revising`
+    - 建议下一步操作：回到 code review/revising，修复后重新触发构建
+    - 如果 `notify.enabled=true` 且配置了钉钉，发送失败通知
 
 ## 凭据安全
 
@@ -94,17 +93,36 @@ Agent **不应**读取、展示或传输这些环境变量的值。脚本在 she
 
 ## 通知
 
-通知作为构建完成后的可选输出阶段，不单独拆分为 skill。
+V1 支持可选钉钉通知，默认关闭。通知失败不应改变构建结果，也不应阻断后续人工处理。
 
-支持的通知渠道：
+配置示例：
+
+```yaml
+notify:
+  enabled: false
+  on-build-success:
+    - channel: dingtalk
+      webhook: "${DINGTALK_WEBHOOK}"
+  on-build-failure:
+    - channel: dingtalk
+      webhook: "${DINGTALK_WEBHOOK}"
+```
+
+安全要求：
+
+- `webhook` 推荐写 `${DINGTALK_WEBHOOK}`，不要写明文 URL。
+- Agent 不读取、不展示 webhook 实际值。
+- 通知内容只包含项目、分支、构建路径和摘要，不包含密钥、token、用户隐私。
+
+预留通知渠道：
 
 | 渠道 | 配置方式 | 消息格式 |
 |------|---------|---------|
 | 钉钉 | `notify.on-build-success[].channel: dingtalk` | Markdown |
-| 企业微信 | `notify.on-build-success[].channel: wechat-work` | Text |
-| 飞书 | `notify.on-build-success[].channel: feishu` | Interactive Card |
-| Slack | `notify.on-build-success[].channel: slack` | Block Kit |
-| 自定义 | `notify.on-build-success[].channel: webhook` | JSON |
+| 企业微信 [V2] | `notify.on-build-success[].channel: wechat-work` | Text |
+| 飞书 [V2] | `notify.on-build-success[].channel: feishu` | Interactive Card |
+| Slack [V2] | `notify.on-build-success[].channel: slack` | Block Kit |
+| 自定义 [V2] | `notify.on-build-success[].channel: webhook` | JSON |
 
 通知消息模板变量：
 
@@ -115,6 +133,14 @@ Agent **不应**读取、展示或传输这些环境变量的值。脚本在 she
 | `{{status}}` | 成功 / 失败 |
 | `{{duration}}` | 3m42s |
 | `{{build-url}}` | Jenkins 构建页面链接 |
+
+命令：
+
+```bash
+bash scripts/notify-dingtalk.sh --status success --project your-project \
+  --branch test --build-path /job/your-project-pipeline/142/ \
+  --summary "测试环境构建成功" --webhook-env DINGTALK_WEBHOOK
+```
 
 ## 输出格式
 
@@ -130,7 +156,9 @@ Agent **不应**读取、展示或传输这些环境变量的值。脚本在 she
     "CURRENT_VERSION": "v1.0.1",
     "ACTIVE": "test",
     "GIT_BRANCH": "test"
-  }
+  },
+  "build_path": "/job/your-project-pipeline/142/",
+  "url": "****/job/your-project-pipeline/142/"
 }
 ```
 
@@ -142,7 +170,8 @@ Agent **不应**读取、展示或传输这些环境变量的值。脚本在 she
   "system": "jenkins",
   "build_number": 142,
   "duration": "4m15s",
-  "url": "https://jenkins.example.com/job/your-project-pipeline/142/"
+  "build_path": "/job/your-project-pipeline/142/",
+  "url": "****/job/your-project-pipeline/142/"
 }
 ```
 
@@ -156,9 +185,13 @@ Agent **不应**读取、展示或传输这些环境变量的值。脚本在 she
   "duration": "2m30s",
   "failure_stage": "packaging",
   "error_summary": "Compilation failure in UserService.java:45",
+  "build_path": "/job/your-project-pipeline/142/",
+  "url": "****/job/your-project-pipeline/142/",
   "log_tail": "..."
 }
 ```
+
+构建失败后，上层 `dev-lifecycle` 应回到 `code:revising` 或当前 step 的 `step:revising`，而不是继续 cascade。
 
 ## 校验标准
 

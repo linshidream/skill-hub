@@ -24,7 +24,21 @@ if [[ -z "$SYSTEM" || -z "$JOB" || -z "$BUILD" ]]; then
   exit 1
 fi
 
+require_jenkins_env() {
+  local missing=()
+  [[ -z "${JENKINS_URL:-}" ]] && missing+=("JENKINS_URL")
+  [[ -z "${JENKINS_USER:-}" ]] && missing+=("JENKINS_USER")
+  [[ -z "${JENKINS_TOKEN:-}" ]] && missing+=("JENKINS_TOKEN")
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    local missing_json
+    missing_json=$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1:], ensure_ascii=False))' "${missing[@]}")
+    echo "{\"error\": \"missing_env\", \"missing\": $missing_json}" >&2
+    return 1
+  fi
+}
+
 fetch_jenkins_log() {
+  require_jenkins_env
   local log_url="${JENKINS_URL}/job/${JOB}/${BUILD}/consoleText"
 
   local full_log
@@ -53,22 +67,36 @@ fetch_jenkins_log() {
   local test_failures=""
   test_failures=$(echo "$full_log" | grep -E 'Tests run:.*Failures: [1-9]|FAILED|AssertionError' | head -5 || true)
 
-  # 输出 JSON（日志尾部通过 python 转义）
-  python3 -c "
-import json, sys
+  # 输出 JSON。日志和 grep 结果通过 stdin/env 传入，避免破坏 Python 字符串。
+  BUILD_NUMBER="$BUILD" \
+  TOTAL_LINES="$total_lines" \
+  TAIL_LINES="$LINES" \
+  FAILURE_STAGE="$failure_stage" \
+  COMPILE_ERRORS="$compile_errors" \
+  TEST_FAILURES="$test_failures" \
+  python3 -c '
+import json
+import os
+import sys
+
+def as_int(name: str) -> int:
+    try:
+        return int(os.environ.get(name, "0"))
+    except ValueError:
+        return 0
 
 data = {
-    'system': 'jenkins',
-    'build_number': $BUILD,
-    'total_lines': $total_lines,
-    'tail_lines': $LINES,
-    'failure_stage': '''$failure_stage'''.strip(),
-    'compile_errors': '''$compile_errors'''.strip() or None,
-    'test_failures': '''$test_failures'''.strip() or None,
-    'log_tail': sys.stdin.read()
+    "system": "jenkins",
+    "build_number": as_int("BUILD_NUMBER"),
+    "total_lines": as_int("TOTAL_LINES"),
+    "tail_lines": as_int("TAIL_LINES"),
+    "failure_stage": os.environ.get("FAILURE_STAGE", "").strip(),
+    "compile_errors": os.environ.get("COMPILE_ERRORS", "").strip() or None,
+    "test_failures": os.environ.get("TEST_FAILURES", "").strip() or None,
+    "log_tail": sys.stdin.read(),
 }
 print(json.dumps(data, ensure_ascii=False, indent=2))
-" <<< "$tail_log"
+' <<< "$tail_log"
 }
 
 case "$SYSTEM" in

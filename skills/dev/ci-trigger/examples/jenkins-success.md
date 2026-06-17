@@ -32,6 +32,7 @@
   "system": "jenkins",
   "build_number": 142,
   "duration": "4m15s",
-  "url": "https://jenkins.example.com/job/your-project-pipeline/142/"
+  "build_path": "/job/your-project-pipeline/142/",
+  "url": "****/job/your-project-pipeline/142/"
 }
 ```

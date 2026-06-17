@@ -78,6 +78,10 @@
             "max-auto-files": {
               "type": "integer",
               "default": 3
+            },
+            "merge-tool": {
+              "type": "string",
+              "description": "可选 Git merge tool 名称，例如 vscode、idea、opendiff、meld；未配置时使用文本冲突流程"
             }
           }
         },
@@ -99,7 +103,8 @@
       "properties": {
         "system": {
           "type": "string",
-          "enum": ["jenkins", "github-actions", "gitlab-ci"]
+          "enum": ["jenkins"],
+          "description": "V1 only implements Jenkins. Other CI systems should be added with adapters before being declared here."
         },
         "auto-trigger": {
           "type": "boolean",
@@ -122,29 +127,23 @@
               "type": "object",
               "additionalProperties": { "type": "string" }
             },
-            "poll": {
-              "type": "object",
-              "properties": {
-                "interval": { "type": "integer", "default": 30 },
-                "timeout": { "type": "integer", "default": 900 }
+        "poll": {
+          "type": "object",
+          "properties": {
+            "interval": { "type": "integer", "default": 30 },
+                "timeout": { "type": "integer", "default": 1800 },
+                "progress-log-lines": {
+                  "type": "integer",
+                  "default": 120,
+                  "description": "长构建或失败时拉取 Jenkins consoleText 的尾部行数"
+                },
+                "fetch-log-on-failure": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "构建失败后立即拉取日志并分析"
+                }
               }
             }
-          }
-        },
-        "github-actions": {
-          "type": "object",
-          "properties": {
-            "workflow": { "type": "string" },
-            "ref": { "type": "string" },
-            "inputs": { "type": "object" }
-          }
-        },
-        "gitlab-ci": {
-          "type": "object",
-          "properties": {
-            "trigger-token": { "type": "string" },
-            "ref": { "type": "string" },
-            "variables": { "type": "object" }
           }
         }
       }
@@ -162,12 +161,83 @@
         },
         "template": {
           "type": "string",
-          "enum": ["default", "minimal"],
+          "enum": ["default", "minimal", "api-integration"],
           "default": "default"
         },
         "required-sections": {
           "type": "array",
           "items": { "type": "string" }
+        },
+        "materials": {
+          "type": "object",
+          "properties": {
+            "allow-http": {
+              "type": "boolean",
+              "default": true,
+              "description": "允许读取用户提供的公网 HTTP/HTTPS 文档"
+            },
+            "allow-local-files": {
+              "type": "boolean",
+              "default": true,
+              "description": "允许读取用户提供的本地 DOCX/PDF/Markdown/文本材料"
+            },
+            "allow-images": {
+              "type": "boolean",
+              "default": true,
+              "description": "允许分析用户提供的原型图或截图"
+            },
+            "redact-sensitive": {
+              "type": "boolean",
+              "default": true,
+              "description": "输出 spec 和 state 时必须脱敏敏感值"
+            },
+            "snapshot-dir": {
+              "type": "string",
+              "default": "docs/specs/_sources",
+              "description": "材料摘要或 manifest 的建议存放目录"
+            }
+          }
+        }
+      }
+    },
+    "implementation": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["single-branch"],
+          "default": "single-branch",
+          "description": "V1 只支持 single-branch；step-branch/worktree 留作 V2"
+        },
+        "step-review": {
+          "type": "string",
+          "enum": ["per-step", "final-only"],
+          "default": "per-step",
+          "description": "是否对每个 implementation step 独立 review"
+        },
+        "max-steps-before-plan-review": {
+          "type": "integer",
+          "default": 6,
+          "description": "超过该步骤数时，必须先让用户 review 实施计划"
+        },
+        "step-granularity": {
+          "type": "string",
+          "enum": ["business-slice", "technical-layer"],
+          "default": "business-slice",
+          "description": "V1 默认按业务闭环拆分；technical-layer 不推荐，仅显式配置时允许"
+        },
+        "max-steps-default": {
+          "type": "integer",
+          "default": 3,
+          "description": "默认最多实施步骤数；超过时先请求用户确认"
+        },
+        "split-only-when": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["business-domain", "external-system", "risk-gate", "independent-acceptance"]
+          },
+          "default": ["business-domain", "external-system", "risk-gate", "independent-acceptance"]
         }
       }
     },
@@ -210,7 +280,7 @@
                 "after-code-approved": {
                   "type": "array",
                   "items": { "type": "string" },
-                  "default": ["git-flow:commit", "git-flow:push", "git-flow:integrate", "ci-trigger:build", "ci-trigger:notify"]
+                  "default": ["git-flow:commit", "git-flow:push", "git-flow:integrate", "ci-trigger:build"]
                 }
               }
             },
@@ -236,6 +306,10 @@
     "notify": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
         "on-build-success": {
           "type": "array",
           "items": {
@@ -243,7 +317,10 @@
             "required": ["channel"],
             "properties": {
               "channel": { "type": "string", "enum": ["dingtalk", "wechat-work", "feishu", "slack", "webhook"] },
-              "webhook": { "type": "string" }
+              "webhook": {
+                "type": "string",
+                "description": "推荐使用 ${DINGTALK_WEBHOOK} 这类环境变量引用，不写明文 webhook"
+              }
             }
           }
         },
@@ -254,7 +331,10 @@
             "required": ["channel"],
             "properties": {
               "channel": { "type": "string", "enum": ["dingtalk", "wechat-work", "feishu", "slack", "webhook"] },
-              "webhook": { "type": "string" }
+              "webhook": {
+                "type": "string",
+                "description": "推荐使用 ${DINGTALK_WEBHOOK} 这类环境变量引用，不写明文 webhook"
+              }
             }
           }
         }

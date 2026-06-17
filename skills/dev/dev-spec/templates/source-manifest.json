@@ -1,0 +1,24 @@
+{
+  "feature": "{feature-slug}",
+  "created_at": "YYYY-MM-DDTHH:mm:ss+08:00",
+  "sources": [
+    {
+      "id": "SRC-001",
+      "type": "user-description",
+      "location": "conversation",
+      "retrieved_at": "YYYY-MM-DDTHH:mm:ss+08:00",
+      "title": "用户需求描述",
+      "trust": "confirmed",
+      "sensitive_handling": "none",
+      "summary": "需求摘要",
+      "evidence": [
+        {
+          "claim": "已确认事实或关键规则",
+          "locator": "conversation turn or document section",
+          "confidence": 0.9
+        }
+      ],
+      "open_questions": []
+    }
+  ]
+}

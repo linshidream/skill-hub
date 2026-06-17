@@ -10,17 +10,23 @@
       "type": "string",
       "enum": [
         "not-started",
+        "spec:intake",
         "spec:producing",
         "spec:awaiting-review",
         "spec:revising",
         "spec:approved",
         "branched",
+        "step:developing",
+        "step:awaiting-review",
+        "step:revising",
+        "step:approved",
         "code:developing",
         "code:awaiting-review",
         "code:revising",
         "code:approved",
         "pushed",
         "integrating",
+        "integrated",
         "building",
         "deployed-test",
         "done"
@@ -47,6 +53,35 @@
     "spec": {
       "type": ["string", "null"],
       "description": "Spec 文件路径"
+    },
+    "spec-sources": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/spec-source" },
+      "description": "Spec 使用的需求材料来源和证据摘要"
+    },
+    "implementation": {
+      "type": "object",
+      "properties": {
+        "complexity": {
+          "type": ["string", "null"],
+          "enum": ["S", "M", "L", "XL", null],
+          "description": "需求复杂度分级"
+        },
+        "mode": {
+          "type": ["string", "null"],
+          "enum": ["single-branch", null],
+          "description": "V1 只支持 single-branch；step-branch/worktree 留作 V2"
+        },
+        "current-step": {
+          "type": ["string", "null"],
+          "description": "当前正在执行或等待 review 的 step id"
+        },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/implementation-step" }
+        }
+      },
+      "description": "步骤化实施状态"
     },
     "started-at": {
       "type": ["string", "null"],
@@ -97,6 +132,10 @@
         "properties": {
           "hash": { "type": "string" },
           "message": { "type": "string" },
+          "step": {
+            "type": ["string", "null"],
+            "description": "如果该 commit 属于某个 implementation step，记录 step id"
+          },
           "timestamp": { "type": "string", "format": "date-time" },
           "files": {
             "type": "array",
@@ -132,7 +171,7 @@
       "properties": {
         "system": {
           "type": ["string", "null"],
-          "enum": ["jenkins", "github-actions", "gitlab-ci", null]
+          "enum": ["jenkins", null]
         },
         "number": {
           "type": ["integer", "null"]
@@ -142,7 +181,8 @@
           "enum": ["triggered", "building", "success", "failure", "aborted", "timeout", null]
         },
         "url": {
-          "type": ["string", "null"]
+          "type": ["string", "null"],
+          "description": "Masked URL or CI-relative build path. Do not persist raw credential-bearing URLs."
         }
       },
       "description": "CI 构建状态"
@@ -161,6 +201,110 @@
     }
   },
   "$defs": {
+    "spec-source": {
+      "type": "object",
+      "required": ["id", "type", "location"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["user-description", "http-doc", "local-docx", "local-pdf", "local-markdown", "local-text", "image-prototype", "api-doc", "code-context", "other"]
+        },
+        "location": {
+          "type": "string",
+          "description": "URL、文件路径或 conversation/code reference；敏感 URL 必须脱敏"
+        },
+        "title": { "type": ["string", "null"] },
+        "retrieved-at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "trust": {
+          "type": ["string", "null"],
+          "enum": ["confirmed", "inferred", "unverified", null]
+        },
+        "sensitive-handling": {
+          "type": ["string", "null"],
+          "enum": ["none", "redacted", "skipped-sensitive", null]
+        },
+        "summary": { "type": ["string", "null"] },
+        "open-questions": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "implementation-step": {
+      "type": "object",
+      "required": ["id", "title", "status"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "goal": { "type": ["string", "null"] },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "developing", "in_progress", "awaiting-review", "revising", "approved", "blocked"],
+          "description": "`in_progress` is accepted as a legacy alias; new state should write `developing`."
+        },
+        "depends-on": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "suggested-scope": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "acceptance": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "risk": {
+          "oneOf": [
+            {
+              "type": ["string", "null"],
+              "enum": ["low", "medium", "high", null]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "level": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high"]
+                },
+                "reason": { "type": ["string", "null"] }
+              }
+            }
+          ]
+        },
+        "risk-reason": { "type": ["string", "null"] },
+        "started-at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "finished-at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "files-changed": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "command": { "type": "string" },
+              "status": {
+                "type": "string",
+                "enum": ["passed", "failed", "skipped"]
+              },
+              "summary": { "type": ["string", "null"] }
+            }
+          }
+        }
+      }
+    },
     "review-loop": {
       "type": "object",
       "properties": {

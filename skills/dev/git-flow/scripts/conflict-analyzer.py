@@ -2,8 +2,8 @@
 """
 git-flow 冲突分析器
 
-分析 git merge 冲突，分类为 trivial（可自动解决）或 business（需人工决策），
-并对 trivial 冲突生成自动解决内容。
+分析 git merge 冲突，分类为 trivial（可生成候选方案）或 business（需人工决策），
+并对 trivial 冲突生成候选解决内容。V1 不直接写回冲突文件。
 
 V1 实现前 4 种 trivial 分类：
   1. import 顺序差异

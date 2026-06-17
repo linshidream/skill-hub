@@ -13,6 +13,7 @@ RUNTIME_ROOT_FILES = [
     "README.md",
     "AGENTS.md",
     "CLAUDE.md",
+    "SKILL_CURRENT.md",
     "SKILL_RELEASES.md",
     "USAGE.md",
     "DEPLOYMENT.md",
@@ -28,6 +29,10 @@ RUNTIME_DIRS = [
     "schemas",
     "scripts",
     "skills",
+]
+
+RUNTIME_DOC_FILES = [
+    "docs/dev-workflow-guide.md",
 ]
 
 SKIP_NAMES = {
@@ -122,6 +127,13 @@ def main() -> int:
         src = root / dirname
         if src.exists():
             copy_tree(src, release_dir / dirname)
+
+    for filename in RUNTIME_DOC_FILES:
+        src = root / filename
+        if src.exists():
+            dst = release_dir / filename
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
 
     registry_path = root / "registry.json"
     registry = json.loads(registry_path.read_text(encoding="utf-8"))

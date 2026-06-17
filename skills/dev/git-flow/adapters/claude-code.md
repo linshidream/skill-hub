@@ -34,7 +34,11 @@ Claude Code 先分析 `git diff` 生成 commit message，再传给脚本：
 bash scripts/smart-commit.sh --all-modified --message "feat: 积分计算基础逻辑"
 ```
 
-敏感文件检查由脚本自动执行，包含 `.env`、`credentials`、`*secret*` 等文件时会阻断。
+敏感文件检查由脚本自动执行，包含 `.env`、`credentials`、`*secret*` 等文件时会阻断。提交成功后脚本会追加 `.dev-flow-state.json` 的 commit 记录。
+
+如果 `.dev-flow-state.json` 中存在 `implementation.current-step`，Claude Code 应先确认本次提交范围属于当前 step。脚本会把当前 step id 自动写入 commit 记录，便于 dev-lifecycle 恢复和审计。
+
+V1 不创建 step branch 或 worktree。多个 implementation step 仍在同一个 feature 分支中顺序提交。
 
 ### Phase 3: 推送远程
 
@@ -53,9 +57,24 @@ bash scripts/integrate.sh --feature-branch feat/zx/user-points
 如果发现冲突，`conflict-analyzer.py` 会输出 JSON 分析报告。Claude Code 应：
 
 1. 解析 JSON 中的 `recommendation` 字段
-2. `auto_resolvable` → 展示 trivial 冲突的解决方案 diff，请用户确认后应用
+2. `auto_resolvable` → 展示 trivial 冲突的候选解决方案 diff，请用户确认后应用
 3. `needs_human` → 展示 business 冲突的上下文，请用户逐个决策
 4. `suggest_rebase` → 建议用户先 rebase 生产分支再重试
+
+如果 `.dev-flow.yml` 配置了 `integration.conflict.merge-tool`，Claude Code 可以提示用户打开：
+
+```bash
+git mergetool --tool <merge-tool>
+```
+
+如果只能处理文本冲突，Claude Code 必须解释 `<<<<<<< HEAD`、`=======`、`>>>>>>> branch` 的双方含义，等待用户确认业务取舍；解决后必须扫描冲突标记：
+
+```bash
+grep -rn '<<<<<<<\|=======\|>>>>>>>' . --include='*.java' --include='*.xml' --include='*.yml' --include='*.yaml' || echo "no conflict markers"
+git diff --check
+```
+
+发现任何冲突标记时不得 commit 或继续 cascade。
 
 ### 凭据安全
 

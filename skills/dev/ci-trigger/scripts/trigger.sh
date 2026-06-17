@@ -9,6 +9,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG=".dev-flow.yml"
+STATE=".dev-flow-state.json"
+UPDATE_STATE=true
 SYSTEM=""
 JOB=""
 PARAMS=""
@@ -18,24 +20,57 @@ VALIDATE_CONFIG=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --system)          SYSTEM="$2"; shift 2 ;;
-    --job)             JOB="$2"; shift 2 ;;
-    --params)          PARAMS="$2"; shift 2 ;;
-    --config)          CONFIG="$2"; shift 2 ;;
-    --check-env)       CHECK_ENV=true; shift ;;
-    --validate-config) VALIDATE_CONFIG=true; shift ;;
-    *) echo "{\"error\": \"unknown_option\", \"message\": \"Unknown: $1\"}" >&2; exit 1 ;;
+      --job)             JOB="$2"; shift 2 ;;
+      --params)          PARAMS="$2"; shift 2 ;;
+      --config)          CONFIG="$2"; shift 2 ;;
+      --state)           STATE="$2"; shift 2 ;;
+      --no-state)        UPDATE_STATE=false; shift ;;
+      --check-env)       CHECK_ENV=true; shift ;;
+      --validate-config) VALIDATE_CONFIG=true; shift ;;
+      *) echo "{\"error\": \"unknown_option\", \"message\": \"Unknown: $1\"}" >&2; exit 1 ;;
   esac
 done
 
-# 辅助：解析 yaml 值
-parse_yaml_value() {
-  local key="$1"
-  grep -E "^\s+${key}:" "$CONFIG" 2>/dev/null | head -1 | sed 's/.*:\s*//' | sed 's/\s*#.*//' | tr -d '"' | tr -d "'"
+# 辅助：解析 yaml 标量值（支持嵌套路径，无需 PyYAML）
+config_get() {
+  local path="$1"
+  local default="${2:-}"
+  if [[ -n "$default" ]]; then
+    python3 "$SCRIPT_DIR/dev-flow-util.py" config-get "$CONFIG" "$path" --default "$default"
+  else
+    python3 "$SCRIPT_DIR/dev-flow-util.py" config-get "$CONFIG" "$path" 2>/dev/null || true
+  fi
+}
+
+update_build_state() {
+  [[ "$UPDATE_STATE" == true ]] || return 0
+  local adapter_output="$1"
+  local build_number build_path
+  build_number=$(printf "%s" "$adapter_output" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("build_number", ""))' 2>/dev/null || true)
+  build_path=$(printf "%s" "$adapter_output" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("build_path", ""))' 2>/dev/null || true)
+
+  local args=(
+    "$SCRIPT_DIR/dev-flow-util.py" state-update
+    --state "$STATE"
+    --phase building
+    --set "build.system=$SYSTEM"
+    --set "build.status=triggered"
+    --history build_triggered "Triggered $SYSTEM build for $JOB"
+  )
+  if [[ "$build_number" =~ ^[0-9]+$ ]]; then
+    args+=(--set "build.number=$build_number")
+  fi
+  if [[ -n "$build_path" ]]; then
+    args+=(--set "build.url=$build_path")
+  fi
+
+  python3 "${args[@]}" >/dev/null \
+    || echo '{"warning": "state_update_failed", "message": "build was triggered but state file was not updated"}' >&2
 }
 
 # 从配置读取 system（如果命令行没给）
 if [[ -z "$SYSTEM" && -f "$CONFIG" ]]; then
-  SYSTEM=$(parse_yaml_value "system")
+  SYSTEM=$(config_get "ci.system")
 fi
 
 if [[ -z "$SYSTEM" ]]; then
@@ -47,24 +82,24 @@ fi
 if [[ "$CHECK_ENV" == true ]]; then
   case "$SYSTEM" in
     jenkins)
-      missing=()
-      [[ -z "${JENKINS_URL:-}" ]] && missing+=("JENKINS_URL")
-      [[ -z "${JENKINS_USER:-}" ]] && missing+=("JENKINS_USER")
-      [[ -z "${JENKINS_TOKEN:-}" ]] && missing+=("JENKINS_TOKEN")
-      if [[ ${#missing[@]} -gt 0 ]]; then
-        missing_json=$(printf '"%s",' "${missing[@]}")
-        echo "{\"status\": \"error\", \"missing\": [${missing_json%,}]}"
-        exit 1
-      fi
+        missing=()
+        [[ -z "${JENKINS_URL:-}" ]] && missing+=("JENKINS_URL")
+        [[ -z "${JENKINS_USER:-}" ]] && missing+=("JENKINS_USER")
+        [[ -z "${JENKINS_TOKEN:-}" ]] && missing+=("JENKINS_TOKEN")
+        if [[ ${#missing[@]} -gt 0 ]]; then
+          missing_json=$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1:], ensure_ascii=False))' "${missing[@]}")
+          echo "{\"status\": \"error\", \"missing\": $missing_json}"
+          exit 1
+        fi
       echo '{"status": "ok", "system": "jenkins", "message": "All required env vars are set"}'
       ;;
-    github-actions)
-      echo '{"status": "error", "message": "github-actions check-env not implemented [V2]"}' >&2
-      exit 1
-      ;;
-    gitlab-ci)
-      echo '{"status": "error", "message": "gitlab-ci check-env not implemented [V2]"}' >&2
-      exit 1
+      github-actions)
+        echo '{"status": "error", "message": "github-actions is unsupported in V1"}' >&2
+        exit 1
+        ;;
+      gitlab-ci)
+        echo '{"status": "error", "message": "gitlab-ci is unsupported in V1"}' >&2
+        exit 1
       ;;
     *)
       echo "{\"status\": \"error\", \"message\": \"Unknown CI system: $SYSTEM\"}" >&2
@@ -80,30 +115,31 @@ if [[ "$VALIDATE_CONFIG" == true ]]; then
     echo "{\"status\": \"error\", \"message\": \"$CONFIG not found\"}" >&2
     exit 1
   fi
-  ci_system=$(parse_yaml_value "system")
-  if [[ -z "$ci_system" ]]; then
-    echo '{"status": "error", "message": "ci.system not found in config"}' >&2
-    exit 1
-  fi
-  case "$ci_system" in
-    jenkins)
-      job=$(parse_yaml_value "job")
-      if [[ -z "$job" ]]; then
-        echo '{"status": "error", "message": "ci.jenkins.job not found in config"}' >&2
+    ci_system=$(config_get "ci.system")
+    if [[ -z "$ci_system" ]]; then
+      echo '{"status": "error", "message": "ci.system not found in config"}' >&2
+      exit 1
+    fi
+    case "$ci_system" in
+      jenkins)
+        job=$(config_get "ci.jenkins.job")
+        if [[ -z "$job" ]]; then
+          echo '{"status": "error", "message": "ci.jenkins.job not found in config"}' >&2
+          exit 1
+        fi
+        echo "{\"status\": \"ok\", \"system\": \"$ci_system\", \"job\": \"$job\"}"
+        ;;
+      *)
+        echo "{\"status\": \"error\", \"system\": \"$ci_system\", \"message\": \"Only jenkins is implemented in V1\"}" >&2
         exit 1
-      fi
-      echo "{\"status\": \"ok\", \"system\": \"$ci_system\", \"job\": \"$job\"}"
-      ;;
-    *)
-      echo "{\"status\": \"ok\", \"system\": \"$ci_system\", \"message\": \"Config found but adapter not implemented [V2]\"}"
-      ;;
-  esac
-  exit 0
+        ;;
+    esac
+    exit 0
 fi
 
 # --- trigger 模式 ---
 if [[ -z "$JOB" && -f "$CONFIG" ]]; then
-  JOB=$(parse_yaml_value "job")
+  JOB=$(config_get "ci.jenkins.job")
 fi
 
 if [[ -z "$JOB" ]]; then
@@ -112,21 +148,23 @@ if [[ -z "$JOB" ]]; then
 fi
 
 case "$SYSTEM" in
-  jenkins)
-    if [[ -f "$SCRIPT_DIR/adapters/jenkins.sh" ]]; then
-      bash "$SCRIPT_DIR/adapters/jenkins.sh" --job "$JOB" --params "$PARAMS"
-    else
-      echo '{"error": "adapter_not_found", "message": "adapters/jenkins.sh not found"}' >&2
+    jenkins)
+      if [[ -f "$SCRIPT_DIR/adapters/jenkins.sh" ]]; then
+        ADAPTER_OUTPUT=$(bash "$SCRIPT_DIR/adapters/jenkins.sh" --job "$JOB" --params "$PARAMS")
+        update_build_state "$ADAPTER_OUTPUT"
+        echo "$ADAPTER_OUTPUT"
+      else
+        echo '{"error": "adapter_not_found", "message": "adapters/jenkins.sh not found"}' >&2
       exit 1
     fi
     ;;
-  github-actions)
-    echo '{"error": "not_implemented", "message": "github-actions trigger not implemented [V2]"}' >&2
-    exit 1
-    ;;
-  gitlab-ci)
-    echo '{"error": "not_implemented", "message": "gitlab-ci trigger not implemented [V2]"}' >&2
-    exit 1
+    github-actions)
+      echo '{"error": "unsupported_system", "message": "github-actions is unsupported in V1"}' >&2
+      exit 1
+      ;;
+    gitlab-ci)
+      echo '{"error": "unsupported_system", "message": "gitlab-ci is unsupported in V1"}' >&2
+      exit 1
     ;;
   *)
     echo "{\"error\": \"unknown_system\", \"message\": \"Unknown CI system: $SYSTEM\"}" >&2

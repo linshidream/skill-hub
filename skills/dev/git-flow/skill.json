@@ -1,8 +1,8 @@
 {
   "name": "git-flow",
   "title": "开发分支生命周期管理",
-  "version": "0.1.0",
-  "description": "管理 feature 分支创建、提交、推送、合并测试分支的完整流程，支持冲突自动分类与解决建议。Manage feature branch lifecycle: init, commit, push, and integrate into test branch with smart conflict handling.",
+  "version": "0.1.3",
+  "description": "管理单 feature 分支创建、按业务 step 提交、推送、合并测试分支的完整流程，支持冲突分类、GUI merge 提示和冲突标记检查。Manage a single feature branch with step-aware commits, conflict classification, merge-tool guidance, and marker checks.",
   "category": "dev",
   "license": "MIT",
   "entry": "SKILL.md",

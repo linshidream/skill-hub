@@ -6,15 +6,19 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG=".dev-flow.yml"
+STATE=".dev-flow-state.json"
+UPDATE_STATE=true
 FEATURE_BRANCH=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --feature-branch) FEATURE_BRANCH="$2"; shift 2 ;;
-    --config)         CONFIG="$2"; shift 2 ;;
-    *) echo "Unknown option: $1" >&2; exit 1 ;;
-  esac
-done
+	    --feature-branch) FEATURE_BRANCH="$2"; shift 2 ;;
+	    --config)         CONFIG="$2"; shift 2 ;;
+	    --state)          STATE="$2"; shift 2 ;;
+	    --no-state)       UPDATE_STATE=false; shift ;;
+	    *) echo "Unknown option: $1" >&2; exit 1 ;;
+	  esac
+	done
 
 if [[ -z "$FEATURE_BRANCH" ]]; then
   FEATURE_BRANCH=$(git branch --show-current 2>/dev/null)
@@ -29,13 +33,45 @@ if [[ ! -f "$CONFIG" ]]; then
   exit 1
 fi
 
-# 解析测试分支名
-parse_yaml_value() {
-  local key="$1"
-  grep -E "^\s+${key}:" "$CONFIG" | head -1 | sed 's/.*:\s*//' | sed 's/\s*#.*//' | tr -d '"' | tr -d "'"
+# 解析 .dev-flow.yml 关键字段（支持嵌套路径，无需 PyYAML 依赖）
+config_get() {
+  local path="$1"
+  local default="${2:-}"
+  if [[ -n "$default" ]]; then
+    python3 "$SCRIPT_DIR/dev-flow-util.py" config-get "$CONFIG" "$path" --default "$default"
+  else
+    python3 "$SCRIPT_DIR/dev-flow-util.py" config-get "$CONFIG" "$path" 2>/dev/null || true
+  fi
 }
 
-TEST_BRANCH=$(parse_yaml_value "test")
+update_state_success() {
+  [[ "$UPDATE_STATE" == true ]] || return 0
+  python3 "$SCRIPT_DIR/dev-flow-util.py" state-update \
+    --state "$STATE" \
+    --phase integrated \
+    --set "branch=$FEATURE_BRANCH" \
+    --set "integration.strategy=merge-local" \
+    --set "integration.resolved=true" \
+    --set "integration.conflicts=null" \
+    --history integration_success "Merged $FEATURE_BRANCH into $TEST_BRANCH" >/dev/null \
+    || echo '{"warning": "state_update_failed", "message": "merge succeeded but state file was not updated"}' >&2
+}
+
+update_state_conflict() {
+  [[ "$UPDATE_STATE" == true ]] || return 0
+  local conflicts_json="$1"
+  python3 "$SCRIPT_DIR/dev-flow-util.py" state-update \
+    --state "$STATE" \
+    --phase integrating \
+    --set "branch=$FEATURE_BRANCH" \
+    --set "integration.strategy=merge-local" \
+    --set "integration.resolved=false" \
+    --set-json integration.conflicts "$conflicts_json" \
+    --history integration_conflict "Merge conflict while merging $FEATURE_BRANCH into $TEST_BRANCH" >/dev/null \
+    || echo '{"warning": "state_update_failed", "message": "merge conflict detected but state file was not updated"}' >&2
+}
+
+TEST_BRANCH=$(config_get "branching.test")
 
 if [[ -z "$TEST_BRANCH" ]]; then
   echo '{"error": "config_invalid", "message": "branching.test not found in config"}' >&2
@@ -43,10 +79,8 @@ if [[ -z "$TEST_BRANCH" ]]; then
 fi
 
 # 解析冲突配置
-MAX_AUTO_FILES=$(parse_yaml_value "max-auto-files")
-MAX_AUTO_FILES="${MAX_AUTO_FILES:-3}"
-AUTO_RESOLVE=$(parse_yaml_value "auto-resolve")
-AUTO_RESOLVE="${AUTO_RESOLVE:-trivial}"
+MAX_AUTO_FILES=$(config_get "integration.conflict.max-auto-files" "3")
+AUTO_RESOLVE=$(config_get "integration.conflict.auto-resolve" "trivial")
 
 # 确保 feature 分支的改动已提交
 if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
@@ -58,7 +92,10 @@ fi
 ORIGINAL_BRANCH=$(git branch --show-current)
 
 # 获取测试分支最新状态
-git fetch origin "$TEST_BRANCH" 2>/dev/null || true
+if ! git fetch origin "$TEST_BRANCH" 2>/dev/null; then
+  echo "{\"error\": \"fetch_failed\", \"message\": \"Could not fetch origin/$TEST_BRANCH\"}" >&2
+  exit 1
+fi
 
 # 切到测试分支
 if ! git checkout "$TEST_BRANCH" 2>/dev/null; then
@@ -69,7 +106,10 @@ if ! git checkout "$TEST_BRANCH" 2>/dev/null; then
   fi
 fi
 
-git pull origin "$TEST_BRANCH" 2>/dev/null || true
+if ! git pull origin "$TEST_BRANCH" 2>/dev/null; then
+  echo "{\"error\": \"pull_failed\", \"message\": \"Could not pull origin/$TEST_BRANCH before merge\"}" >&2
+  exit 1
+fi
 
 # 尝试合并
 MERGE_OUTPUT=""
@@ -79,14 +119,19 @@ MERGE_OUTPUT=$(git merge "$FEATURE_BRANCH" --no-ff -m "Merge $FEATURE_BRANCH int
 if [[ $MERGE_EXIT -eq 0 ]]; then
   # 合并成功，推送
   if git push origin "$TEST_BRANCH" 2>/dev/null; then
-    cat <<EOF
-{
-  "status": "success",
-  "feature_branch": "$FEATURE_BRANCH",
-  "test_branch": "$TEST_BRANCH",
-  "message": "Merged and pushed successfully"
-}
-EOF
+    update_state_success
+    python3 - "$FEATURE_BRANCH" "$TEST_BRANCH" <<'PY'
+import json
+import sys
+
+feature_branch, test_branch = sys.argv[1:]
+print(json.dumps({
+    "status": "success",
+    "feature_branch": feature_branch,
+    "test_branch": test_branch,
+    "message": "Merged and pushed successfully",
+}, ensure_ascii=False, indent=2))
+PY
   else
     echo "{\"error\": \"push_failed\", \"message\": \"Merge succeeded but push to $TEST_BRANCH failed\"}" >&2
     exit 1
@@ -94,7 +139,11 @@ EOF
 else
   # 合并冲突
   CONFLICT_FILES=$(git diff --name-only --diff-filter=U 2>/dev/null || true)
-  CONFLICT_COUNT=$(echo "$CONFLICT_FILES" | grep -c '.' 2>/dev/null || echo 0)
+  if [[ -n "$CONFLICT_FILES" ]]; then
+    CONFLICT_COUNT=$(printf "%s\n" "$CONFLICT_FILES" | grep -c '.')
+  else
+    CONFLICT_COUNT=0
+  fi
 
   # 调用冲突分析器
   ANALYZER_RESULT=""
@@ -105,21 +154,29 @@ else
   fi
 
   if [[ -n "$ANALYZER_RESULT" && "$ANALYZER_RESULT" != *'"error"'* ]]; then
+    update_state_conflict "$ANALYZER_RESULT"
     echo "$ANALYZER_RESULT"
   else
     # 分析器不可用时回退到基础信息
     conflict_list=$(echo "$CONFLICT_FILES" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip().split("\n")))' 2>/dev/null || echo '[]')
-    cat <<EOF
-{
-  "status": "conflict",
-  "feature_branch": "$FEATURE_BRANCH",
-  "test_branch": "$TEST_BRANCH",
-  "conflict_count": $CONFLICT_COUNT,
-  "conflict_files": $conflict_list,
-  "recommendation": "needs_human",
-  "message": "Merge conflicts detected. Resolve manually, then commit and push."
-}
-EOF
+    fallback_json=$(python3 - "$FEATURE_BRANCH" "$TEST_BRANCH" "$CONFLICT_COUNT" "$conflict_list" <<'PY'
+import json
+import sys
+
+feature_branch, test_branch, conflict_count, conflict_files = sys.argv[1:]
+print(json.dumps({
+    "status": "conflict",
+    "feature_branch": feature_branch,
+    "test_branch": test_branch,
+    "conflict_count": int(conflict_count),
+    "conflict_files": json.loads(conflict_files),
+    "recommendation": "needs_human",
+    "message": "Merge conflicts detected. Resolve manually, then commit and push.",
+}, ensure_ascii=False, indent=2))
+PY
+)
+    update_state_conflict "$fallback_json"
+    echo "$fallback_json"
   fi
   exit 1
 fi

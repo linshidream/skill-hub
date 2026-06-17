@@ -29,7 +29,8 @@ integration:
   strategy: merge-local                  # merge-local | pull-request [V2]
   conflict:
     auto-resolve: trivial                # trivial | none
-    max-auto-files: 3                    # 自动解决的最大文件数
+    max-auto-files: 3                    # 生成候选解决方案的最大文件数
+    # merge-tool: vscode                 # 可选：vscode | idea | opendiff | meld 等 git mergetool 名称
 
 # --- CI/CD ---
 ci:
@@ -49,17 +50,40 @@ ci:
       GIT_BRANCH: "{{branch}}"
     poll:
       interval: 30                       # 秒
-      timeout: 900                       # 15 分钟
+      timeout: 1800                      # 30 分钟，package 较慢时可继续调大
+      progress-log-lines: 120            # 失败或长时间构建时抓取的日志尾部行数
+      fetch-log-on-failure: true
 
 # --- Spec 文档 ---
 spec:
   output-dir: docs/specs
   naming: "YYYYMMDD-{feature}.md"
-  template: default
+  template: default                       # default | minimal | api-integration
   required-sections:
     - background
+    - sources
     - features
+    - implementation-plan
     - acceptance-criteria
+  materials:
+    allow-http: true
+    allow-local-files: true
+    allow-images: true
+    redact-sensitive: true
+    snapshot-dir: docs/specs/_sources
+
+# --- 实施步骤 ---
+implementation:
+  mode: single-branch                    # V1 only: single-branch
+  step-review: per-step                  # per-step | final-only
+  step-granularity: business-slice       # business-slice | technical-layer
+  max-steps-default: 3                   # 默认不要拆太碎
+  max-steps-before-plan-review: 4
+  split-only-when:
+    - business-domain
+    - external-system
+    - risk-gate
+    - independent-acceptance
 
 # --- 自动化程度 ---
 automation:
@@ -79,13 +103,14 @@ automation:
         - git-flow:push
         - git-flow:integrate
         - ci-trigger:build
-        - ci-trigger:notify
     cascade-interrupt:
       on-conflict: pause
       on-build-failure: analyze-and-pause
 
-# --- 通知（可选）---
+# --- 通知 ---
+# 默认关闭。开启后，构建完成可通过环境变量中的 webhook 通知钉钉。
 notify:
+  enabled: false
   on-build-success:
     - channel: dingtalk
       webhook: "${DINGTALK_WEBHOOK}"

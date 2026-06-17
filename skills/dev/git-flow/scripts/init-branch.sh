@@ -6,17 +6,21 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG=".dev-flow.yml"
+STATE=".dev-flow-state.json"
+UPDATE_STATE=true
 DEVELOPER=""
 FEATURE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --developer) DEVELOPER="$2"; shift 2 ;;
-    --feature)   FEATURE="$2"; shift 2 ;;
-    --config)    CONFIG="$2"; shift 2 ;;
-    *) echo "Unknown option: $1" >&2; exit 1 ;;
-  esac
-done
+	    --developer) DEVELOPER="$2"; shift 2 ;;
+	    --feature)   FEATURE="$2"; shift 2 ;;
+	    --config)    CONFIG="$2"; shift 2 ;;
+	    --state)     STATE="$2"; shift 2 ;;
+	    --no-state)  UPDATE_STATE=false; shift ;;
+	    *) echo "Unknown option: $1" >&2; exit 1 ;;
+	  esac
+	done
 
 if [[ -z "$DEVELOPER" || -z "$FEATURE" ]]; then
   echo '{"error": "missing_params", "message": "--developer and --feature are required"}' >&2
@@ -28,22 +32,36 @@ if [[ ! -f "$CONFIG" ]]; then
   exit 1
 fi
 
-# 解析 .dev-flow.yml 关键字段（纯 grep/sed，无需 yq 依赖）
-parse_yaml_value() {
-  local key="$1"
-  grep -E "^\s+${key}:" "$CONFIG" | head -1 | sed 's/.*:\s*//' | sed 's/\s*#.*//' | tr -d '"' | tr -d "'"
+# 解析 .dev-flow.yml 关键字段（支持嵌套路径，无需 PyYAML 依赖）
+config_get() {
+  local path="$1"
+  local default="${2:-}"
+  if [[ -n "$default" ]]; then
+    python3 "$SCRIPT_DIR/dev-flow-util.py" config-get "$CONFIG" "$path" --default "$default"
+  else
+    python3 "$SCRIPT_DIR/dev-flow-util.py" config-get "$CONFIG" "$path" 2>/dev/null || true
+  fi
 }
 
-PRODUCTION=$(parse_yaml_value "production")
-TEST_BRANCH=$(parse_yaml_value "test")
-PATTERN=$(parse_yaml_value "pattern")
+update_state() {
+  [[ "$UPDATE_STATE" == true ]] || return 0
+  python3 "$SCRIPT_DIR/dev-flow-util.py" state-update \
+    --state "$STATE" \
+    --phase branched \
+    --set "branch=$BRANCH_NAME" \
+    --set "developer=$DEVELOPER" \
+    --set "feature=$FEATURE" \
+    --history branch_created "Created $BRANCH_NAME from $PRODUCTION" >/dev/null \
+    || echo '{"warning": "state_update_failed", "message": "branch was created but state file was not updated"}' >&2
+}
+
+PRODUCTION=$(config_get "branching.production")
+PATTERN=$(config_get "branching.pattern" "feat/{developer}/{feature}")
 
 if [[ -z "$PRODUCTION" ]]; then
   echo '{"error": "config_invalid", "message": "branching.production not found in config"}' >&2
   exit 1
 fi
-
-PATTERN="${PATTERN:-feat/{developer}/{feature}}"
 
 # 检查工作区干净
 if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
@@ -70,13 +88,19 @@ git pull origin "$PRODUCTION" 2>/dev/null
 # 创建 feature 分支
 git checkout -b "$BRANCH_NAME" 2>/dev/null
 
+update_state
+
 # 输出结果
-cat <<EOF
-{
-  "status": "success",
-  "branch": "$BRANCH_NAME",
-  "from": "$PRODUCTION",
-  "developer": "$DEVELOPER",
-  "feature": "$FEATURE"
-}
-EOF
+python3 - "$BRANCH_NAME" "$PRODUCTION" "$DEVELOPER" "$FEATURE" <<'PY'
+import json
+import sys
+
+branch, production, developer, feature = sys.argv[1:]
+print(json.dumps({
+    "status": "success",
+    "branch": branch,
+    "from": production,
+    "developer": developer,
+    "feature": feature,
+}, ensure_ascii=False, indent=2))
+PY

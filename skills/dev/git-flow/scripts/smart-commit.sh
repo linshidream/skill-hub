@@ -5,7 +5,10 @@ set -euo pipefail
 # 用法: bash smart-commit.sh --files "file1,file2" --message "feat: xxx"
 #    或: bash smart-commit.sh --all-modified --message "feat: xxx"
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG=".dev-flow.yml"
+STATE=".dev-flow-state.json"
+UPDATE_STATE=true
 FILES=""
 ALL_MODIFIED=false
 MESSAGE=""
@@ -16,6 +19,8 @@ while [[ $# -gt 0 ]]; do
     --all-modified) ALL_MODIFIED=true; shift ;;
     --message)      MESSAGE="$2"; shift 2 ;;
     --config)       CONFIG="$2"; shift 2 ;;
+    --state)        STATE="$2"; shift 2 ;;
+    --no-state)     UPDATE_STATE=false; shift ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -77,8 +82,7 @@ for file in "${STAGE_FILES[@]}"; do
 done
 
 if [[ ${#BLOCKED_FILES[@]} -gt 0 ]]; then
-  blocked_json=$(printf '"%s",' "${BLOCKED_FILES[@]}")
-  blocked_json="[${blocked_json%,}]"
+  blocked_json=$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1:], ensure_ascii=False))' "${BLOCKED_FILES[@]}")
   echo "{\"error\": \"sensitive_files\", \"message\": \"Blocked: sensitive files detected\", \"files\": $blocked_json}" >&2
   exit 1
 fi
@@ -86,7 +90,7 @@ fi
 # 暂存文件
 for file in "${STAGE_FILES[@]}"; do
   if [[ -f "$file" ]] || git ls-files --deleted --error-unmatch "$file" >/dev/null 2>&1; then
-    git add "$file" 2>/dev/null
+    git add -- "$file" 2>/dev/null
   fi
 done
 
@@ -100,13 +104,26 @@ fi
 HASH=$(git rev-parse --short HEAD)
 BRANCH=$(git branch --show-current)
 FILE_COUNT=${#STAGE_FILES[@]}
+FILES_JSON=$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1:], ensure_ascii=False))' "${STAGE_FILES[@]}")
 
-cat <<EOF
-{
-  "status": "success",
-  "hash": "$HASH",
-  "branch": "$BRANCH",
-  "message": $(echo "$MESSAGE" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))'),
-  "files_committed": $FILE_COUNT
-}
-EOF
+if [[ "$UPDATE_STATE" == true ]]; then
+  python3 "$SCRIPT_DIR/dev-flow-util.py" state-update \
+    --state "$STATE" \
+    --append-commit "$HASH" "$MESSAGE" "$FILES_JSON" \
+    --history commit_created "Committed $HASH on $BRANCH" >/dev/null \
+    || echo '{"warning": "state_update_failed", "message": "commit succeeded but state file was not updated"}' >&2
+fi
+
+python3 - "$HASH" "$BRANCH" "$MESSAGE" "$FILE_COUNT" <<'PY'
+import json
+import sys
+
+commit_hash, branch, message, file_count = sys.argv[1:]
+print(json.dumps({
+    "status": "success",
+    "hash": commit_hash,
+    "branch": branch,
+    "message": message,
+    "files_committed": int(file_count),
+}, ensure_ascii=False, indent=2))
+PY

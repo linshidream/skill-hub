@@ -40,10 +40,10 @@ https://github.com/linshidream/skill-hub
 如果你还不确定要安装哪个 skill，可以这样说：
 
 ```text
-请读取 https://github.com/linshidream/skill-hub 的 registry.json 和 SKILL_RELEASES.md，告诉我当前有哪些 skill 可以安装，并根据我的任务推荐一个。
+请读取 https://github.com/linshidream/skill-hub 的 registry.json 和 SKILL_CURRENT.md，告诉我当前有哪些 skill 可以安装，并根据我的任务推荐一个。
 ```
 
-`<skill-name>` 来自 [SKILL_RELEASES.md](SKILL_RELEASES.md) 或 [registry.json](registry.json)。命令行安装方式见 [USAGE.md](USAGE.md)。
+`<skill-name>` 来自 [SKILL_CURRENT.md](SKILL_CURRENT.md) 或 [registry.json](registry.json)。命令行安装方式见 [USAGE.md](USAGE.md)。
 
 ## 完整设计思路
 
@@ -80,17 +80,19 @@ Skill Hub 的目标是把“用户和 Agent 在真实任务中共同探索出的
 
 这样 Spring AI Alibaba、Claude Code、OpenClaw、Codex 或其他自建 Agent 都可以基于文件系统、`Resource`、classpath、挂载卷、对象存储同步目录等方式加载同一套 skill。
 
-根 README 不维护具体 skill 清单。具体 skill 名称、发布时间、版本和状态统一维护在 `SKILL_RELEASES.md` 与 `registry.json`。
+根 README 不维护具体 skill 清单。当前 skill 名称、发布时间、版本和状态维护在 `SKILL_CURRENT.md` 与 `registry.json`；完整增量历史维护在 `SKILL_RELEASES.md`。
 
 ## 文件索引
 
 - [AGENTS.md](AGENTS.md)：给 Codex、Claude Code、OpenClaw 等 agent 读取的项目协作规则。
 - [CLAUDE.md](CLAUDE.md)：Claude Code 入口说明，指向通用 agent 规则。
-- [SKILL_RELEASES.md](SKILL_RELEASES.md)：技能增量记录、发布时间、版本和入口。
+- [SKILL_CURRENT.md](SKILL_CURRENT.md)：技能当前版本表，一 skill 一行，包含创建时间、最近发布时间、功能摘要和入口。
+- [SKILL_RELEASES.md](SKILL_RELEASES.md)：技能增量发布记录，保留每次新增、更新、修复、文档或废弃记录。
 - [USAGE.md](USAGE.md)：通用安装、校验、打包和安全说明。
 - [DEPLOYMENT.md](DEPLOYMENT.md)：构建、发布、部署、服务器目录和回滚方案。
 - [CONTRIBUTING.md](CONTRIBUTING.md)：新增或修改 skill 的贡献规范。
 - [SECURITY.md](SECURITY.md)：安装和运行第三方 skill 前的安全检查说明。
+- [docs/dev-workflow-guide.md](docs/dev-workflow-guide.md)：dev skill 从需求到测试环境部署的真实项目试跑和组内推广指南。
 - [registry.json](registry.json)：机器可读的 skill 注册表，供安装器、CI 和索引工具使用。
 - [adapters/](adapters/)：企业框架或不同 agent 的运行时加载适配说明。
 - [deploy/](deploy/)：Docker、Compose、systemd 等部署模板。

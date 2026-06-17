@@ -24,8 +24,8 @@ if [[ -z "${JENKINS_URL:-}" || -z "${JENKINS_USER:-}" || -z "${JENKINS_TOKEN:-}"
   [[ -z "${JENKINS_URL:-}" ]] && missing+=("JENKINS_URL")
   [[ -z "${JENKINS_USER:-}" ]] && missing+=("JENKINS_USER")
   [[ -z "${JENKINS_TOKEN:-}" ]] && missing+=("JENKINS_TOKEN")
-  missing_json=$(printf '"%s",' "${missing[@]}")
-  echo "{\"error\": \"missing_env\", \"missing\": [${missing_json%,}]}" >&2
+  missing_json=$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1:], ensure_ascii=False))' "${missing[@]}")
+  echo "{\"error\": \"missing_env\", \"missing\": $missing_json}" >&2
   exit 1
 fi
 
@@ -56,21 +56,24 @@ LAST_BUILD=$(curl -s --user "${JENKINS_USER}:${JENKINS_TOKEN}" \
   | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('number','unknown'))" 2>/dev/null \
   || echo "unknown")
 
-# 解析 params 为 JSON 对象
-PARAMS_JSON=$(echo "$PARAMS" | python3 -c "
-import sys, json, urllib.parse
-params = urllib.parse.parse_qs(sys.stdin.read().strip(), keep_blank_values=True)
-result = {k: v[0] if len(v)==1 else v for k,v in params.items()}
-print(json.dumps(result, ensure_ascii=False))
-" 2>/dev/null || echo '{}')
+python3 - "$JOB" "$LAST_BUILD" "$PARAMS" <<'PY'
+import json
+import sys
+import urllib.parse
 
-cat <<EOF
-{
-  "status": "triggered",
-  "system": "jenkins",
-  "job": "$JOB",
-  "build_number": $( [[ "$LAST_BUILD" == "unknown" ]] && echo '"unknown"' || echo "$LAST_BUILD" ),
-  "params": $PARAMS_JSON,
-  "url": "${JENKINS_URL}/job/${JOB}/${LAST_BUILD}/"
-}
-EOF
+job, last_build, raw_params = sys.argv[1:]
+params = urllib.parse.parse_qs(raw_params, keep_blank_values=True)
+params = {key: value[0] if len(value) == 1 else value for key, value in params.items()}
+build_number = int(last_build) if last_build.isdigit() else last_build
+build_path = f"/job/{job}/{last_build}/"
+
+print(json.dumps({
+    "status": "triggered",
+    "system": "jenkins",
+    "job": job,
+    "build_number": build_number,
+    "params": params,
+    "build_path": build_path,
+    "url": f"****{build_path}",
+}, ensure_ascii=False, indent=2))
+PY
