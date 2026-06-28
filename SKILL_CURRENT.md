@@ -18,5 +18,6 @@
 | `dev-spec` | `0.1.3` | `dev` | 可用 | Claude Code / Codex / Generic | 2026-06-12 21:00 +0800 | 2026-06-17 17:41 +0800 | 将需求对话、需求文档、API 文档、本地 PDF/DOCX 和原型图整理为证据化 spec，并按业务闭环拆分实施步骤。 | `skills/dev/dev-spec` |
 | `git-flow` | `0.1.4` | `dev` | 可用 | Claude Code / Codex / Generic | 2026-06-12 20:00 +0800 | 2026-06-17 18:44 +0800 | 管理单 feature 分支创建、按业务 step 提交、推送和测试分支集成；GUI merge 默认关闭，开启后检测 IntelliJ IDEA 命令和 Git mergetool 配置，并可降级到文本冲突流程。 | `skills/dev/git-flow` |
 | `ci-trigger` | `0.1.3` | `dev` | 可用 | Claude Code / Codex / Generic | 2026-06-12 20:30 +0800 | 2026-06-17 17:41 +0800 | 触发和监控 Jenkins 长流程构建，支持失败日志提取、state 回修、脱敏输出和可选钉钉通知。 | `skills/dev/ci-trigger` |
+| `diverge-converge` | `0.1.0` | `creative` | 可用 | Claude Code / Codex / Generic | 2026-06-27 21:45 +0800 | 2026-06-27 21:45 +0800 | 一种领域无关的 Agent 思维合伙人方法，通过先扩散、后收敛，把不成熟想法逐步逼近成任何智能体都能接手的可实施手稿。 | `skills/creative/diverge-converge` |
 | `wechat-markdown-publisher` | `0.2.4` | `creative` | 可用 | Claude Code / Codex / Generic | 2026-06-02 14:22 +0800 | 2026-06-14 20:12 +0800 | 将 Typora/Markdown 文章转换为微信公众号可粘贴富文本，支持多主题、封面上传降级、预览和兼容性检查。 | `skills/creative/wechat-markdown-publisher` |
 | `mafengwo-original-images` | `0.1.0` | `creative` | 可用 | Claude Code / OpenClaw / Codex / Generic | 2026-06-01 15:23 +0800 | 2026-06-01 15:23 +0800 | 提取马蜂窝图片页或游记页原图链接，下载原图并生成链接与文件大小清单。 | `skills/creative/mafengwo-original-images` |

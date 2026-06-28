@@ -1,0 +1,15 @@
+{
+  "name": "diverge-converge",
+  "title": "扩散收敛法",
+  "version": "0.1.0",
+  "description": "一种与 Agent 共建的思维方法:把不成熟的想法通过先扩散(铺开地图、暴露未知)后收敛(逐个锁定决策),逐步逼近成一份任何智能体都能接手的可实施手稿。领域无关,适用于软件架构、研究选题、商业决策、产品设计、写作等一切开放复杂课题。A thinking-partner method that turns an immature idea into an implementable manuscript through deliberate divergence then convergence; domain-agnostic.",
+  "category": "creative",
+  "license": "MIT",
+  "entry": "SKILL.md",
+  "requirements": [],
+  "supportedAgents": ["claude-code", "codex", "generic"],
+  "sideEffects": ["filesystem-write"],
+  "templates": {
+    "manuscript": "templates/manuscript.md"
+  }
+}
