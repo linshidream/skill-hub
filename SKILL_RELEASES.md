@@ -14,6 +14,7 @@
 
 | 发布时间 | Skill | 版本 | 分类 | 变更类型 | 状态 | 支持 Agent | 变更摘要 | 入口 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-06-27 21:45 +0800 | `diverge-converge` | `0.1.0` | `creative` | 新增 | 可用 | Claude Code / Codex / Generic | 新增领域无关的扩散收敛思维方法，支持将半成熟想法、多轮探索或开放复杂课题沉淀为可实施、可交接的手稿。 | `skills/creative/diverge-converge` |
 | 2026-06-17 18:44 +0800 | `dev-lifecycle` | `0.1.4` | `dev` | 更新 | 可用 | Claude Code / Codex / Generic | 将 GUI merge 明确为默认关闭的可选辅助能力；开启后要求检测 IntelliJ IDEA 命令和 Git mergetool 配置，不可用时自动降级到文本冲突流程，不阻断 lifecycle 主流程。 | `skills/dev/dev-lifecycle` |
 | 2026-06-17 18:44 +0800 | `git-flow` | `0.1.4` | `dev` | 更新 | 可用 | Claude Code / Codex / Generic | 新增 `integration.conflict.gui-merge` 配置，默认关闭；开启后默认使用 `intellij` / `idea`，冲突报告输出检测结果和降级原因，并补充 IDEA 命令行与 mergetool 配置指南。 | `skills/dev/git-flow` |
 | 2026-06-17 17:41 +0800 | `dev-lifecycle` | `0.1.3` | `dev` | 更新 | 可用 | Claude Code / Codex / Generic | 收紧 Step Loop 为业务闭环级拆分，新增实时 `current-step` 状态同步脚本和一致性约束；Jenkins 构建失败后回到 code/step revising 并重新 review。 | `skills/dev/dev-lifecycle` |
