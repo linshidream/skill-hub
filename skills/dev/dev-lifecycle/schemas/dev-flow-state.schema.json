@@ -48,7 +48,7 @@
     },
     "feature": {
       "type": ["string", "null"],
-      "description": "功能 slug"
+      "description": "功能 slug。per-feature 模式下，文件名必须与该字段一致（.dev-flow/states/<feature>.json）"
     },
     "spec": {
       "type": ["string", "null"],
