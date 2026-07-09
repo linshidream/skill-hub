@@ -34,7 +34,7 @@ V1 实现 Jenkins 和可选钉钉通知。GitHub Actions、GitLab CI、企业微
 1. 读取 `.dev-flow.yml` 的 `ci` 配置
 2. 验证必要环境变量已设置（检查是否非空，**不读取值**）
 3. 确定动态参数：
-   - `{{branch}}` ← 从 `.dev-flow-state.json` 或当前 git branch 获取
+   - `{{branch}}` ← 从活动状态文件（由 dev-lifecycle `resolve-active-state.py` 解析路径，per-feature 模式下 `.dev-flow/states/<feature>.json`）或当前 git branch 获取
    - `{{version}}` ← 从项目 `pom.xml` / `package.json` / `pyproject.toml` 解析
 4. 展示即将触发的构建参数
 
@@ -49,7 +49,7 @@ V1 实现 Jenkins 和可选钉钉通知。GitHub Actions、GitLab CI、企业微
    ```
 
 6. 获取构建编号 / Run ID
-7. 更新 `.dev-flow-state.json`：`phase=building`，记录 `build.system`、`build.number`、`build.status`
+7. 更新活动状态文件（路径由编排器通过 `--state` 传入，或脚本默认 `.dev-flow-state.json` 兜底）：`phase=building`，记录 `build.system`、`build.number`、`build.status`
 
 ### 阶段 3: 监控
 
@@ -64,7 +64,7 @@ V1 实现 Jenkins 和可选钉钉通知。GitHub Actions、GitLab CI、企业微
 
 11. 构建成功：
     - 输出部署信息（版本号、环境、耗时）
-    - 更新 `.dev-flow-state.json` phase 为 `deployed-test`
+    - 更新活动状态文件 phase 为 `deployed-test`
     - 如果 `notify.enabled=true` 且配置了钉钉，调用 `scripts/notify-dingtalk.sh`
 12. 构建失败：
     - 立即拉取失败日志（`scripts/fetch-log.sh`）

@@ -1,8 +1,8 @@
 {
   "name": "git-flow",
   "title": "开发分支生命周期管理",
-  "version": "0.1.4",
-  "description": "管理单 feature 分支创建、按业务 step 提交、推送、合并测试分支的完整流程；GUI merge 默认关闭，开启后检测 IntelliJ IDEA 并可降级文本冲突流程。Manage a single feature branch with optional IntelliJ merge detection and text fallback.",
+  "version": "0.1.5",
+  "description": "管理单 feature 分支创建、按业务 step 提交、推送、合并测试分支的完整流程；init-branch 在 per-feature 模式下按功能写状态文件与活动指针，支持多功能并行；GUI merge 默认关闭，开启后检测 IntelliJ IDEA 并可降级文本冲突流程。Manage a single feature branch with per-feature state isolation, optional IntelliJ merge detection and text fallback.",
   "category": "dev",
   "license": "MIT",
   "entry": "SKILL.md",

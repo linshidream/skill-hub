@@ -12,7 +12,7 @@
 - 构建触发结果（构建编号、参数）
 - 构建状态（成功/失败/超时）
 - 失败时的日志分析和修复建议
-- `.dev-flow-state.json` 中的 build 状态更新
+- 活动状态文件（per-feature 模式下 `.dev-flow/states/<feature>.json`，由 dev-lifecycle `resolve-active-state.py` 解析路径；编排器以 `--state <path>` 传入，脚本默认 `.dev-flow-state.json` 兜底）中的 build 状态更新
 - 可选钉钉通知结果
 
 ## 使用

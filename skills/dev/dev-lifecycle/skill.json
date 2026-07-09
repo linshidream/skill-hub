@@ -1,8 +1,8 @@
 {
   "name": "dev-lifecycle",
   "title": "开发全流程编排",
-  "version": "0.1.4",
-  "description": "编排 dev-spec、git-flow、ci-trigger 三个 skill，实现业务闭环级步骤开发、实时 step 状态、构建失败回修和可中断恢复流程；GUI merge 是默认关闭的可选辅助能力。Orchestrate lifecycle with optional GUI merge fallback.",
+  "version": "0.1.5",
+  "description": "编排 dev-spec、git-flow、ci-trigger 三个 skill，实现业务闭环级步骤开发、实时 step 状态、构建失败回修和可中断恢复流程；状态按功能隔离支持多功能并行开发，活动指针以当前分支为准同步；GUI merge 是默认关闭的可选辅助能力。Orchestrate lifecycle with per-feature parallel state, branch-authoritative active pointer, and optional GUI merge fallback.",
   "category": "dev",
   "license": "MIT",
   "entry": "SKILL.md",

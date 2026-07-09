@@ -56,7 +56,13 @@ description: "Turn conversations, requirement documents, API docs, local PDF/DOC
 7. 根据 `spec.template` 选择模板生成 spec，并输出推荐实施步骤。
 8. 输出到 `{spec.output-dir}/{spec.naming}` 路径。
    - 默认：`docs/specs/YYYYMMDD-{feature}.md`
-9. 将 spec 文件路径、功能 slug、材料清单、复杂度和实施步骤写入 `.dev-flow-state.json`（供 dev-lifecycle/git-flow 读取）。
+9. 确定 feature slug 后，先调 `dev-lifecycle` 的解析脚本建立活动状态文件并指向该 feature（per-feature 模式下生成 `.dev-flow/states/<feature>.json` + 写指针 `.dev-flow/active`）：
+
+   ```bash
+   python3 skills/dev/dev-lifecycle/scripts/resolve-active-state.py --config .dev-flow.yml set <feature>
+   ```
+
+   再把 spec 文件路径、功能 slug、材料清单、复杂度和实施步骤写入解析出的活动状态文件（`resolve` 子命令输出的 `state-path`，供 dev-lifecycle/git-flow 读取）。`state.storage: single` 时该脚本回退到单一 `.dev-flow-state.json`，行为不变。
 
 ## 材料输入规范
 

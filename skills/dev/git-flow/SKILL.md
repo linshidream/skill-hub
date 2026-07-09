@@ -55,10 +55,11 @@ branching:
 2. `git fetch origin`
 3. `git checkout {production}` && `git pull origin {production}`
 4. 根据 `branching.pattern` 构造分支名
-   - `{developer}` 从参数或 `.dev-flow-state.json` 获取
+   - `{developer}` 从参数或活动状态文件获取
    - `{feature}` 从 spec slug 获取，或由用户指定
 5. `git checkout -b {branch-name}`
-6. 更新 `.dev-flow-state.json`：`phase=branched`，记录 `branch`、`developer`、`feature` 和 history 事件
+6. 解析运行时状态路径：per-feature 模式（默认）下状态文件写到 `.dev-flow/states/<feature>.json` 并把活动指针 `.dev-flow/active` 指向该 feature；`single` 模式或显式 `--state` 覆盖时维持原行为
+7. 更新状态文件：`phase=branched`，记录 `branch`、`developer`、`feature` 和 history 事件
 
 输出：分支名
 

@@ -26,17 +26,20 @@ Claude Code 读取 `.dev-flow.yml` 后调用：
 bash scripts/init-branch.sh --developer zx --feature user-points
 ```
 
+per-feature 模式（默认）下，`init-branch.sh` 会把状态写到 `.dev-flow/states/user-points.json` 并把指针 `.dev-flow/active` 指向 `user-points`，支持多功能并行。`single` 模式或显式 `--state <path>` 时维持原单一文件行为。
+
 ### Phase 2: 提交代码
 
-Claude Code 先分析 `git diff` 生成 commit message，再传给脚本：
+Claude Code 先分析 `git diff` 生成 commit message，再传给脚本。若 per-feature 模式且未由编排器传入 `--state`，可先解析活动状态路径：
 
 ```bash
-bash scripts/smart-commit.sh --all-modified --message "feat: 积分计算基础逻辑"
+STATE=$(python3 ../dev-lifecycle/scripts/resolve-active-state.py --config .dev-flow.yml resolve | python3 -c "import sys,json;print(json.load(sys.stdin)['state-path'])")
+bash scripts/smart-commit.sh --all-modified --message "feat: 积分计算基础逻辑" --state "$STATE"
 ```
 
-敏感文件检查由脚本自动执行，包含 `.env`、`credentials`、`*secret*` 等文件时会阻断。提交成功后脚本会追加 `.dev-flow-state.json` 的 commit 记录。
+敏感文件检查由脚本自动执行，包含 `.env`、`credentials`、`*secret*` 等文件时会阻断。提交成功后脚本会追加活动状态文件的 commit 记录。
 
-如果 `.dev-flow-state.json` 中存在 `implementation.current-step`，Claude Code 应先确认本次提交范围属于当前 step。脚本会把当前 step id 自动写入 commit 记录，便于 dev-lifecycle 恢复和审计。
+如果活动状态文件中存在 `implementation.current-step`，Claude Code 应先确认本次提交范围属于当前 step。脚本会把当前 step id 自动写入 commit 记录，便于 dev-lifecycle 恢复和审计。
 
 V1 不创建 step branch 或 worktree。多个 implementation step 仍在同一个 feature 分支中顺序提交。
 

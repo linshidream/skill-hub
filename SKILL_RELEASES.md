@@ -14,6 +14,10 @@
 
 | 发布时间 | Skill | 版本 | 分类 | 变更类型 | 状态 | 支持 Agent | 变更摘要 | 入口 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-07-09 14:30 +0800 | `dev-lifecycle` | `0.1.5` | `dev` | 更新 | 可用 | Claude Code / Codex / Generic | 新增多功能并行状态协议：状态文件按功能隔离到 `.dev-flow/states/<feature>.json`，活动指针 `.dev-flow/active` 标记当前开发功能；新增 `resolve-active-state.py`（resolve/set/switch/list/migrate），解析规则为分支为准 + 同步指针；schema 新增 `state` 配置块；完全向后兼容 `single` 旧单文件模式。 | `skills/dev/dev-lifecycle` |
+| 2026-07-09 14:30 +0800 | `git-flow` | `0.1.5` | `dev` | 更新 | 可用 | Claude Code / Codex / Generic | `init-branch.sh` 在 per-feature 模式下把状态写到 `.dev-flow/states/<feature>.json` 并写入活动指针，支持多功能并行；`--state` 显式覆盖与 `single` 模式维持原行为；下游脚本由编排器传入解析后的 `--state` 路径。 | `skills/dev/git-flow` |
+| 2026-07-09 14:30 +0800 | `dev-spec` | `0.1.4` | `dev` | 更新 | 可用 | Claude Code / Codex / Generic | intake 确定 feature slug 后先调 `resolve-active-state.py set` 建立活动状态文件与指针，再写入 spec/sources/implementation；状态路径由 resolver 解析，`single` 模式回退旧单文件。 | `skills/dev/dev-spec` |
+| 2026-07-09 14:30 +0800 | `ci-trigger` | `0.1.4` | `dev` | 更新 | 可用 | Claude Code / Codex / Generic | 文档明确状态文件路径由 dev-lifecycle resolver 解析后以 `--state` 传入，脚本默认 `.dev-flow-state.json` 兜底；脚本默认值与行为不变。 | `skills/dev/ci-trigger` |
 | 2026-06-27 21:45 +0800 | `diverge-converge` | `0.1.0` | `creative` | 新增 | 可用 | Claude Code / Codex / Generic | 新增领域无关的扩散收敛思维方法，支持将半成熟想法、多轮探索或开放复杂课题沉淀为可实施、可交接的手稿。 | `skills/creative/diverge-converge` |
 | 2026-06-17 18:44 +0800 | `dev-lifecycle` | `0.1.4` | `dev` | 更新 | 可用 | Claude Code / Codex / Generic | 将 GUI merge 明确为默认关闭的可选辅助能力；开启后要求检测 IntelliJ IDEA 命令和 Git mergetool 配置，不可用时自动降级到文本冲突流程，不阻断 lifecycle 主流程。 | `skills/dev/dev-lifecycle` |
 | 2026-06-17 18:44 +0800 | `git-flow` | `0.1.4` | `dev` | 更新 | 可用 | Claude Code / Codex / Generic | 新增 `integration.conflict.gui-merge` 配置，默认关闭；开启后默认使用 `intellij` / `idea`，冲突报告输出检测结果和降级原因，并补充 IDEA 命令行与 mergetool 配置指南。 | `skills/dev/git-flow` |

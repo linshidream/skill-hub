@@ -7,6 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG=".dev-flow.yml"
 STATE=".dev-flow-state.json"
+STATE_OVERRIDE=false
 UPDATE_STATE=true
 DEVELOPER=""
 FEATURE=""
@@ -16,7 +17,7 @@ while [[ $# -gt 0 ]]; do
 	    --developer) DEVELOPER="$2"; shift 2 ;;
 	    --feature)   FEATURE="$2"; shift 2 ;;
 	    --config)    CONFIG="$2"; shift 2 ;;
-	    --state)     STATE="$2"; shift 2 ;;
+	    --state)     STATE="$2"; STATE_OVERRIDE=true; shift 2 ;;
 	    --no-state)  UPDATE_STATE=false; shift ;;
 	    *) echo "Unknown option: $1" >&2; exit 1 ;;
 	  esac
@@ -55,6 +56,25 @@ update_state() {
     || echo '{"warning": "state_update_failed", "message": "branch was created but state file was not updated"}' >&2
 }
 
+# 解析运行时状态路径：per-feature 模式下每功能一份状态文件 + 活动指针
+# 仅在未通过 --state 显式覆盖时按配置推导，保持 git-flow 自包含
+resolve_state_path() {
+  if [[ "$STATE_OVERRIDE" == true ]]; then
+    return 0
+  fi
+  local storage dir pointer
+  storage=$(config_get "state.storage" "per-feature")
+  if [[ "$storage" == "single" ]]; then
+    STATE=".dev-flow-state.json"
+    return 0
+  fi
+  dir=$(config_get "state.dir" ".dev-flow/states")
+  pointer=$(config_get "state.pointer" ".dev-flow/active")
+  mkdir -p "$dir"
+  STATE="$dir/$FEATURE.json"
+  printf '%s\n' "$FEATURE" > "$pointer"
+}
+
 PRODUCTION=$(config_get "branching.production")
 PATTERN=$(config_get "branching.pattern" "feat/{developer}/{feature}")
 
@@ -88,6 +108,7 @@ git pull origin "$PRODUCTION" 2>/dev/null
 # 创建 feature 分支
 git checkout -b "$BRANCH_NAME" 2>/dev/null
 
+resolve_state_path
 update_state
 
 # 输出结果

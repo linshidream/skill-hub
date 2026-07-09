@@ -267,6 +267,28 @@
         }
       }
     },
+    "state": {
+      "type": "object",
+      "description": "运行时状态存储方式；默认 per-feature，支持多功能并行开发",
+      "properties": {
+        "storage": {
+          "type": "string",
+          "enum": ["per-feature", "single"],
+          "default": "per-feature",
+          "description": "per-feature=每功能一份状态文件 + 活动指针；single=旧单文件模式"
+        },
+        "dir": {
+          "type": "string",
+          "default": ".dev-flow/states",
+          "description": "per-feature 模式下状态文件目录"
+        },
+        "pointer": {
+          "type": "string",
+          "default": ".dev-flow/active",
+          "description": "活动指针文件路径，记录当前正在开发的功能 slug"
+        }
+      }
+    },
     "automation": {
       "type": "object",
       "properties": {
