@@ -13,8 +13,8 @@
 ## B. 服务器侧（人工部署脚本）
 - [ ] `run.sh` / `rollback.sh` 已复制到部署服务器（或由 jenkins 构建时拷入上下文）【人工·机器无法触达服务器】
 - [ ] 部署服务器 docker 运行环境就位 【人工】
-- [ ] 日志目录 `/home/recharge/logs/{{core.module.name}}` 已建 【人工】
-- [ ] 外置配置目录 `/home/recharge/server/{{core.module.name}}/` 放置 `application-<env>.yml` 【人工】
+- [ ] 日志目录 `/opt/app/logs/{{core.module.name}}` 已建 【人工】
+- [ ] 外置配置目录 `/opt/app/server/{{core.module.name}}/` 放置 `application-<env>.yml` 【人工】
 
 ## C. 交付可达（人工验证 push）
 - [ ] 用 docker 凭据在构建节点做一次真 `docker login` + `push` 测试 【人工·L3 机器只 ping v2】

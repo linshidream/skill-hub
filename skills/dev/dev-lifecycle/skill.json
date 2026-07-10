@@ -9,7 +9,7 @@
   "requirements": ["git>=2.20", "python>=3.10", "curl"],
   "supportedAgents": ["claude-code", "codex", "generic"],
   "sideEffects": ["shell", "filesystem-read", "filesystem-write", "network", "external-service"],
-  "dependencies": ["dev-spec", "git-flow", "ci-trigger"],
+  "dependencies": ["dev-spec", "git-flow", "ci-trigger", "project-init"],
   "adapters": {
     "claude-code": "adapters/claude-code.md"
   }

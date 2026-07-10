@@ -222,14 +222,14 @@ finalName         = ${core.module.name}     # 供 Dockerfile ADD 稳定引用
 8.  ci-type               [默认=jenkins-docker-ci] :
 9.  tech-pref             [默认=fastjson2-hutool]  :
 10. spec-doc (实施方案md路径，可选)                :
-11. docker registry       : 例 swr.cn-east-3.myhuaweicloud.com
-12. namespace.test        : 例 puup-test
-13. namespace.prod        : 例 puup-prod
-14. jenkins job 名        : 例 logquery-pipeline
+11. docker registry       : 例 registry.example.com
+12. namespace.test        : 例 example-test
+13. namespace.prod        : 例 example-prod
+14. jenkins job 名        : 例 example-pipeline
 15. gitee 凭据 id         :
 16. maven settings fileId :
 17. docker 凭据 id        :
-18. git 仓库 url          : 例 https://gitee.com/org/repo.git
+18. git 仓库 url          : 例 https://gitee.com/your-org/your-repo.git
 ```
 
 最简触发：`初始化 java 项目，type=java-mcp`（其余全默认/占位直接生成）。
