@@ -1,0 +1,24 @@
+package {{package}}.mcp;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+
+/**
+ * MCP @Tool 暴露示例。MCP server 侧不跑 LLM——它是确定性协调器，
+ * "理解自然语言"发生在客户端(Claude Code/Codex)。替换为真实业务工具。
+ */
+@Slf4j
+@Component
+public class ExampleTools {
+
+    @Tool(name = "example_query", description = "示例工具：按 id 查询。替换为真实业务方法。")
+    public Map<String, Object> queryById(
+            @ToolParam(description = "业务 id") String id,
+            @ToolParam(required = false, description = "上下文行数") Integer contextLines) {
+        return Map.of("id", id, "contextLines", contextLines == null ? 0 : contextLines);
+    }
+}

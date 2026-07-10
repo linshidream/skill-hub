@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: {{project.name}}
+  config:
+    import:
+      - optional:classpath:log-router.yml
+  # @@SPRING-EXTRA@@
+{{project.name}}:
+  env: test
+server:
+  port: {{server.port}}
+logging:
+  level:
+    {{package}}: DEBUG

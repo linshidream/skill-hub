@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# build.sh —— 构建并推送镜像。凭据由 Jenkinsfile withCredentials 注入 SWR_USER/SWR_TOKEN env。
+#   build.sh <project> <version> <active>
+# env 可覆盖：REGISTRY / NAMESPACE_TEST / NAMESPACE_PROD
+set -e
+PROJECT_NAME="$1"; VERSION="$2"; ACTIVE="$3"
+REGISTRY="${REGISTRY:-{{registry}}}"
+
+case "$ACTIVE" in
+  prod) NAMESPACE="${NAMESPACE_PROD:-{{namespace.prod}}}" ;;
+  *)    NAMESPACE="${NAMESPACE_TEST:-{{namespace.test}}}" ;;
+esac
+
+IMAGE="${REGISTRY}/${NAMESPACE}/${PROJECT_NAME}:${VERSION}"
+IMAGE_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "${IMAGE_DIR}"
+
+if [[ -n "${SWR_USER:-}" && -n "${SWR_TOKEN:-}" ]]; then
+  docker login -u "${SWR_USER}" -p "${SWR_TOKEN}" "${REGISTRY}"
+fi
+
+docker build --pull -t "${IMAGE}" .
+docker push "${IMAGE}"
+echo "pushed ${IMAGE}"

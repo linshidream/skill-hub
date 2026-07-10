@@ -1,0 +1,28 @@
+# 构建就绪人工质检清单
+
+> 项目: {{project.name}} | 机器自检: `scripts/check-build-ready.sh` | 本清单: 机器验不了的项
+
+## A. Jenkins 侧（人工在 Jenkins UI 配置）
+- [ ] 创建 gitee 凭据(PAT)，id 填入 `.dev-flow.yml` 的 `ci.jenkins.build-credentials.gitee-id` 【人工】
+- [ ] 创建 docker registry 凭据，id 填入 `docker-creds-id` 【人工】
+- [ ] 上传 maven settings.xml 到 config-file-provider，fileId 填入 `maven-file-id` 【人工·软检查】
+- [ ] 创建 pipeline job（指向仓库 `deploy/jenkins/Jenkinsfile`），job 名 = `{{jenkins.job}}` 【人工】
+- [ ] Jenkins 构建节点 docker 就位、时区 Asia/Shanghai 【人工】
+- [ ] 确认 docker registry 保留了历史 version tag（无自动清理策略），否则回滚源丢失 【人工】
+
+## B. 服务器侧（人工部署脚本）
+- [ ] `run.sh` / `rollback.sh` 已复制到部署服务器（或由 jenkins 构建时拷入上下文）【人工·机器无法触达服务器】
+- [ ] 部署服务器 docker 运行环境就位 【人工】
+- [ ] 日志目录 `/home/recharge/logs/{{core.module.name}}` 已建 【人工】
+- [ ] 外置配置目录 `/home/recharge/server/{{core.module.name}}/` 放置 `application-<env>.yml` 【人工】
+
+## C. 交付可达（人工验证 push）
+- [ ] 用 docker 凭据在构建节点做一次真 `docker login` + `push` 测试 【人工·L3 机器只 ping v2】
+
+## D. 首次构建验证
+- [ ] 手动触发一次 jenkins job，确认 checkout→mvn→docker→push 全链路通 【人工】
+
+## 凭据安全红线
+- gitee/docker/maven 凭据**只存 jenkins credentials store**，不进代码仓库、不进 agent 上下文、不进镜像。
+- `.dev-flow.yml` 的 `build-credentials` 只存 `REPLACE_WITH_*` 引用标识，不存值。
+- agent 唯一直接用的凭据是 jenkins env（`JENKINS_URL/USER/TOKEN`），由 ci-trigger 使用，不读明文。

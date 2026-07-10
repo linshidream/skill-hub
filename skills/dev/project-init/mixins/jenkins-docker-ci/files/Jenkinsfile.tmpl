@@ -1,0 +1,62 @@
+// Jenkinsfile (declarative) —— Jenkins + Docker 三阶段。
+// 凭据全走 jenkins credentials store（withCredentials / configFileProvider），不写明文。
+// credentialsId 与 .dev-flow.yml 的 ci.jenkins.build-credentials 同源（merge.py 保证一致）。
+def PROJECT_NAME = "{{core.module.name}}"
+def DEPLOY_ROOT = "{{deploy.root}}"
+def DOCKER_IMAGE_DIR = "${DEPLOY_ROOT}/docker_images"
+
+pipeline {
+    agent none
+    parameters {
+        string(name: 'CURRENT_VERSION', defaultValue: 'v1.0.0', description: '当前版本')
+        choice(name: 'ACTIVE', choices: ['test'], description: '环境选择')
+        string(name: 'GIT_BRANCH', defaultValue: 'test', description: '分支')
+    }
+    stages {
+        stage('checkout') {
+            agent any
+            steps {
+                git branch: "${GIT_BRANCH}",
+                    credentialsId: "{{gitee.credential.id}}",
+                    url: "{{git.repo.url}}"
+            }
+        }
+        stage('packaging') {
+            agent {
+                docker {
+                    // 构建镜像 Java 版本对齐（java8: maven:3-alpine | java21: maven:3.9-eclipse-temurin-21）
+                    image '{{docker.build.image}}'
+                    args '-v /root/.m2:/root/.m2'
+                }
+            }
+            steps {
+                sh 'mvn -v'
+                configFileProvider(
+                    [configFile(fileId: '{{maven.settings.file.id}}', variable: 'MAVEN_SETTINGS')]) {
+                    // 不用 -P ${ACTIVE}：Spring profile 是运行时概念，由 run.sh 注入
+                    sh 'mvn -s $MAVEN_SETTINGS clean package -Dmaven.test.skip=true -U'
+                }
+            }
+        }
+        stage('build docker') {
+            agent any
+            steps {
+                sh "mkdir -p ${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}"
+                sh "cp ./deploy/docker/Dockerfile ${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/"
+                sh "cp ./${PROJECT_NAME}/target/${PROJECT_NAME}.jar ${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/"
+                sh "cp ./deploy/docker/build.sh ${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/"
+                sh "cp ./deploy/docker/run.sh ${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/"
+                sh "cp ./deploy/docker/rollback.sh ${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/"
+                sh "cp ./scripts/compress-old-logs.sh ${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/"
+                sh "chmod +x ${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/*.sh"
+                // docker 凭据由 withCredentials 注入成 SWR_USER/SWR_TOKEN env 给 build.sh（接口不变）
+                withCredentials([usernamePassword(credentialsId: '{{docker.creds.id}}',
+                                                  usernameVariable: 'SWR_USER',
+                                                  passwordVariable: 'SWR_TOKEN')]) {
+                    sh "${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/build.sh ${PROJECT_NAME} ${CURRENT_VERSION} ${ACTIVE}"
+                    sh "${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/run.sh ${PROJECT_NAME} ${CURRENT_VERSION} ${ACTIVE}"
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,33 @@
+# java-maven-base mixin —— 通用骨架层（版本无关）
+# 所有 Java Maven 项目都有的文件与 pom 片段。版本敏感件（RequestIdFilter、各 template 的 pom 片段）在各 template 自持。
+# 叠加优先级最低（被 fastjson2-hutool mixin / template 覆盖）。
+
+name: java-maven-base
+description: 通用骨架层，所有 Java Maven Spring Boot 项目都有（版本无关）
+
+# 产出文件映射：模板路径 -> 生成路径（生成路径支持 {{var}} 占位）
+provides:
+  files:
+    - {from: pom-parent.xml.tmpl,                       to: "pom.xml"}
+    - {from: pom-server.xml.tmpl,                       to: "{{core.module.name}}/pom.xml"}
+    - {from: logback-spring.xml,                        to: "{{core.module.name}}/src/main/resources/logback-spring.xml"}
+    - {from: application.yml,                           to: "{{core.module.name}}/src/main/resources/application.yml"}
+    - {from: application-test.yml.tmpl,                 to: "{{core.module.name}}/src/main/resources/application-test.yml"}
+    - {from: application-prod.yml.tmpl,                 to: "{{core.module.name}}/src/main/resources/application-prod.yml"}
+    - {from: README.md.tmpl,                            to: "README.md"}
+    - {from: .gitignore.tmpl,                           to: ".gitignore"}
+    - {from: Application.java.tmpl,                     to: "{{core.module.name}}/src/main/java/{{package.path}}/Application.java"}
+    - {from: ApplicationTests.java.tmpl,                to: "{{core.module.name}}/src/test/java/{{package.path}}/ApplicationTests.java"}
+    - {from: docs/specs/.gitkeep,                       to: "docs/specs/.gitkeep"}
+    - {from: docs/specs/_sources/.gitkeep,              to: "docs/specs/_sources/.gitkeep"}
+    - {from: docs/sql/README.md.tmpl,                   to: "docs/sql/README.md"}
+    - {from: docs/api/README.md.tmpl,                   to: "docs/api/README.md"}
+    - {from: docs/checklist/build-readiness.md.tmpl,    to: "docs/checklist/build-readiness.md"}
+
+# base 提供的 pom 片段（注入 pom-server.xml.tmpl 的占位标记）
+pom:
+  dependencyManagement:
+    - {ref: "net.logstash.logback:logstash-logback-encoder", version: "{{logstash-encoder.version}}"}
+  dependencies:
+    - "net.logstash.logback:logstash-logback-encoder"   # 真 JSON encoder（堆栈/换行正确转义）
+    - {ref: "org.springframework.boot:spring-boot-starter-test", scope: test}

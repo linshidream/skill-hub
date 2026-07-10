@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: {{project.name}}
+  config:
+    import:
+      - optional:classpath:log-router.yml
+  # @@SPRING-EXTRA@@
+{{project.name}}:
+  env: prod
+server:
+  port: {{server.port}}
+logging:
+  file:
+    path: /opt/app/logs   # 容器内路径，run.sh 挂载到宿主机 /home/recharge/logs/<project>
+  level:
+    {{package}}: INFO

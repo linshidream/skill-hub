@@ -1,0 +1,30 @@
+# java-web template —— 传统 Web 服务：java8 + Boot2.7 + SpringMVC（非 webflux）
+# 独立模板，不继承；自包含 javax 版 RequestIdFilter + HealthController。
+# swagger 用 springdoc-openapi-webmvc-core 1.7.0（OpenAPI3，api-only 无 UI，兼容 Boot2.7/javax）
+# 弃用 springfox：已停更(2020)，且与 Boot3/jakarta 不兼容
+name: java-web
+description: 传统 Spring Boot Web 服务(java8/springmvc)
+
+variables:
+  java.version: 8
+  boot.version: "RESOLVED_BY_VERSION_CHECK(2.7.)"
+  logstash-encoder.version: "RESOLVED_BY_VERSION_CHECK(6.)"
+  server.port: 8080
+  swagger.api.url: "http://localhost:{{server.port}}/v3/api-docs"
+
+pom:
+  properties:
+    - java.version: "{{java.version}}"
+    - maven.compiler.release: "{{java.version}}"
+  dependencyManagement:
+    - {ref: "org.springdoc:springdoc-openapi-webmvc-core", version: "1.7.0"}
+  dependencies:
+    - "org.springframework.boot:spring-boot-starter-web"
+    - "org.springframework.boot:spring-boot-starter-validation"
+    - "org.springframework.boot:spring-boot-starter-actuator"
+    - "org.springdoc:springdoc-openapi-webmvc-core"   # OpenAPI3 JSON(/v3/api-docs)，无 UI，导入 Apifox
+
+provides:
+  files:
+    - {from: files/src/HealthController.java.tmpl, to: "{{core.module.name}}/src/main/java/{{package.path}}/controller/HealthController.java"}
+    - {from: files/src/RequestIdFilter.java.tmpl, to: "{{core.module.name}}/src/main/java/{{package.path}}/config/RequestIdFilter.java"}

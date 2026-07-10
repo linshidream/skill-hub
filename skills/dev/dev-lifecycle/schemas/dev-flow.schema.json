@@ -26,6 +26,29 @@
         }
       }
     },
+    "scaffold": {
+      "type": "object",
+      "description": "项目骨架初始化状态。project-init 生成，dev-lifecycle 读取判断骨架是否就绪。老项目无此块时视为 ready=true（向后兼容）。",
+      "properties": {
+        "template": {
+          "type": "string",
+          "enum": ["java-web", "java-mcp"],
+          "description": "骨架模板名。与 project-init templates/<name> 对应。"
+        },
+        "ready": {
+          "type": "boolean",
+          "default": false,
+          "description": "骨架是否就绪。merge.py 成功收尾后置 true。"
+        },
+        "ci-type": { "type": "string", "default": "jenkins-docker-ci" },
+        "tech-pref": { "type": "string", "default": "fastjson2-hutool" },
+        "java-version": { "type": "integer", "description": "由 template 驱动（java-web=8, java-mcp=21）。" },
+        "boot-version": { "type": "string", "description": "version-check 实时解析后的 Spring Boot GA。仅记录。" },
+        "initialized-at": { "type": "string", "format": "date-time" },
+        "generated-by": { "type": "string", "description": "生成器标识，如 project-init@0.1.0。" }
+      },
+      "additionalProperties": false
+    },
     "developers": {
       "type": "object",
       "additionalProperties": {
@@ -169,6 +192,20 @@
                   "description": "构建失败后立即拉取日志并分析"
                 }
               }
+            },
+            "build-credentials": {
+              "type": "object",
+              "description": "Jenkins credentials store 引用标识。只存占位，绝不存明文。check-build-ready.sh L2 据此验证 Jenkins credentials 存在。",
+              "properties": {
+                "gitee-id": { "type": "string", "description": "Gitee 拉取凭据 credentialsId，占位 REPLACE_WITH_GITEE_CREDENTIAL_ID。" },
+                "maven-file-id": { "type": "string", "description": "config-file-provider maven settings fileId，占位。软检查。" },
+                "docker-creds-id": { "type": "string", "description": "Docker registry push 凭据 credentialsId，占位。" },
+                "docker-registry": { "type": "string", "description": "Docker registry 地址，占位。" },
+                "docker-namespace-test": { "type": "string", "description": "test 镜像 namespace，占位。" },
+                "docker-namespace-prod": { "type": "string", "description": "prod 镜像 namespace，占位。" },
+                "git-repo-url": { "type": "string", "description": "Git 远程仓库 url，占位。" }
+              },
+              "additionalProperties": false
             }
           }
         }

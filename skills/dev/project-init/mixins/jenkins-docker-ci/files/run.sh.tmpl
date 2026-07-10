@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# run.sh —— 主机级通用部署器（一套脚本跨服务共用，env/参数驱动）。
+#   run.sh <project> <version> <active> [node_id] [host_port]
+# env 可覆盖（带 init 默认）：REGISTRY / NAMESPACE_TEST / NAMESPACE_PROD / DEPLOY_ROOT / JAVA_OPTS
+# SERVER_PORT（容器内监听）固化 = application.yml 的 server.port，不可覆盖（须一致）。
+# HOST_PORT（宿主机映射）第5参，默认=SERVER_PORT；同主机多服务传不同 HOST_PORT 避免端口冲突。
+# 顺序：pull → rm → run（pull 失败旧容器仍在，服务不中断）。
+set -e
+PROJECT_NAME="$1"; VERSION="$2"; ACTIVE="$3"; NODE_ID="${4:-}"; HOST_PORT="${5:-}"
+REGISTRY="${REGISTRY:-{{registry}}}"
+DEPLOY_ROOT="${DEPLOY_ROOT:-{{deploy.root}}}"
+SERVER_PORT="{{server.port}}"
+HOST_PORT="${HOST_PORT:-${SERVER_PORT}}"
+JAVA_OPTS="${JAVA_OPTS:--Xms512m -Xmx512m -Xss256k}"
+
+case "$ACTIVE" in
+  prod) NAMESPACE="${NAMESPACE_PROD:-{{namespace.prod}}}" ;;
+  *)    NAMESPACE="${NAMESPACE_TEST:-{{namespace.test}}}" ;;
+esac
+
+IMAGE="${REGISTRY}/${NAMESPACE}/${PROJECT_NAME}:${VERSION}"
+CONTAINER="${PROJECT_NAME}-${ACTIVE}${NODE_ID:+-${NODE_ID}}"
+CONFIG_DIR="${DEPLOY_ROOT}/server/${PROJECT_NAME}"
+LOG_DIR="${DEPLOY_ROOT}/logs/${PROJECT_NAME}"
+HISTORY="${CONFIG_DIR}/.deploy-history"
+
+docker pull "${IMAGE}"
+docker rm -f "${CONTAINER}" 2>/dev/null || true
+
+docker run -d --name "${CONTAINER}" --hostname "${CONTAINER}" \
+  --restart=unless-stopped \
+  --log-opt max-size=512m --log-opt max-file=3 \
+  -e JAVA_OPTS="${JAVA_OPTS}" \
+  -e PARAMS="--spring.profiles.active=${ACTIVE} --spring.config.additional-location=file:${CONFIG_DIR}/" \
+  -p "${HOST_PORT}:${SERVER_PORT}" \
+  -v "${CONFIG_DIR}:${CONFIG_DIR}" \
+  -v "${LOG_DIR}:/opt/app/logs" \
+  "${IMAGE}"
+
+mkdir -p "${CONFIG_DIR}"
+echo "{\"version\":\"${VERSION}\",\"image\":\"${IMAGE}\",\"active\":\"${ACTIVE}\",\"node\":\"${NODE_ID:-single}\",\"container\":\"${CONTAINER}\",\"host_port\":\"${HOST_PORT}\",\"server_port\":\"${SERVER_PORT}\",\"action\":\"deploy\",\"deployed_at\":\"$(date -u +%FT%TZ)\"}" >> "${HISTORY}"
+echo "deployed ${IMAGE} as ${CONTAINER} (host ${HOST_PORT} -> container ${SERVER_PORT})"

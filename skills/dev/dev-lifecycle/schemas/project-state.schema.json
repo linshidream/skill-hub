@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "project-state.schema.json",
+  "title": ".dev-flow/project.json",
+  "description": "项目级开发流状态文件（scaffold 阶段）。项目级状态记录骨架初始化进度，与 feature 级状态(.dev-flow/states/<feature>.json)分离。project-init 写入，dev-lifecycle 读取判断骨架是否就绪、是否可移交 spec。",
+  "type": "object",
+  "required": ["phase", "scaffold"],
+
+  "properties": {
+    "phase": {
+      "type": "string",
+      "enum": [
+        "scaffold:planning",
+        "scaffold:awaiting-input",
+        "scaffold:scaffolding",
+        "scaffold:done"
+      ],
+      "description": "项目级阶段。scaffold:done 为瞬时态，触发 Auto Cascade 0（项目级移交）进入 feature 级 spec:intake。项目级状态不进 feature 状态机的 phase enum。"
+    },
+
+    "scaffold": {
+      "type": "object",
+      "required": ["template", "ready"],
+      "description": "骨架初始化结果。merge.py 成功生成 + git init 收尾后由 project-init 写入。",
+      "properties": {
+        "template": {
+          "type": "string",
+          "enum": ["java-web", "java-mcp"],
+          "description": "项目骨架模板名。与 project-init 的 templates/<name> 对应。后续可扩展 wechat-miniprogram/h5-vue/vue-admin 等。"
+        },
+        "ready": {
+          "type": "boolean",
+          "description": "骨架是否就绪。merge.py 全部文件生成成功 + git init/commit + 切 test 分支后置 true。"
+        },
+        "ci-type": {
+          "type": ["string", "null"],
+          "default": "jenkins-docker-ci",
+          "description": "CI 类型，对应 project-init 的 ci-type mixin。"
+        },
+        "tech-pref": {
+          "type": ["string", "null"],
+          "default": "fastjson2-hutool",
+          "description": "技术偏好栈，对应 project-init 的 tech-pref mixin。"
+        },
+        "java-version": {
+          "type": ["integer", "null"],
+          "description": "骨架选定的 java 版本，由 template 驱动（java-web=8, java-mcp=21）。"
+        },
+        "boot-version": {
+          "type": ["string", "null"],
+          "description": "version-check 实时解析后的 Spring Boot GA（非 series）。仅记录，不驱动逻辑。"
+        },
+        "initialized-at": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "骨架就绪时间戳。"
+        },
+        "generated-by": {
+          "type": "string",
+          "description": "生成器标识，如 'project-init@0.1.0'。用于追溯。"
+        }
+      }
+    },
+
+    "branch": {
+      "type": ["string", "null"],
+      "description": "收尾后停留的分支，默认 .dev-flow.yml 的 branching.test。"
+    },
+
+    "started-at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "scaffold 流程开始时间（进入 planning 时写）。"
+    },
+
+    "finished-at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "scaffold:done 写入时间。"
+    },
+
+    "history": {
+      "type": "array",
+      "description": "scaffold 关键事件时间线。与 feature 级 state 的 history 分离。",
+      "items": {
+        "type": "object",
+        "required": ["timestamp", "event"],
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "event": {
+            "type": "string",
+            "enum": [
+              "scaffold_planning",
+              "scaffold_input_requested",
+              "scaffold_scaffolding",
+              "scaffold_done",
+              "scaffold_resumed"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

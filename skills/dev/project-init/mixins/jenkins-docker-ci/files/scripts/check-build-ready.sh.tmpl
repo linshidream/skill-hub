@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# check-build-ready.sh —— 构建前全景体检。不取任何凭据值，只验引用就位。
+# 三层：L1 复用 ci-trigger / L2 jenkins credentials API 验引用存在 / L3 registry v2 可达
+# 全绿才让 ci-trigger 触发构建。输出统一 JSON。
+set -uo pipefail
+PASS=0; FAIL=0
+report() { printf '{"status":"%s","layer":"%s","%s}\n' "$1" "$2" "$3"; }
+
+# ---------- L1: agent 触发层（复用 ci-trigger） ----------
+CI_TRIGGER="$(ls ~/.claude/skills/ci-trigger/scripts/trigger.sh 2>/dev/null || echo '')"
+if [[ -n "$CI_TRIGGER" ]]; then
+  if bash "$CI_TRIGGER" --check-env --system jenkins >/dev/null 2>&1; then
+    report ok L1 '"message":"jenkins env (JENKINS_URL/USER/TOKEN) set"'; PASS=$((PASS+1))
+  else
+    report error L1 '"message":"jenkins env missing (JENKINS_URL/USER/TOKEN)"'; FAIL=$((FAIL+1))
+  fi
+  if bash "$CI_TRIGGER" --validate-config >/dev/null 2>&1; then
+    report ok L1 '"message":"dev-flow.yml ci.system/ci.jenkins.job ok"'; PASS=$((PASS+1))
+  else
+    report error L1 '"message":"dev-flow.yml ci config invalid"'; FAIL=$((FAIL+1))
+  fi
+else
+  report error L1 '"message":"ci-trigger skill not found, cannot verify env"'; FAIL=$((FAIL+1))
+fi
+
+[[ -z "${JENKINS_URL:-}" || -z "${JENKINS_USER:-}" || -z "${JENKINS_TOKEN:-}" ]] && { echo '{"status":"error","summary":"L1 failed, abort L2/L3"}'; exit 1; }
+
+# ---------- L2: 构建凭据层（jenkins credentials API 验引用存在） ----------
+CREDS_JSON=$(curl -sS --max-time 15 -u "${JENKINS_USER}:${JENKINS_TOKEN}" \
+  "${JENKINS_URL}/credentials/store/system/domain/_/api/json?tree=credentials[id]" 2>/dev/null || echo '{}')
+existing_ids=$(echo "$CREDS_JSON" | python3 -c 'import sys,json
+try: d=json.load(sys.stdin); print("\n".join(c["id"] for c in d.get("credentials",[])))
+except: print("")')
+
+check_cred() {
+  local label="$1" id="$2"
+  if [[ -z "$id" || "$id" == REPLACE_WITH_* ]]; then
+    report warn L2 "\"message\":\"${label} 未配置(占位未填)\""; FAIL=$((FAIL+1))
+  elif echo "$existing_ids" | grep -qx "$id"; then
+    report ok L2 "\"message\":\"${label}(${id}) 存在\""; PASS=$((PASS+1))
+  else
+    report error L2 "\"message\":\"${label}(${id}) 在 jenkins 不存在\""; FAIL=$((FAIL+1))
+  fi
+}
+check_cred "gitee-id" "{{gitee.credential.id}}"
+check_cred "docker-creds-id" "{{docker.creds.id}}"
+# maven fileId 属 config-file-provider 插件（不同 API），软检查：触发时 jenkins 自验
+report warn L2 '"message":"maven-file-id 软检查(config-file-provider 插件，触发时自验)"'
+
+# ---------- L3: 交付可达层（registry v2 ping，不 login） ----------
+REG="{{registry}}"
+code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 "${REG}/v2/" 2>/dev/null || echo 000)
+case "$code" in
+  200|401) report ok L3 "\"message\":\"registry ${REG} 可达(http ${code})\""; PASS=$((PASS+1));;
+  *) report error L3 "\"message\":\"registry ${REG} 不可达(http ${code})\""; FAIL=$((FAIL+1));;
+esac
+
+echo "---"
+printf '{"summary":"pass=%d fail=%d","status":"%s"}\n' "$PASS" "$FAIL" "$([[ $FAIL -eq 0 ]] && echo ok || echo error)"
+[[ $FAIL -eq 0 ]]
