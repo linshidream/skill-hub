@@ -43,7 +43,7 @@ description: Initialize a Java Maven Spring Boot project scaffold into an empty 
 ## 2. 触发条件
 
 - **当前项目文件夹为空**（无文件或仅有 `.DS_Store` 等无关文件）→ 触发整骨架 init。
-- **用户明确指定创建子模块** → 触发增量模块生成（只加一个子模块，复用同一套变量派生）。
+- **用户明确指定创建子模块** → 触发增量模块生成（`merge.py --add-module <name>`，只生成模块级文件 + 根 pom `<modules>` 追加，不覆盖根级文件/状态/git）。
 - **介于之间、判断不确定** → 先提一句问用户"是否需要初始化骨架 / 新增子模块?"，不要擅自生成。
 
 ## 3. 核心变量体系
@@ -127,7 +127,7 @@ finalName         = ${core.module.name}     # 供 Dockerfile ADD 稳定引用
 
 ## 5. 生成流程（9 步）
 
-1. **检测目录**：空 → 继续；非空 → 警告并要求确认（防误覆盖）。
+1. **检测目录（入口保护，fail-fast）**：空且无 `project.json` → 继续；已 init（`.dev-flow/project.json` 为 `scaffold:done`）或非空（排除 `.DS_Store`/`.git`）→ **直接退出拒绝覆盖**，提示用 `--add-module` 或清空目录。防全量覆盖已有项目。
 2. **收集变量（强制交互，不可跳过）**：先发第 13 节「初始化表单」并等用户填回，再据此组装 `--var`。**禁止用默认值直接调 merge.py**——只有用户明确放弃输入时才用默认/占位。来源链仅用于表单默认值与 spec-doc 抽取后的回退。
 3. **版本查证**：跑 `validators/version-check.sh`，按 `compat-table.yml` 声明的**系列**（如 `1.0.x`）从 `maven-metadata.xml` 筛该系列最大 GA（**不取全局 latest**），填入版本变量。查不到 → fail-fast 报具体 artifact。
 4. **兼容性校验**：跑 `compat-table.yml`，按 template 校验 Spring AI↔Boot、Java 四处一致性；不过 fail-fast 报具体原因。
@@ -233,6 +233,20 @@ finalName         = ${core.module.name}     # 供 Dockerfile ADD 稳定引用
 ```
 
 最简触发：`初始化 java 项目，type=java-mcp`（其余全默认/占位直接生成）。
+
+### 增量模块（已有项目新增子模块）
+
+在已 init 的 project-init 项目里新增子模块（**不覆盖根级文件/状态/git**）：
+
+```bash
+python3 lib/merge.py --project-dir /path/to/existing-project \
+  --project-type java-mcp --add-module new-mod --var developers='{"zx":{"name":"张三"}}'
+```
+
+- 只生成模块级文件（`<module>/pom.xml`、Application、源码、logback、application 三件套），根 pom `<modules>` 追加一行（去重）。
+- 变量从现有 `.dev-flow.yml`（project.name/branching）+ 根 `pom.xml`（groupId）复用，**不重新收集、不发表单**。
+- 不动 `.dev-flow.yml` / `.dev-flow/project.json` / git 状态（分支已在用）。
+- 模块名须匹配 `^[a-z][a-z0-9-]*$`；groupId 解析失败时用 `--var project.groupId=<gid>` 传入。
 
 ## 14. java 版本严格性（强制）
 

@@ -196,15 +196,19 @@ def generate_pom_server(layers, variables, out_path):
 
 
 # ============================ 文件生成 ============================
-def generate_files(layers, variables, project_dir):
+def generate_files(layers, variables, project_dir, module_only=False):
     """layers: list of (manifest, dir)。后层覆盖前层（相同 to 路径，后层 wins）。
-    支持 yml 片段注入：占位 `  # @@SPRING-EXTRA@@` 由各层 extra-config 合并填充。无 exclude。"""
+    支持 yml 片段注入：占位 `  # @@SPRING-EXTRA@@` 由各层 extra-config 合并填充。无 exclude。
+    module_only=True 时只生成模块级文件（to 以 core.module.name/ 开头），跳过根级——用于 --add-module 增量模式。"""
     file_map = {}
     for manifest, d in layers:
         prov = (manifest or {}).get("provides") or {}
         for f in prov.get("files") or []:
             dst = replace_vars(f["to"], variables)
             file_map[dst] = os.path.join(d, f["from"])
+    if module_only:
+        prefix = variables["core.module.name"] + "/"
+        file_map = {d: s for d, s in file_map.items() if d.startswith(prefix)}
 
     extra_all = []
     for manifest, _ in layers:
@@ -355,11 +359,133 @@ def derive_developers_from_git():
     return {key: {"name": name}}
 
 
+# ============================ 入口保护（防覆盖）============================
+def check_fresh_target(project_dir):
+    """整 init 入口保护：禁止覆盖已 init 或非空目录，防止全量覆盖已有项目。"""
+    pj = os.path.join(project_dir, ".dev-flow", "project.json")
+    if os.path.isfile(pj):
+        try:
+            d = json.load(open(pj, encoding="utf-8"))
+            if d.get("phase") == "scaffold:done":
+                sys.exit("ERROR: 项目已初始化（.dev-flow/project.json scaffold:done）。整 init 会覆盖现有文件。"
+                         "如需新增子模块请用 --add-module <name>。")
+        except (OSError, json.JSONDecodeError):
+            pass
+    if os.path.isdir(project_dir):
+        entries = [e for e in os.listdir(project_dir) if e not in (".DS_Store", ".git")]
+        if entries:
+            preview = ", ".join(entries[:5])
+            sys.exit(f"ERROR: 目标目录非空（{len(entries)} 项：{preview}）。整 init 会全量覆盖。"
+                     "请清空目录后重试，或用 --add-module <name> 新增子模块。")
+
+
+# ============================ 增量模块（--add-module）============================
+def load_existing_project(project_dir):
+    """从现有 .dev-flow.yml + 根 pom.xml 读 project 变量（增量模块复用，不重新收集）。"""
+    dev_flow = os.path.join(project_dir, ".dev-flow.yml")
+    if not os.path.isfile(dev_flow):
+        sys.exit("ERROR: 目标目录无 .dev-flow.yml，非 project-init 项目；增量模块需先整 init。")
+    doc = load_yaml(dev_flow)
+    proj = doc.get("project") or {}
+    branching = doc.get("branching") or {}
+    # groupId 不在 .dev-flow.yml，从根 pom.xml 解析
+    root_pom = os.path.join(project_dir, "pom.xml")
+    group_id = None
+    if os.path.isfile(root_pom):
+        group_id = parse_spec_doc(root_pom).get("project.groupId")
+    return {
+        "project.name": proj.get("name"),
+        "project.groupId": group_id,
+        "branch.production": branching.get("production", "master"),
+        "branch.test": branching.get("test", "test"),
+    }
+
+
+def patch_pom_modules(root_pom, module_name):
+    """根 pom <modules> 追加一行 <module>{name}</module>（文本 patch，不重写整个 pom）。"""
+    text = open(root_pom, encoding="utf-8").read()
+    if f"<module>{module_name}</module>" in text:
+        print(f"  根 pom.xml 已含 <module>{module_name}</module>，跳过")
+        return False
+    if "</modules>" not in text:
+        sys.exit(f"ERROR: 根 pom.xml 无 </modules>，无法追加子模块；请检查 {root_pom}")
+    text = text.replace("    </modules>",
+                        f"    <module>{module_name}</module>\n    </modules>", 1)
+    open(root_pom, "w", encoding="utf-8").write(text)
+    print(f"  根 pom.xml 追加 <module>{module_name}</module>")
+    return True
+
+
+def cmd_add_module(project_dir, module_name, args):
+    """增量模式：在已有 project-init 项目新增一个子模块。
+    只生成模块级文件 + 根 pom modules 追加；不覆盖根级文件、不动 .dev-flow.yml/project.json、不跑 git 收尾。"""
+    print(f"== 增量模块：{module_name}（template={args.project_type}）==")
+    if not re.match(r"^[a-z][a-z0-9-]*$", module_name):
+        sys.exit(f"ERROR: 非法 module 名 '{module_name}'，须小写字母/数字/连字符")
+
+    existing = load_existing_project(project_dir)
+    if not existing["project.groupId"]:
+        sys.exit("ERROR: 无法从根 pom.xml 解析 groupId；请用 --var project.groupId=<gid> 传入")
+
+    variables = {
+        "project.name": existing["project.name"],
+        "project.groupId": existing["project.groupId"],
+        "core.module.name": module_name,
+        "branch.production": existing["branch.production"],
+        "branch.test": existing["branch.test"],
+    }
+    variables["short"] = compute_short(variables["project.name"])
+    variables["module.short"] = compute_module_short(module_name)
+    variables["package"] = variables["project.groupId"] + "." + variables["module.short"]
+    variables["package.path"] = variables["package"].replace(".", "/")
+    variables["finalName"] = module_name
+
+    # template/mixin 变量 + 版本查证
+    compat = load_yaml(os.path.join(VALIDATORS, "compat-table.yml"))
+    tmpl_m, tmpl_dir = load_layer("template", args.project_type)
+    variables.update(tmpl_m.get("variables") or {})
+    tp_m, tp_dir = load_layer("tech-pref", args.tech_pref)
+    variables.update(tp_m.get("variables") or {})
+    ci_manifest, _ = load_layer("ci-type", args.ci_type)
+    java_imgs = ci_manifest.get("java-images") or {}
+    jv = str(variables.get("java.version"))
+    if jv in java_imgs:
+        variables["docker.build.image"] = java_imgs[jv]["build"]
+        variables["docker.run.image"] = java_imgs[jv]["run"]
+    else:
+        sys.exit(f"ERROR: ci profile 未定义 java {jv} 的构建/运行镜像")
+
+    print("== 版本查证 ==")
+    resolve_versions(variables, args.project_type, args.tech_pref, compat)
+
+    # 只装配 base-mixin + tech-pref + template（模块级文件），不含 ci-type（增量模块不生成 deploy 脚本）
+    base_m, base_d = load_layer("base-mixin")
+    layers = [(base_m, base_d), (tp_m, tp_dir), (tmpl_m, tmpl_dir)]
+
+    print("== 生成模块级文件（不覆盖根级）==")
+    generate_files(layers, variables, project_dir, module_only=True)
+
+    # 模块 pom
+    pom_layers = [base_m, tp_m, tmpl_m]
+    pom_out = os.path.join(project_dir, module_name, "pom.xml")
+    generate_pom_server(pom_layers, variables, pom_out)
+    print(f"  {module_name}/pom.xml 已生成")
+
+    # 根 pom <modules> 追加
+    patch_pom_modules(os.path.join(project_dir, "pom.xml"), module_name)
+
+    print(f"\n== 增量模块完成：{module_name} ==")
+    print("  未改动：.dev-flow.yml / .dev-flow/project.json / git 状态")
+    print(f"下一步：cd {project_dir} && mvn -pl {module_name} -am clean package")
+    return 0
+
+
 # ============================ main ============================
 def main():
     ap = argparse.ArgumentParser(description="project-init 合并器（template + mixin）")
     ap.add_argument("--project-dir", required=True, help="目标项目根目录")
     ap.add_argument("--project-type", required=True, choices=["java-web", "java-mcp"])
+    ap.add_argument("--add-module", default=None, help="增量模式：在已有项目新增子模块（不覆盖根级文件/状态/git）")
     ap.add_argument("--ci-type", default="jenkins-docker-ci")
     ap.add_argument("--tech-pref", default="fastjson2-hutool")
     ap.add_argument("--spec-doc", default=None, help="背景实施方案文档路径（可选）")
@@ -369,6 +495,13 @@ def main():
 
     project_dir = os.path.abspath(args.project_dir)
     os.makedirs(project_dir, exist_ok=True)
+
+    # ---- 增量模块模式：不覆盖根级文件/状态/git ----
+    if args.add_module:
+        return cmd_add_module(project_dir, args.add_module, args)
+
+    # ---- 入口保护：整 init 禁止覆盖已 init 或非空目录 ----
+    check_fresh_target(project_dir)
 
     # ---- 1. 装配变量 ----
     variables = {}
@@ -444,7 +577,8 @@ def main():
                       os.path.join(project_dir, ".dev-flow.yml"))
 
     # ---- 8. 收尾：git init + master + initial commit + test 分支 ----
-    if not args.no_commit:
+    # 已有 .git 时跳过（branch -M/checkout 会破坏在用的 feature 分支）；仅首次空目录正常收尾
+    if not args.no_commit and not os.path.isdir(os.path.join(project_dir, ".git")):
         print("== git 收尾 ==")
         cwd = os.getcwd()
         os.chdir(project_dir)
@@ -458,6 +592,8 @@ def main():
             print(f"  git: init + master initial commit + {variables['branch.test']} 分支（已停留）")
         finally:
             os.chdir(cwd)
+    elif os.path.isdir(os.path.join(project_dir, ".git")):
+        print("== 跳过 git 收尾（目标已是 git 仓库，分支已在用；请手动 add/commit 新骨架）==")
 
     # ---- 9. 摘要 ----
     print("\n== 生成完成 ==")
