@@ -15,6 +15,20 @@ IMAGE="${REGISTRY}/${NAMESPACE}/${PROJECT_NAME}:${VERSION}"
 IMAGE_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "${IMAGE_DIR}"
 
+# mask：只判断非空，绝不打印凭据值（禁用 ${VAR:-<unset>}，VAR 非空时会输出值=泄密）
+mask() { [[ -n "${1:-}" ]] && echo '<set>' || echo '<unset>'; }
+echo "=== build 配置 ==="
+echo "  PROJECT_NAME: ${PROJECT_NAME}"
+echo "  VERSION:      ${VERSION}"
+echo "  ACTIVE:       ${ACTIVE}"
+echo "  REGISTRY:     ${REGISTRY}"
+echo "  NAMESPACE:    ${NAMESPACE}"
+echo "  IMAGE:        ${IMAGE}"
+echo "  IMAGE_DIR:    ${IMAGE_DIR}"
+echo "  SWR_USER:     $(mask "$SWR_USER")"
+echo "  SWR_TOKEN:    $(mask "$SWR_TOKEN")"
+echo "=================="
+
 if [[ -n "${SWR_USER:-}" && -n "${SWR_TOKEN:-}" ]]; then
   docker login -u "${SWR_USER}" -p "${SWR_TOKEN}" "${REGISTRY}"
 fi

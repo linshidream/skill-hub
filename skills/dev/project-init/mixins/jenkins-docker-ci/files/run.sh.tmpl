@@ -28,6 +28,25 @@ HISTORY="${CONFIG_DIR}/.deploy-history"
 # 宿主机建目录提前到 docker run 前，避免 bind-mount 让 docker 自动创建属主 root 的目录
 mkdir -p "${CONFIG_DIR}"
 
+echo "=== run 配置 ==="
+echo "  PROJECT_NAME:           ${PROJECT_NAME}"
+echo "  VERSION:                ${VERSION}"
+echo "  ACTIVE:                 ${ACTIVE}"
+echo "  NODE_ID:                ${NODE_ID:-single}"
+echo "  REGISTRY:               ${REGISTRY}"
+echo "  NAMESPACE:              ${NAMESPACE}"
+echo "  IMAGE:                  ${IMAGE}"
+echo "  CONTAINER:              ${CONTAINER}"
+echo "  DEPLOY_ROOT:            ${DEPLOY_ROOT}"
+echo "  CONFIG_DIR(host):       ${CONFIG_DIR}"
+echo "  LOG_DIR(host):          ${LOG_DIR}"
+echo "  CONTAINER_CONFIG_DIR:   ${CONTAINER_CONFIG_DIR}"
+echo "  SERVER_PORT(container):  ${SERVER_PORT}"
+echo "  HOST_PORT(host):         ${HOST_PORT}"
+echo "  JAVA_OPTS:              ${JAVA_OPTS}"
+echo "  HISTORY:                ${HISTORY}"
+echo "========================"
+
 docker pull "${IMAGE}"
 docker rm -f "${CONTAINER}" 2>/dev/null || true
 

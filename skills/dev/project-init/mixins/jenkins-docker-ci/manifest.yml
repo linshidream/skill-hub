@@ -30,5 +30,6 @@ provides:
     - {from: files/rollback.sh.tmpl,               to: "deploy/docker/rollback.sh"}
     - {from: files/Jenkinsfile.tmpl,               to: "deploy/jenkins/Jenkinsfile"}
     - {from: files/scripts/check-build-ready.sh.tmpl, to: "scripts/check-build-ready.sh"}
+    - {from: files/scripts/push-remote.sh.tmpl, to: "scripts/push-remote.sh"}
     - {from: files/scripts/compress-old-logs.sh.tmpl, to: "scripts/compress-old-logs.sh"}
     - {from: files/docs/checklist/build-readiness.md.tmpl, to: "docs/checklist/build-readiness.md"}

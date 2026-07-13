@@ -16,9 +16,13 @@ pipeline {
         stage('checkout') {
             agent any
             steps {
-                git branch: "${GIT_BRANCH}",
-                    credentialsId: "{{gitee.credential.id}}",
-                    url: "{{git.repo.url}}"
+                // Jenkins job 配置为 "Pipeline script from SCM" 模式时，Jenkins 会自动从 SCM 拉取代码，
+                // 此处无需手动 git checkout（下方已注释）。仅当切回 "Pipeline script"（Jenkinsfile 内联）模式，
+                // 或需 checkout 与 job 配置不同的分支时，才放开下方 git 步骤。
+//                 git branch: "${GIT_BRANCH}",
+//                     credentialsId: "{{gitee.credential.id}}",
+//                     url: "{{git.repo.url}}"
+                   echo "代码已自动检出"
             }
         }
         stage('packaging') {

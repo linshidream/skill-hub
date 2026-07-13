@@ -19,7 +19,12 @@
 ## C. 交付可达（人工验证 push）
 - [ ] 用 docker 凭据在构建节点做一次真 `docker login` + `push` 测试 【人工·L3 机器只 ping v2】
 
-## D. 首次构建验证
+## D. 首次推送远程（gitee 网页建好私有仓库后执行）
+- [ ] 本机已配 gitee SSH key（`ssh -T git@gitee.com` 返回 authenticated）【人工·一次性】
+- [ ] 在 gitee 网页新建私有仓库（owner=自己账号，名=项目名，**不勾选** README/.gitignore/license 初始化）【人工·一次性】
+- [ ] 跑 `scripts/push-remote.sh` 推送 master+test 到远程【机器·脚本自动从 .dev-flow.yml 读 url 转 SSH 并 push】
+
+## E. 首次构建验证
 - [ ] 手动触发一次 jenkins job，确认 checkout→mvn→docker→push 全链路通 【人工】
 
 ## 凭据安全红线
