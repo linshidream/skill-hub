@@ -123,7 +123,9 @@ finalName         = ${core.module.name}     # 供 Dockerfile ADD 稳定引用
 
 ### java 版本贯穿四处（由 template 驱动，必须对齐）
 
-`java.version` 是 template 属性，贯穿：pom `maven.compiler.release` ↔ Jenkinsfile 的 maven 构建镜像 ↔ Dockerfile 运行镜像 ↔ Boot parent 版本。validators 的 `compat-table` 按所选 template 取对应矩阵校验。
+`java.version` 是 template 属性，贯穿：pom `maven.compiler.source`/`maven.compiler.target` ↔ Jenkinsfile 的 maven 构建镜像 ↔ Dockerfile 运行镜像 ↔ Boot parent 版本。validators 的 `compat-table` 按所选 template 取对应矩阵校验。
+
+> **禁用 `maven.compiler.release`**：`--release` 是 Java 9+ 的 javac flag，Java 8 项目（java-web，构建容器 `maven:3-alpine`=Java 8）的 javac 8 不识别 → `Fatal error compiling: invalid flag: --release`。统一用 `source`/`target`（全版本兼容，Java 8 javac 正常）。
 
 ## 5. 生成流程（9 步）
 

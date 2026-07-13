@@ -15,7 +15,8 @@ variables:
 pom:
   properties:
     - java.version: "{{java.version}}"
-    - maven.compiler.release: "{{java.version}}"
+    - maven.compiler.source: "{{java.version}}"
+    - maven.compiler.target: "{{java.version}}"
   dependencyManagement:
     - {ref: "org.springdoc:springdoc-openapi-webmvc-core", version: "1.7.0"}
   dependencies:
