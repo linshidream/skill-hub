@@ -1,0 +1,123 @@
+package {{package}}.config;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.modelcontextprotocol.json.jackson.JacksonMcpJsonMapper;
+import io.modelcontextprotocol.server.McpServer;
+import io.modelcontextprotocol.server.McpSyncServer;
+import io.modelcontextprotocol.server.McpServerFeatures.SyncToolSpecification;
+import io.modelcontextprotocol.server.transport.WebMvcStreamableServerTransportProvider;
+import io.modelcontextprotocol.spec.McpSchema;
+
+import {{package}}.mcp.ExampleTools;
+import org.springframework.ai.mcp.McpToolUtils;
+import org.springframework.ai.mcp.server.autoconfigure.McpServerProperties;
+import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.ToolCallbackProvider;
+import org.springframework.ai.tool.method.MethodToolCallbackProvider;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.servlet.function.RouterFunction;
+import org.springframework.web.servlet.function.ServerResponse;
+
+/**
+ * 标准 Streamable HTTP 传输装配。
+ *
+ * <p>背景：Spring AI 1.0.x 的 mcp-server autoconfigure 只装配 SSE 传输
+ * （{@code McpWebMvcServerAutoConfiguration} 暴露 {@code /sse} + {@code /mcp/message}），
+ * 没有 Streamable HTTP 路径——其 {@code McpServerAutoConfiguration#mcpSyncServer}
+ * 参数类型写死 {@code McpServerTransportProvider}（SSE/stdio 那一支），
+ * 而 streamable 实现的是兄弟接口 {@code McpStreamableServerTransportProvider}，无法注入。
+ *
+ * <p>本类手动装配标准 Streamable HTTP 传输：暴露 {@code /mcp} 端点，
+ * 用 {@link McpServer#sync(WebMvcStreamableServerTransportProvider)} 构建 {@link McpSyncServer}。
+ * 在 {@code Application} 上 exclude 掉 {@code McpServerAutoConfiguration}
+ * 与 {@code McpWebMvcServerAutoConfiguration} 后由本类接管。
+ *
+ * <p>工具装配逻辑复刻自 {@code McpServerAutoConfiguration}：收集 {@link ToolCallback}
+ * 与 {@link ToolCallbackProvider}，按工具名去重，经 {@link McpToolUtils} 转为
+ * {@link SyncToolSpecification}。resources/prompts/completions 暂未装配
+ * （骨架当前只有 {@link ExampleTools} 一个工具示例，需要时同理扩展）。
+ */
+@Configuration
+@EnableConfigurationProperties(McpServerProperties.class)
+public class McpStreamableServerConfig {
+
+    /** Streamable HTTP 传输端点（MCP 客户端 POST 此路径）。 */
+    public static final String MCP_ENDPOINT = "/mcp";
+
+    @Bean
+    public WebMvcStreamableServerTransportProvider mcpStreamableServerTransportProvider(
+            @Qualifier("mcpServerObjectMapper") ObjectMapper objectMapper) {
+        return WebMvcStreamableServerTransportProvider.builder()
+                .jsonMapper(new JacksonMcpJsonMapper(objectMapper))
+                .mcpEndpoint(MCP_ENDPOINT)
+                .build();
+    }
+
+    @Bean
+    public RouterFunction<ServerResponse> mcpStreamableRouterFunction(
+            WebMvcStreamableServerTransportProvider transportProvider) {
+        return transportProvider.getRouterFunction();
+    }
+
+    @Bean
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public McpSyncServer mcpSyncServer(WebMvcStreamableServerTransportProvider transportProvider,
+                                       McpServerProperties serverProperties,
+                                       ObjectProvider<List<ToolCallback>> toolCalls,
+                                       List<ToolCallbackProvider> toolCallbackProviders) {
+        McpSchema.Implementation serverInfo = new McpSchema.Implementation(
+                serverProperties.getName(), serverProperties.getVersion());
+
+        // McpServer.sync(McpStreamableServerTransportProvider) 返回 StreamableSyncSpecification，
+        // 其 builder API 与 SyncSpecification 一致。此处按 raw 类型链式调用，规避泛型签名耦合。
+        McpServer.SyncSpecification serverBuilder = McpServer.sync(transportProvider)
+                .serverInfo(serverInfo);
+
+        McpSchema.ServerCapabilities.Builder capabilitiesBuilder = McpSchema.ServerCapabilities.builder();
+        if (serverProperties.getCapabilities().isTool()) {
+            capabilitiesBuilder.tools(serverProperties.isToolChangeNotification());
+
+            List<ToolCallback> tools = new ArrayList<>(
+                    toolCalls.stream().flatMap(List::stream).toList());
+            for (ToolCallbackProvider provider : toolCallbackProviders) {
+                for (ToolCallback tc : provider.getToolCallbacks()) {
+                    tools.add(tc);
+                }
+            }
+            // 按工具名去重，保留首个（与 McpServerAutoConfiguration 行为一致）
+            List<SyncToolSpecification> toolSpecifications = tools.stream()
+                    .collect(Collectors.toMap(
+                            t -> t.getToolDefinition().name(), t -> t, (existing, replacement) -> existing))
+                    .values().stream()
+                    .map(t -> McpToolUtils.toSyncToolSpecification(t, null))
+                    .toList();
+            if (!CollectionUtils.isEmpty(toolSpecifications)) {
+                serverBuilder.tools(toolSpecifications);
+            }
+        }
+        serverBuilder.capabilities(capabilitiesBuilder.build());
+        serverBuilder.instructions(serverProperties.getInstructions());
+        serverBuilder.requestTimeout(serverProperties.getRequestTimeout());
+        return serverBuilder.build();
+    }
+
+    /**
+     * 把 {@link ExampleTools} 的 {@code @Tool} 方法注册为 MCP 工具。
+     * Spring AI 1.0.x 依赖集无 tool-callback auto-config，@Tool 方法不会自动注册，故手动声明。
+     */
+    @Bean
+    public ToolCallbackProvider exampleToolCallbackProvider(ExampleTools exampleTools) {
+        return MethodToolCallbackProvider.builder()
+                .toolObjects(exampleTools)
+                .build();
+    }
+}

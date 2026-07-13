@@ -37,7 +37,7 @@ except ImportError:
     sys.exit("ERROR: 需要 PyYAML：pip3 install pyyaml")
 
 RESOLVED_MARK = "RESOLVED_BY_VERSION_CHECK"
-SKILL_VERSION = "0.1.3"   # 与 skill.json / registry.json / SKILL_RELEASES.md 同步，generated-by 标记用
+SKILL_VERSION = "0.1.4"   # 与 skill.json / registry.json / SKILL_RELEASES.md 同步，generated-by 标记用
 
 
 # ============================ 工具 ============================
