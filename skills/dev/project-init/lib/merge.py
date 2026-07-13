@@ -37,7 +37,7 @@ except ImportError:
     sys.exit("ERROR: 需要 PyYAML：pip3 install pyyaml")
 
 RESOLVED_MARK = "RESOLVED_BY_VERSION_CHECK"
-SKILL_VERSION = "0.1.7"   # 与 skill.json / registry.json / SKILL_RELEASES.md 同步，generated-by 标记用
+SKILL_VERSION = "0.1.8"   # 与 skill.json / registry.json / SKILL_RELEASES.md 同步，generated-by 标记用
 
 
 # ============================ 工具 ============================
@@ -544,6 +544,12 @@ def main():
     ci_manifest, ci_dir = load_layer("ci-type", args.ci_type)
     variables.update(ci_manifest.get("variables") or {})   # 含 REPLACE_WITH_* 占位
     variables.update(manual)                                # 手动覆盖 ci 占位
+
+    # server.port.next = server.port + 1：Jenkinsfile HOST_PORT choice 的第二端口（多实例），
+    # 从初始化表单的 server.port 自动派生（非硬编码 10001/10002）。仅整数字 server.port 计算。
+    _sp = str(variables.get("server.port", "")).strip()
+    if _sp.isdigit():
+        variables["server.port.next"] = str(int(_sp) + 1)
 
     # java 镜像变量由 java.version 驱动
     java_imgs = ci_manifest.get("java-images") or {}

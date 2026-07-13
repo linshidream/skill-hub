@@ -11,6 +11,10 @@ pipeline {
         string(name: 'CURRENT_VERSION', defaultValue: 'v1.0.0', description: '当前版本')
         choice(name: 'ACTIVE', choices: ['test'], description: '环境选择')
         string(name: 'GIT_BRANCH', defaultValue: 'test', description: '分支')
+        // HOST_PORT = 宿主机映射端口，即节点标识；构建期两选项=server.port 与 server.port+1
+        // （从初始化表单的 server.port 自动派生，非硬编码）。默认取首项=server.port（单实例）；
+        // 同主机多实例选 server.port+1。要更多端口在 choices 数组追加。
+        choice(name: 'HOST_PORT', choices: ['{{server.port}}', '{{server.port.next}}'], description: '宿主机映射端口=节点标识；默认 server.port，多实例选 +1')
     }
     stages {
         stage('checkout') {
@@ -58,7 +62,7 @@ pipeline {
                                                   usernameVariable: 'SWR_USER',
                                                   passwordVariable: 'SWR_TOKEN')]) {
                     sh "${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/build.sh ${PROJECT_NAME} ${CURRENT_VERSION} ${ACTIVE}"
-                    sh "${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/run.sh ${PROJECT_NAME} ${CURRENT_VERSION} ${ACTIVE}"
+                    sh "${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/run.sh ${PROJECT_NAME} ${CURRENT_VERSION} ${ACTIVE} ${HOST_PORT}"
                 }
             }
         }

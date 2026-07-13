@@ -15,6 +15,7 @@
 - [ ] 部署服务器 docker 运行环境就位 【人工】
 - [ ] 日志目录 `{{deploy.root}}/logs/{{core.module.name}}` 已建（默认 /opt/app，可在 run.sh 用 DEPLOY_ROOT env 覆盖） 【人工】
 - [ ] 外置配置目录 `{{deploy.root}}/server/{{core.module.name}}/` 放置 `application-<env>.yml` 【人工】
+- [ ] 同主机多实例：选不同 HOST_PORT（构建期 Jenkinsfile 提供 `server.port` 与 `server.port+1` 两选项，端口即节点标识）【人工·机器可选】
 
 ## C. 交付可达（人工验证 push）
 - [ ] 用 docker 凭据在构建节点做一次真 `docker login` + `push` 测试 【人工·L3 机器只 ping v2】

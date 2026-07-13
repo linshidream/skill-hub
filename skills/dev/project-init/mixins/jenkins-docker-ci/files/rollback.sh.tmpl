@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # rollback.sh —— 回滚到上一可用版本。主机级通用，env/参数驱动。
-#   rollback.sh <project> <active> [node_id] [host_port]
+#   rollback.sh <project> <active> [host_port]
 # 从 .deploy-history 回扫，跳过与当前 version 相同的条目，取第一个不同 version。
+# 容器名：{project}-{active}-{rollback_version}-{hostid}-{host_port}（version=回滚目标版本）。
+# rm 策略：同位模糊删（project+active+hostid+host_port 相同、version 不同）的旧容器。
 set -e
-PROJECT_NAME="$1"; ACTIVE="$2"; NODE_ID="${3:-}"; HOST_PORT="${4:-}"
+PROJECT_NAME="$1"; ACTIVE="$2"; HOST_PORT="${3:-}"
 REGISTRY="${REGISTRY:-{{registry}}}"
 DEPLOY_ROOT="${DEPLOY_ROOT:-{{deploy.root}}}"
 SERVER_PORT="{{server.port}}"
+HOSTID="${HOSTID:-$(hostname -s)}"
 HOST_PORT="${HOST_PORT:-${SERVER_PORT}}"
 JAVA_OPTS="${JAVA_OPTS:--Xms512m -Xmx512m -Xss256k}"
 
@@ -15,7 +18,6 @@ case "$ACTIVE" in
   *)    NAMESPACE="${NAMESPACE_TEST:-{{namespace.test}}}" ;;
 esac
 
-CONTAINER="${PROJECT_NAME}-${ACTIVE}${NODE_ID:+-${NODE_ID}}"
 CONFIG_DIR="${DEPLOY_ROOT}/server/${PROJECT_NAME}"            # 宿主机外置配置目录（随部署目录）
 HISTORY="${CONFIG_DIR}/.deploy-history"
 LOG_DIR="${DEPLOY_ROOT}/logs/${PROJECT_NAME}"                 # 宿主机日志目录（随部署目录）
@@ -40,11 +42,13 @@ for line in sys.stdin:
 [[ -z "$ROLLBACK_VERSION" ]] && { echo "无可用历史版本可回滚（当前 $CURRENT_VERSION）"; exit 1; }
 
 IMAGE="${REGISTRY}/${NAMESPACE}/${PROJECT_NAME}:${ROLLBACK_VERSION}"
+CONTAINER="${PROJECT_NAME}-${ACTIVE}-${ROLLBACK_VERSION}-${HOSTID}-${HOST_PORT}"
 echo "rollback: ${CURRENT_VERSION} -> ${ROLLBACK_VERSION} (container ${CONTAINER})"
 echo "=== rollback 配置 ==="
 echo "  PROJECT_NAME:           ${PROJECT_NAME}"
 echo "  ACTIVE:                 ${ACTIVE}"
-echo "  NODE_ID:                ${NODE_ID:-single}"
+echo "  HOSTID:                 ${HOSTID}"
+echo "  HOST_PORT(节点id):       ${HOST_PORT}"
 echo "  REGISTRY:               ${REGISTRY}"
 echo "  NAMESPACE:              ${NAMESPACE}"
 echo "  CURRENT_VERSION:        ${CURRENT_VERSION}"
@@ -61,7 +65,11 @@ echo "  JAVA_OPTS:              ${JAVA_OPTS}"
 echo "  HISTORY:                ${HISTORY}"
 echo "========================"
 docker pull "$IMAGE"
-docker rm -f "${CONTAINER}" 2>/dev/null || true
+# 同位模糊删：project+active+hostid+host_port 相同但 version 不同（.+ 通配）的旧容器。
+docker ps -a --format '{{.Names}}' \
+  | grep -E "^${PROJECT_NAME}-${ACTIVE}-.+-${HOSTID}-${HOST_PORT}$" \
+  | grep -v "^${CONTAINER}$" \
+  | while read -r old; do docker rm -f "$old" 2>/dev/null || true; done
 docker run -d --name "${CONTAINER}" --hostname "${CONTAINER}" \
   --restart=unless-stopped \
   --log-opt max-size=512m --log-opt max-file=3 \
@@ -72,5 +80,5 @@ docker run -d --name "${CONTAINER}" --hostname "${CONTAINER}" \
   -v "${LOG_DIR}:/opt/app/logs" \
   "${IMAGE}"
 
-echo "{\"version\":\"${ROLLBACK_VERSION}\",\"rolled_back_from\":\"${CURRENT_VERSION}\",\"active\":\"${ACTIVE}\",\"node\":\"${NODE_ID:-single}\",\"container\":\"${CONTAINER}\",\"host_port\":\"${HOST_PORT}\",\"action\":\"rollback\",\"deployed_at\":\"$(date -u +%FT%TZ)\"}" >> "${HISTORY}"
+echo "{\"version\":\"${ROLLBACK_VERSION}\",\"rolled_back_from\":\"${CURRENT_VERSION}\",\"active\":\"${ACTIVE}\",\"hostid\":\"${HOSTID}\",\"container\":\"${CONTAINER}\",\"host_port\":\"${HOST_PORT}\",\"action\":\"rollback\",\"deployed_at\":\"$(date -u +%FT%TZ)\"}" >> "${HISTORY}"
 echo "rolled back to ${IMAGE} (host ${HOST_PORT} -> container ${SERVER_PORT})"
