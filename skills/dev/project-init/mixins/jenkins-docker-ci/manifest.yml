@@ -13,7 +13,7 @@ variables:
   maven.settings.file.id: "REPLACE_WITH_MAVEN_SETTINGS_FILE_ID"
   docker.creds.id: "REPLACE_WITH_DOCKER_REGISTRY_CREDENTIAL_ID"
   git.repo.url: "REPLACE_WITH_GIT_REPO_URL"           # 如 https://gitee.com/<your-org>/<your-repo>.git
-  deploy.root: "/opt/app"   # 部署根目录，run.sh/rollback.sh 的 CONFIG_DIR/LOG_DIR 前缀；运行时 DEPLOY_ROOT env 可覆盖
+  deploy.root: "/opt/app"   # 部署根目录，run.sh/rollback.sh 的 CONFIG_DIR/LOG_DIR 前缀；表单第20项可覆盖，运行时 DEPLOY_ROOT env 再覆盖
 
 # Java 版本贯穿：构建镜像与运行镜像由 project-type 的 java.version 驱动
 # java8  -> maven:3-alpine            / openjdk:8-jre-alpine

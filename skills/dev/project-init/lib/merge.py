@@ -37,6 +37,7 @@ except ImportError:
     sys.exit("ERROR: 需要 PyYAML：pip3 install pyyaml")
 
 RESOLVED_MARK = "RESOLVED_BY_VERSION_CHECK"
+SKILL_VERSION = "0.1.2"   # 与 skill.json / registry.json / SKILL_RELEASES.md 同步，generated-by 标记用
 
 
 # ============================ 工具 ============================
@@ -306,7 +307,7 @@ def generate_dev_flow(variables, developers, project_type, ci_type, tech_pref, o
         "java-version": int(variables.get("java.version", 0)),
         "boot-version": variables.get("boot.version"),
         "initialized-at": datetime.now(tz).isoformat(timespec="seconds"),
-        "generated-by": "project-init@0.1.0",
+        "generated-by": f"project-init@{SKILL_VERSION}",
     }
 
     # 轻量校验：必填顶层字段
@@ -343,7 +344,7 @@ def write_project_state(variables, project_type, project_dir):
         "--ready", "true",
         "--java-version", str(variables.get("java.version", "")),
         "--boot-version", str(variables.get("boot.version", "")),
-        "--generated-by", "project-init@0.1.0")
+        "--generated-by", f"project-init@{SKILL_VERSION}")
     print("  .dev-flow/project.json 已写入（phase=scaffold:done）")
 
 

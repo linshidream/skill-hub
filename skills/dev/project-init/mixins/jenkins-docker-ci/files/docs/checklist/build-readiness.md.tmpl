@@ -13,8 +13,8 @@
 ## B. 服务器侧（人工部署脚本）
 - [ ] `run.sh` / `rollback.sh` 已复制到部署服务器（或由 jenkins 构建时拷入上下文）【人工·机器无法触达服务器】
 - [ ] 部署服务器 docker 运行环境就位 【人工】
-- [ ] 日志目录 `/opt/app/logs/{{core.module.name}}` 已建 【人工】
-- [ ] 外置配置目录 `/opt/app/server/{{core.module.name}}/` 放置 `application-<env>.yml` 【人工】
+- [ ] 日志目录 `{{deploy.root}}/logs/{{core.module.name}}` 已建（默认 /opt/app，可在 run.sh 用 DEPLOY_ROOT env 覆盖） 【人工】
+- [ ] 外置配置目录 `{{deploy.root}}/server/{{core.module.name}}/` 放置 `application-<env>.yml` 【人工】
 
 ## C. 交付可达（人工验证 push）
 - [ ] 用 docker 凭据在构建节点做一次真 `docker login` + `push` 测试 【人工·L3 机器只 ping v2】
@@ -26,3 +26,8 @@
 - gitee/docker/maven 凭据**只存 jenkins credentials store**，不进代码仓库、不进 agent 上下文、不进镜像。
 - `.dev-flow.yml` 的 `build-credentials` 只存 `REPLACE_WITH_*` 引用标识，不存值。
 - agent 唯一直接用的凭据是 jenkins env（`JENKINS_URL/USER/TOKEN`），由 ci-trigger 使用，不读明文。
+
+## 配置同步须知（init 后改 .dev-flow.yml 的 registry/namespace/凭据 id 时）
+- `check-build-ready.sh` **运行时动态读** `.dev-flow.yml` 的 `ci.jenkins.build-credentials`，改完即生效，无需重新 init。
+- `build.sh` / `run.sh` / `rollback.sh` / `Jenkinsfile` 是**执行器**，registry/namespace/凭据 id 在 init 时固化进脚本（带 `REGISTRY`/`NAMESPACE_*`/`DEPLOY_ROOT` 等 env 覆盖兜底）。**改 .dev-flow.yml 不会自动同步这四个文件**——要么重新跑 project-init `--add-module` 之外的全量 init，要么直接手改脚本，或运行时用 env 覆盖。
+- `deploy.root` 同理：init 时固化进 run.sh/rollback.sh/Jenkinsfile，运行时 `DEPLOY_ROOT` env 可覆盖。

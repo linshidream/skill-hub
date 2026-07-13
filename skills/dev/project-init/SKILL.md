@@ -208,7 +208,7 @@ finalName         = ${core.module.name}     # 供 Dockerfile ADD 稳定引用
 
 ## 13. 交互引导（强制前置，不可跳过）
 
-**生成前必须先发此表单并等用户填回**（见顶部强制规则）。只有用户明确放弃输入时才跳过用默认。用户填回后据此组装 `merge.py --var k=v`。表单值映射：`docker registry`→`registry`、`jenkins job 名`→`jenkins.job`、`gitee 凭据 id`→`gitee.credential.id`、`maven settings fileId`→`maven.settings.file.id`、`docker 凭据 id`→`docker.creds.id`、`git 仓库 url`→`git.repo.url`，其余同名；`developers` 传 JSON（`zx:张三`→`'{"zx":{"name":"张三"}}'`）。留空=走默认或占位。
+**生成前必须先发此表单并等用户填回**（见顶部强制规则）。只有用户明确放弃输入时才跳过用默认。用户填回后据此组装 `merge.py --var k=v`。表单值映射：`docker registry`→`registry`、`jenkins job 名`→`jenkins.job`、`gitee 凭据 id`→`gitee.credential.id`、`maven settings fileId`→`maven.settings.file.id`、`docker 凭据 id`→`docker.creds.id`、`git 仓库 url`→`git.repo.url`、`服务端口`→`server.port`、`部署根目录`→`deploy.root`，其余同名；`developers` 传 JSON（`zx:张三`→`'{"zx":{"name":"张三"}}'`）。留空=走默认或占位。`server.port`/`deploy.root` 留空时回退 manifest 默认（server.port=8080(java-web)/8700(java-mcp)，deploy.root=/opt/app）；**两者强烈建议显式填写**——端口须与目标环境不冲突，deploy.root 须与实际服务器目录一致（/opt/app 仅为占位约定，多数服务器并非此路径）。
 
 ```
 ==== project-init 初始化表单 ====
@@ -221,15 +221,17 @@ finalName         = ${core.module.name}     # 供 Dockerfile ADD 稳定引用
 7.  branch.test           [默认=test]              :
 8.  ci-type               [默认=jenkins-docker-ci] :
 9.  tech-pref             [默认=fastjson2-hutool]  :
-10. spec-doc (实施方案md路径，可选)                :
-11. docker registry       : 例 registry.example.com
-12. namespace.test        : 例 example-test
-13. namespace.prod        : 例 example-prod
-14. jenkins job 名        : 例 example-pipeline
-15. gitee 凭据 id         :
-16. maven settings fileId :
-17. docker 凭据 id        :
-18. git 仓库 url          : 例 https://gitee.com/your-org/your-repo.git
+10. server.port          [默认=8080(web)/8700(mcp)]:  服务启动端口，须与目标环境不冲突
+11. spec-doc (实施方案md路径，可选)                :
+12. docker registry       : 例 registry.example.com
+13. namespace.test        : 例 example-test
+14. namespace.prod        : 例 example-prod
+15. jenkins job 名        : 例 example-pipeline
+16. gitee 凭据 id         :
+17. maven settings fileId :
+18. docker 凭据 id        :
+19. git 仓库 url          : 例 https://gitee.com/your-org/your-repo.git
+20. deploy.root           [默认=/opt/app]           :  部署根目录，须与实际服务器目录一致（run.sh/rollback.sh 的 CONFIG_DIR/LOG_DIR 前缀）
 ```
 
 最简触发：`初始化 java 项目，type=java-mcp`（其余全默认/占位直接生成）。
