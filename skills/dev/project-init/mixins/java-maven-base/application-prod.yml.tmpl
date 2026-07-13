@@ -11,6 +11,6 @@ server:
   port: {{server.port}}
 logging:
   file:
-    path: /opt/app/logs   # 容器内路径，run.sh 挂载到宿主机 /opt/app/logs/<project>
+    path: /opt/app/logs   # 容器内路径（固定，与宿主机无关）；run.sh 挂载到宿主机 {{deploy.root}}/logs/<project>
   level:
     {{package}}: INFO

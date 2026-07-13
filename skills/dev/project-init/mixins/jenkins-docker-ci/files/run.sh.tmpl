@@ -20,9 +20,13 @@ esac
 
 IMAGE="${REGISTRY}/${NAMESPACE}/${PROJECT_NAME}:${VERSION}"
 CONTAINER="${PROJECT_NAME}-${ACTIVE}${NODE_ID:+-${NODE_ID}}"
-CONFIG_DIR="${DEPLOY_ROOT}/server/${PROJECT_NAME}"
-LOG_DIR="${DEPLOY_ROOT}/logs/${PROJECT_NAME}"
+CONFIG_DIR="${DEPLOY_ROOT}/server/${PROJECT_NAME}"            # 宿主机外置配置目录（随部署目录）
+LOG_DIR="${DEPLOY_ROOT}/logs/${PROJECT_NAME}"                 # 宿主机日志目录（随部署目录）
+CONTAINER_CONFIG_DIR="/opt/app/server/${PROJECT_NAME}"       # 容器内外置配置目录（固定 /opt/app/，与宿主机无关）
 HISTORY="${CONFIG_DIR}/.deploy-history"
+
+# 宿主机建目录提前到 docker run 前，避免 bind-mount 让 docker 自动创建属主 root 的目录
+mkdir -p "${CONFIG_DIR}"
 
 docker pull "${IMAGE}"
 docker rm -f "${CONTAINER}" 2>/dev/null || true
@@ -31,12 +35,11 @@ docker run -d --name "${CONTAINER}" --hostname "${CONTAINER}" \
   --restart=unless-stopped \
   --log-opt max-size=512m --log-opt max-file=3 \
   -e JAVA_OPTS="${JAVA_OPTS}" \
-  -e PARAMS="--spring.profiles.active=${ACTIVE} --spring.config.additional-location=file:${CONFIG_DIR}/" \
+  -e PARAMS="--spring.profiles.active=${ACTIVE} --spring.config.additional-location=file:${CONTAINER_CONFIG_DIR}/" \
   -p "${HOST_PORT}:${SERVER_PORT}" \
-  -v "${CONFIG_DIR}:${CONFIG_DIR}" \
+  -v "${CONFIG_DIR}:${CONTAINER_CONFIG_DIR}" \
   -v "${LOG_DIR}:/opt/app/logs" \
   "${IMAGE}"
 
-mkdir -p "${CONFIG_DIR}"
 echo "{\"version\":\"${VERSION}\",\"image\":\"${IMAGE}\",\"active\":\"${ACTIVE}\",\"node\":\"${NODE_ID:-single}\",\"container\":\"${CONTAINER}\",\"host_port\":\"${HOST_PORT}\",\"server_port\":\"${SERVER_PORT}\",\"action\":\"deploy\",\"deployed_at\":\"$(date -u +%FT%TZ)\"}" >> "${HISTORY}"
 echo "deployed ${IMAGE} as ${CONTAINER} (host ${HOST_PORT} -> container ${SERVER_PORT})"

@@ -1,7 +1,7 @@
 {
   "name": "project-init",
   "title": "Java 项目脚手架生成器",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "把空目录变成可立即 mvn package + 可构建镜像 + 可被 dev-lifecycle 接管的 Java Spring Boot 项目骨架（java-web 传统 Web 服务 / java-mcp Spring AI MCP Server）。采用 template + mixin 独立模板架构，template 不继承、零 exclude，从根上消除 javax/jakarta 版本残留；生成 .dev-flow.yml（含 scaffold 块 + build-credentials）并写入项目级状态 .dev-flow/project.json，作为 dev-lifecycle 协议的第 0 个 cascade 节点（项目级 scaffold 阶段）。Generate a ready-to-build Java Spring Boot scaffold; template+mixin architecture with zero inheritance, scaffold-phase woven into dev-lifecycle protocol.",
   "category": "dev",
   "license": "MIT",

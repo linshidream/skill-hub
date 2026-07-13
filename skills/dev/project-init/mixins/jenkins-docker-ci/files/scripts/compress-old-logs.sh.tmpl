@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # 延迟压缩归档日志：logback 滚动时不压缩（保留近期可 grep），此脚本压缩超过 N 天的归档。
 # 部署服务器 crontab 示例（每天 3 点压缩 60 天前的归档）：
-#   0 3 * * * /opt/app/server/{{core.module.name}}/compress-old-logs.sh /opt/app/logs/{{core.module.name}} 60
+#   0 3 * * * {{deploy.root}}/server/{{core.module.name}}/compress-old-logs.sh {{deploy.root}}/logs/{{core.module.name}} 60
 # 活跃文件（${HOSTNAME}.log）mtime 持续更新，不会被 -mtime +N 命中，安全。
 set -e
-LOG_DIR="${1:-/opt/app/logs}"
+LOG_DIR="${1:-{{deploy.root}}/logs}"
 DAYS="${2:-60}"
 echo "[$(date)] compressing *.log older than ${DAYS} days in ${LOG_DIR}"
 find "$LOG_DIR" -type f -name "*.log" -mtime +"$DAYS" -exec gzip {} \;
