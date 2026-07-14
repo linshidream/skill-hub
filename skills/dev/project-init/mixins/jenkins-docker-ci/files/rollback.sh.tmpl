@@ -65,10 +65,10 @@ echo "  JAVA_OPTS:              ${JAVA_OPTS}"
 echo "  HISTORY:                ${HISTORY}"
 echo "========================"
 docker pull "$IMAGE"
-# 同位模糊删：project+active+hostid+host_port 相同但 version 不同（.+ 通配）的旧容器。
+# 同位模糊删：project+active+hostid+host_port 相同的所有容器（version 段 .+ 通配，含当前 version 同名）。
+# docker run 复用 CONTAINER 名，同名必须先删——排除同名（grep -v）会导致重跑同 version 时 run 名字冲突。
 docker ps -a --format '{{.Names}}' \
   | grep -E "^${PROJECT_NAME}-${ACTIVE}-.+-${HOSTID}-${HOST_PORT}$" \
-  | grep -v "^${CONTAINER}$" \
   | while read -r old; do docker rm -f "$old" 2>/dev/null || true; done
 docker run -d --name "${CONTAINER}" --hostname "${CONTAINER}" \
   --restart=unless-stopped \
