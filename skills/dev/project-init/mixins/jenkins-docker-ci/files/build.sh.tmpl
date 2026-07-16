@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # build.sh —— 构建并推送镜像。凭据由 Jenkinsfile withCredentials 注入 SWR_USER/SWR_TOKEN env。
 #   build.sh <project> <version> <active>
-# env 可覆盖：REGISTRY / NAMESPACE_TEST / NAMESPACE_PROD
+# env 可覆盖：REGISTRY / NAMESPACE_TEST / NAMESPACE_PROD / PULL
 set -e
 PROJECT_NAME="$1"; VERSION="$2"; ACTIVE="$3"
 REGISTRY="${REGISTRY:-{{registry}}}"
@@ -33,6 +33,10 @@ if [[ -n "${SWR_USER:-}" && -n "${SWR_TOKEN:-}" ]]; then
   docker login -u "${SWR_USER}" -p "${SWR_TOKEN}" "${REGISTRY}"
 fi
 
-docker build --pull -t "${IMAGE}" .
+# 默认不 --pull：离线/受限网络下 base 镜像已 docker load 到本地，--pull 会强制走
+# Docker Hub 而超时。需强制刷新 base 时 PULL=true（前提：节点能访问 Docker Hub 或已配镜像源）。
+PULL_FLAG=""
+[[ "${PULL:-false}" == "true" ]] && PULL_FLAG="--pull"
+docker build ${PULL_FLAG} -t "${IMAGE}" .
 docker push "${IMAGE}"
 echo "pushed ${IMAGE}"

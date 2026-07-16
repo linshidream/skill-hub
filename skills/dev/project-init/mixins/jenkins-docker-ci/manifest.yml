@@ -16,10 +16,11 @@ variables:
   deploy.root: "/opt/app"   # 部署根目录，run.sh/rollback.sh 的 CONFIG_DIR/LOG_DIR 前缀；表单第20项可覆盖，运行时 DEPLOY_ROOT env 再覆盖
 
 # Java 版本贯穿：构建镜像与运行镜像由 project-type 的 java.version 驱动
-# java8  -> maven:3-alpine            / openjdk:8-jre-alpine
+# java8  -> maven:3-alpine            / eclipse-temurin:8-jre-alpine
 # java21 -> maven:3.9-eclipse-temurin-21 / eclipse-temurin:21-jre-alpine
+# 注：java8 运行镜像用 Temurin（openjdk:8-jre-alpine 已被 Docker Hub 弃用移除，整库 403 不可拉取）
 java-images:
-  "8":  { build: "maven:3-alpine",                 run: "openjdk:8-jre-alpine" }
+  "8":  { build: "maven:3-alpine",                 run: "eclipse-temurin:8-jre-alpine" }
   "21": { build: "maven:3.9-eclipse-temurin-21",  run: "eclipse-temurin:21-jre-alpine" }
 
 provides:
@@ -32,4 +33,5 @@ provides:
     - {from: files/scripts/check-build-ready.sh.tmpl, to: "scripts/check-build-ready.sh"}
     - {from: files/scripts/push-remote.sh.tmpl, to: "scripts/push-remote.sh"}
     - {from: files/scripts/compress-old-logs.sh.tmpl, to: "scripts/compress-old-logs.sh"}
+    - {from: files/scripts/docker-images-offline.sh.tmpl, to: "scripts/docker-images-offline.sh"}
     - {from: files/docs/checklist/build-readiness.md.tmpl, to: "docs/checklist/build-readiness.md"}

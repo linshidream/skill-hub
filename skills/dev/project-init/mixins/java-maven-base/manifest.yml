@@ -22,6 +22,7 @@ provides:
     - {from: docs/specs/_sources/.gitkeep,              to: "docs/specs/_sources/.gitkeep"}
     - {from: docs/sql/README.md.tmpl,                   to: "docs/sql/README.md"}
     - {from: docs/api/README.md.tmpl,                   to: "docs/api/README.md"}
+    - {from: scripts/README.md.tmpl,                   to: "scripts/README.md"}
     - {from: docs/checklist/build-readiness.md.tmpl,    to: "docs/checklist/build-readiness.md"}
 
 # base 提供的 pom 片段（注入 pom-server.xml.tmpl 的占位标记）
