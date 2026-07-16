@@ -1,0 +1,39 @@
+# 构建就绪人工质检清单
+
+> 项目: {{project.name}} | 机器自检: `scripts/check-build-ready.sh` | 本清单: 机器验不了的项
+
+## A. Jenkins 侧（人工在 Jenkins UI 配置）
+- [ ] 创建 gitee 凭据(PAT)，id 填入 `.dev-flow.yml` 的 `ci.jenkins.build-credentials.gitee-id` 【人工】
+- [ ] 创建 docker registry 凭据，id 填入 `docker-creds-id` 【人工】
+- [ ] 上传 maven settings.xml 到 config-file-provider，fileId 填入 `maven-file-id` 【人工·软检查】
+- [ ] 创建 pipeline job（指向仓库 `deploy/jenkins/Jenkinsfile`），job 名 = `{{jenkins.job}}` 【人工】
+- [ ] Jenkins 构建节点 docker 就位、时区 Asia/Shanghai 【人工】
+- [ ] 确认 docker registry 保留了历史 version tag（无自动清理策略），否则回滚源丢失 【人工】
+
+## B. 服务器侧（人工部署脚本）
+- [ ] `run.sh` / `rollback.sh` 已复制到部署服务器（或由 jenkins 构建时拷入上下文）【人工·机器无法触达服务器】
+- [ ] 部署服务器 docker 运行环境就位 【人工】
+- [ ] 日志目录 `{{deploy.root}}/logs/{{core.module.name}}` 已建（默认 /opt/app，可在 run.sh 用 DEPLOY_ROOT env 覆盖） 【人工】
+- [ ] 外置配置目录 `{{deploy.root}}/server/{{core.module.name}}/` 放置 `application-<env>.yml` 【人工】
+- [ ] 同主机多实例：选不同 HOST_PORT（构建期 Jenkinsfile 提供 `server.port` 与 `server.port+1` 两选项，端口即节点标识）【人工·机器可选】
+
+## C. 交付可达（人工验证 push）
+- [ ] 用 docker 凭据在构建节点做一次真 `docker login` + `push` 测试 【人工·L3 机器只 ping v2】
+
+## D. 首次推送远程（gitee 网页建好私有仓库后执行）
+- [ ] 本机已配 gitee SSH key（`ssh -T git@gitee.com` 返回 authenticated）【人工·一次性】
+- [ ] 在 gitee 网页新建私有仓库（owner=自己账号，名=项目名，**不勾选** README/.gitignore/license 初始化）【人工·一次性】
+- [ ] 跑 `scripts/push-remote.sh` 推送 master+test 到远程【机器·脚本自动从 .dev-flow.yml 读 url 转 SSH 并 push】
+
+## E. 首次构建验证
+- [ ] 手动触发一次 jenkins job，确认 checkout→mvn→docker→push 全链路通 【人工】
+
+## 凭据安全红线
+- gitee/docker/maven 凭据**只存 jenkins credentials store**，不进代码仓库、不进 agent 上下文、不进镜像。
+- `.dev-flow.yml` 的 `build-credentials` 只存 `REPLACE_WITH_*` 引用标识，不存值。
+- agent 唯一直接用的凭据是 jenkins env（`JENKINS_URL/USER/TOKEN`），由 ci-trigger 使用，不读明文。
+
+## 配置同步须知（init 后改 .dev-flow.yml 的 registry/namespace/凭据 id 时）
+- `check-build-ready.sh` **运行时动态读** `.dev-flow.yml` 的 `ci.jenkins.build-credentials`，改完即生效，无需重新 init。
+- `build.sh` / `run.sh` / `rollback.sh` / `Jenkinsfile` 是**执行器**，registry/namespace/凭据 id 在 init 时固化进脚本（带 `REGISTRY`/`NAMESPACE_*`/`DEPLOY_ROOT` 等 env 覆盖兜底）。**改 .dev-flow.yml 不会自动同步这四个文件**——要么重新跑 project-init `--add-module` 之外的全量 init，要么直接手改脚本，或运行时用 env 覆盖。
+- `deploy.root` 同理：init 时固化进 run.sh/rollback.sh/Jenkinsfile，运行时 `DEPLOY_ROOT` env 可覆盖。

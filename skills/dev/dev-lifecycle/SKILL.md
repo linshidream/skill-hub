@@ -13,6 +13,35 @@ V1 的外部系统边界：CI 仅支持 Jenkins；通知步骤不在默认 casca
 
 GUI merge 是非核心辅助能力，默认关闭。即使用户开启，如果本地 `idea` 命令或 Git mergetool 配置不可用，也必须自动降级到文本冲突流程，不能阻断 lifecycle 主流程。`gui-merge.command` 可以是 `idea`，也可以是 IDEA 可执行文件完整路径。
 
+## 项目级 scaffold 阶段与状态分层
+
+dev-lifecycle 的状态分两层，互不混淆：
+
+| 层级 | 状态文件 | 何时写 | phase 前缀 |
+|------|---------|--------|-----------|
+| **项目级**（一次性） | `.dev-flow/project.json`（不入库） | project-init 生成骨架时 | `scaffold:*` |
+| **feature 级**（每功能一份） | `.dev-flow/states/<feature>.json`（不入库） | dev-spec intake 确定 feature 时 | `spec:*` / `step:*` / `code:*` / 集成与构建态 |
+
+布局：
+
+```text
+.dev-flow.yml                 # 配置（含 scaffold 块），入库
+.dev-flow/                    # 不入库（.gitignore 必须含）
+├── project.json              # 项目级状态（scaffold phase）
+├── active                    # feature 活动指针
+└── states/<feature>.json     # feature 级状态
+```
+
+项目级状态记录"骨架是否就绪"，是 dev-lifecycle 的第 0 个 cascade 节点（项目级、一次性）。feature 级状态记录"某个功能的开发进度"，是现有 spec→code→ci 流程。
+
+项目级与 feature 级的职责边界：
+
+- `project-init` 只写项目级状态（`.dev-flow/project.json`），**不**建 feature 状态文件。
+- `dev-spec` intake 才建 feature 状态文件（调 `resolve-active-state.py set <feature>`）。
+- `project-init` 完成后停留在 test 分支，移交 dev-spec 开始第一个功能的需求整理。
+
+项目级状态 schema 见 `schemas/project-state.schema.json`。
+
 ## 多功能并行与活动状态解析
 
 默认每个 feature 一份运行时状态文件，支持从 master 同时切多个 feature 并行开发而互不覆盖。布局（目标项目内，均不入库）：
@@ -72,6 +101,7 @@ python3 skills/dev/dev-lifecycle/scripts/resolve-active-state.py --config .dev-f
 
 启动：
 
+- "初始化项目" / "新建项目骨架" / "java 项目脚手架" → 触发 `project-init:scaffold`（项目级，先于任何 feature）
 - "开始开发 {功能名}"
 - "启动开发流程"
 - "从需求开始"
@@ -85,6 +115,7 @@ python3 skills/dev/dev-lifecycle/scripts/resolve-active-state.py --config .dev-f
 ## 前置条件
 
 - 项目根目录存在 `.dev-flow.yml`
+- 项目骨架已就绪：`.dev-flow/project.json` 的 `scaffold.ready=true`，或 `.dev-flow.yml` 的 `scaffold.ready=true`。若均无，dev-lifecycle 应提示「当前项目骨架未就绪，是否需要先跑 project-init？」，不要直接进入 feature 级流程。老项目无 scaffold 块/文件时视为就绪（向后兼容）。
 - 环境变量已配置（CI 凭据等，通过 `ci-trigger --check-env` 验证）
 - 依赖 skill 已安装：`dev-spec`、`git-flow`、`ci-trigger`
 - `.dev-flow/`（per-feature 状态与活动指针）不入库，须加入项目 `.gitignore`
@@ -94,9 +125,18 @@ python3 skills/dev/dev-lifecycle/scripts/resolve-active-state.py --config .dev-f
 ### 总览
 
 ```
-not-started
-    │
-    ▼
+┌── 项目级：Scaffold（一次性，project-init）──────────┐
+│ scaffold:planning → awaiting-input →                 │
+│ scaffolding → done                                    │
+└──────────────────┬──────────────────────────────────┘
+                   │ Auto Cascade 0（项目级移交）
+                   ▼
+            spec:intake（feature 级开始）
+                   │
+                   ▼
+              not-started
+                   │
+                   ▼
 ┌── Review Loop 1: Evidence Spec ───┐
 │ intake → producing → awaiting      │
 │ → revising → awaiting → approved   │  可循环多轮，可跨会话
@@ -125,6 +165,10 @@ Phase 使用 `{loop}:{sub-state}` 格式：
 
 | Phase | 谁在操作 | 可持续时间 | 说明 |
 |-------|---------|-----------|------|
+| `scaffold:planning` | agent | 分钟级 | 项目级：agent 正在收集 project-init 初始化表单变量（project-type/groupId/模块名/凭据占位/分支） |
+| `scaffold:awaiting-input` | 用户 | 分钟级 | 项目级：初始化表单已发，等用户填回。呼应 project-init 强制前置规则 |
+| `scaffold:scaffolding` | agent | 分钟级 | 项目级：`lib/merge.py` 生成骨架 + git init + master initial commit + 切 test 分支 |
+| `scaffold:done` | — | 瞬时 | 项目级：骨架就绪，触发 Auto Cascade 0 移交 feature 级 `spec:intake` |
 | `spec:intake` | agent | 分钟级 | agent 正在收集需求材料、API 文档、原型图和项目上下文 |
 | `spec:producing` | agent | 分钟级 | agent 正在生成 spec |
 | `spec:awaiting-review` | 用户 | 分钟到半天 | 用户离开去 review，agent 暂停 |
@@ -197,6 +241,19 @@ S2 联调、异常和构建验证
 
 当一个 Review Loop 以 `approved` 退出后，后续步骤自动执行，直到遇到下一个 Review Loop 或流程结束。
 
+**Auto Cascade 0**（scaffold:done 后，项目级移交）：
+
+1. `project-init` 收尾完成：git init + master initial commit + 切 test 分支。
+2. 写项目级状态 `.dev-flow/project.json`：`phase=scaffold:done`、`scaffold.ready=true`、追加 history `scaffold_done`。
+3. agent 提示：「骨架已就绪，停在 test 分支。现在开始第一个功能的需求整理（dev-spec intake）？」
+4. 用户确认 → 调 `resolve-active-state.py set <feature>` 建立 feature 级状态文件，phase → `spec:intake`，进入 feature 级流程。
+
+Cascade 0 与 Cascade 1/2 的区别：
+
+- **Cascade 0 是项目级、一次性**，发生在任何 feature 之前，状态写入 `.dev-flow/project.json`。
+- **Cascade 1/2 是 feature 级**，每开发一个 feature 各跑一次，状态写入 `.dev-flow/states/<feature>.json`。
+- 项目级状态与 feature 级状态文件分离，互不覆盖。
+
 **Auto Cascade 1**（spec approved 后）：
 
 1. 调用 `git-flow init` 创建分支
@@ -225,6 +282,7 @@ Cascade step 必须遵守以下输入、输出和 state patch 契约。脚本执
 
 | Step | 调用 | 输入来源 | 成功输出 | State patch |
 |------|------|----------|----------|-------------|
+| `project-init:scaffold` | `project-init` skill（`lib/merge.py`） | 空目录 + 用户填回的初始化表单（template / groupId / 模块名 / 凭据占位 / 分支 / docker-registry / jenkins job 等） | 骨架文件全套 + `.dev-flow.yml`（含 `scaffold` 块 + `ci.jenkins.build-credentials`）+ git init + master initial commit + 切 test 分支 | 项目级（`.dev-flow/project.json`）：`phase=scaffold:done`、`scaffold.template`、`scaffold.ready=true`、history 追加 `scaffold_done`；feature 级：无（此时无 feature） |
 | `dev-spec:produce` | `dev-spec` skill | 用户描述、需求材料、项目上下文、`.dev-flow.yml` 的 `spec.*` | spec 文件、sources、complexity、implementation steps | `phase=spec:awaiting-review`、`spec`、`spec-sources`、`implementation`、history 追加 `spec_produced` |
 | `git-flow:init` | `git-flow/scripts/init-branch.sh` | `.dev-flow.yml` 的 `branching.*`、state/spec 中的 `developer` 和 `feature` | `status=success`、`branch` | `phase=branched`、`branch`、`developer`、`feature` |
 | `git-flow:commit` | `git-flow/scripts/smart-commit.sh` | Agent 选择的文件列表和 commit message | `status=success`、`hash` | 追加 `commits[]` |
@@ -295,6 +353,10 @@ Agent 新会话先调 `resolve-active-state.py resolve` 拿到当前活动状态
 
 | Phase | Agent 行为 |
 |-------|-----------|
+| `scaffold:planning` | "上次在准备项目骨架表单，继续收集变量？" |
+| `scaffold:awaiting-input` | "骨架初始化表单已发，等你填回。还需补充哪些字段？" |
+| `scaffold:scaffolding` | "上次骨架生成到一半（merge.py 未收尾），继续？" |
+| `scaffold:done` | "骨架已就绪，停在 test 分支。开始第一个功能的需求整理（dev-spec intake）？" |
 | `spec:intake` | "上次正在整理需求材料和证据，继续吗？" |
 | `spec:producing` | "上次 spec 生成到一半，继续吗？" |
 | `spec:awaiting-review` | "spec 已生成，等你 review。第 {N} 轮。有反馈吗？" |

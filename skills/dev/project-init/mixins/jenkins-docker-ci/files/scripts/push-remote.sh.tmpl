@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# push-remote.sh —— 初始化仓库后推送 master+test 到远程 gitee（SSH 免密）。
+#   用法: push-remote.sh [git-url]
+#   不传参则从 .dev-flow.yml 读 ci.jenkins.build-credentials.git-repo-url（HTTPS）并转 SSH。
+# 前提: 本机已配 gitee SSH key（ssh -T git@gitee.com 返回 authenticated）。
+# 顺序: 远程私有仓库需先在网页建好（不勾选初始化），再跑本脚本。
+set -uo pipefail
+# 自动切到项目根（脚本在 scripts/，项目根=父目录）
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# 取 remote url：参数 > .dev-flow.yml
+REMOTE_URL="${1:-$(python3 -c "import yaml;print(yaml.safe_load(open('.dev-flow.yml'))['ci']['jenkins']['build-credentials']['git-repo-url'])" 2>/dev/null)}"
+[[ -z "$REMOTE_URL" || "$REMOTE_URL" == REPLACE_WITH_* ]] && {
+  echo 'ERROR: 未提供 git-url 且 .dev-flow.yml 的 git-repo-url 未回填'; exit 1; }
+
+# HTTPS → SSH 转换（gitee/github 通用）；已是 ssh 则不变
+SSH_URL=$(python3 -c '
+import re,sys
+u=sys.argv[1].strip()
+if u.startswith("git@"):
+    print(u); sys.exit()
+m=re.match(r"https?://([^/]+)/(.+)", u)
+if not m:
+    sys.stderr.write("ERROR: 无法解析 url: "+u+"\n"); sys.exit(1)
+p=m.group(2).rstrip("/")
+if not p.endswith(".git"): p+=".git"
+print(f"git@{m.group(1)}:{p}")
+' "$REMOTE_URL") || exit 1
+
+echo "remote: $SSH_URL"
+
+git remote remove origin 2>/dev/null
+git remote add origin "$SSH_URL"
+
+# push master + test（production + test 双分支）
+# dry-run 预检：远程已有本地没有的提交时拒绝推送，强制避免覆盖远程已有代码
+for BR in master test; do
+  echo "--- push $BR ---"
+  if ! git push --dry-run origin "$BR" 2>/dev/null; then
+    echo "ERROR: $BR 推送会 non-fast-forward（远程已有本地没有的提交），拒绝推送以避免覆盖远程已有代码。"
+    echo "  常见原因：远程仓库已有原创代码，或建仓库时勾选了 README/.gitignore/license 初始化。"
+    echo "  处理方式（择一）："
+    echo "    - 保留远程历史：git pull --rebase origin $BR && git push -u origin $BR"
+    echo "    - 确认可丢弃远程历史：git push -f origin $BR  （覆盖远程，慎用）"
+    exit 1
+  fi
+  git push -u origin "$BR" || { echo "ERROR: push $BR 失败"; exit 1; }
+done
+echo "done: master + test pushed to $SSH_URL"

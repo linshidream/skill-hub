@@ -1,0 +1,70 @@
+// Jenkinsfile (declarative) —— Jenkins + Docker 三阶段。
+// 凭据全走 jenkins credentials store（withCredentials / configFileProvider），不写明文。
+// credentialsId 与 .dev-flow.yml 的 ci.jenkins.build-credentials 同源（merge.py 保证一致）。
+def PROJECT_NAME = "{{core.module.name}}"
+def DEPLOY_ROOT = "{{deploy.root}}"
+def DOCKER_IMAGE_DIR = "${DEPLOY_ROOT}/docker_images"
+
+pipeline {
+    agent none
+    parameters {
+        string(name: 'CURRENT_VERSION', defaultValue: 'v1.0.0', description: '当前版本')
+        choice(name: 'ACTIVE', choices: ['test'], description: '环境选择')
+        string(name: 'GIT_BRANCH', defaultValue: 'test', description: '分支')
+        // HOST_PORT = 宿主机映射端口，即节点标识；构建期两选项=server.port 与 server.port+1
+        // （从初始化表单的 server.port 自动派生，非硬编码）。默认取首项=server.port（单实例）；
+        // 同主机多实例选 server.port+1。要更多端口在 choices 数组追加。
+        choice(name: 'HOST_PORT', choices: ['{{server.port}}', '{{server.port.next}}'], description: '宿主机映射端口=节点标识；默认 server.port，多实例选 +1')
+    }
+    stages {
+        stage('checkout') {
+            agent any
+            steps {
+                // Jenkins job 配置为 "Pipeline script from SCM" 模式时，Jenkins 会自动从 SCM 拉取代码，
+                // 此处无需手动 git checkout（下方已注释）。仅当切回 "Pipeline script"（Jenkinsfile 内联）模式，
+                // 或需 checkout 与 job 配置不同的分支时，才放开下方 git 步骤。
+//                 git branch: "${GIT_BRANCH}",
+//                     credentialsId: "{{gitee.credential.id}}",
+//                     url: "{{git.repo.url}}"
+                   echo "代码已自动检出"
+            }
+        }
+        stage('packaging') {
+            agent {
+                docker {
+                    // 构建镜像 Java 版本对齐（java8: maven:3-alpine | java21: maven:3.9-eclipse-temurin-21）
+                    image '{{docker.build.image}}'
+                    args '-v /root/.m2:/root/.m2'
+                }
+            }
+            steps {
+                sh 'mvn -v'
+                configFileProvider(
+                    [configFile(fileId: '{{maven.settings.file.id}}', variable: 'MAVEN_SETTINGS')]) {
+                    // 不用 -P ${ACTIVE}：Spring profile 是运行时概念，由 run.sh 注入
+                    sh 'mvn -s $MAVEN_SETTINGS clean package -Dmaven.test.skip=true -U'
+                }
+            }
+        }
+        stage('build docker') {
+            agent any
+            steps {
+                sh "mkdir -p ${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}"
+                sh "cp ./deploy/docker/Dockerfile ${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/"
+                sh "cp ./${PROJECT_NAME}/target/${PROJECT_NAME}.jar ${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/"
+                sh "cp ./deploy/docker/build.sh ${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/"
+                sh "cp ./deploy/docker/run.sh ${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/"
+                sh "cp ./deploy/docker/rollback.sh ${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/"
+                sh "cp ./scripts/compress-old-logs.sh ${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/"
+                sh "chmod +x ${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/*.sh"
+                // docker 凭据由 withCredentials 注入成 SWR_USER/SWR_TOKEN env 给 build.sh（接口不变）
+                withCredentials([usernamePassword(credentialsId: '{{docker.creds.id}}',
+                                                  usernameVariable: 'SWR_USER',
+                                                  passwordVariable: 'SWR_TOKEN')]) {
+                    sh "${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/build.sh ${PROJECT_NAME} ${CURRENT_VERSION} ${ACTIVE}"
+                    sh "${DOCKER_IMAGE_DIR}/${PROJECT_NAME}-${CURRENT_VERSION}/run.sh ${PROJECT_NAME} ${CURRENT_VERSION} ${ACTIVE} ${HOST_PORT}"
+                }
+            }
+        }
+    }
+}

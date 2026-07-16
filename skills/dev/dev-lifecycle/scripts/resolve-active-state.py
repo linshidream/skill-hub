@@ -42,7 +42,17 @@ LEGACY_STATE = ".dev-flow-state.json"
 DEFAULT_STORAGE = "per-feature"
 DEFAULT_STATES_DIR = ".dev-flow/states"
 DEFAULT_POINTER = ".dev-flow/active"
+DEFAULT_PROJECT_STATE = ".dev-flow/project.json"
 DEFAULT_BRANCH_PATTERN = "feat/{developer}/{feature}"
+SCOPE_FEATURE = "feature"
+SCOPE_PROJECT = "project"
+SCAFFOLD_PHASES = ("scaffold:planning", "scaffold:awaiting-input", "scaffold:scaffolding", "scaffold:done")
+_SCAFFOLD_EVENTS = {
+    "scaffold:planning": "scaffold_planning",
+    "scaffold:awaiting-input": "scaffold_input_requested",
+    "scaffold:scaffolding": "scaffold_scaffolding",
+    "scaffold:done": "scaffold_done",
+}
 
 
 # --- minimal YAML scalar reader (scalar subset of .dev-flow.yml) -------------
@@ -374,9 +384,51 @@ def resolve(cfg: StateConfig) -> dict[str, Any]:
     }
 
 
+# --- project-level state (.dev-flow/project.json) ---------------------------
+
+def project_state_path(config_path: Path) -> Path:
+    """project.json 位于 .dev-flow.yml 同目录的 .dev-flow/ 下。"""
+    return config_path.parent / DEFAULT_PROJECT_STATE
+
+
+def load_project_state(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def resolve_project(config_path: Path) -> dict[str, Any]:
+    path = project_state_path(config_path)
+    data = load_project_state(path)
+    if not data:
+        return {
+            "scope": "project",
+            "state-path": str(path),
+            "exists": False,
+            "phase": None,
+            "scaffold": None,
+            "source": "absent",
+        }
+    return {
+        "scope": "project",
+        "state-path": str(path),
+        "exists": True,
+        "phase": data.get("phase"),
+        "scaffold": data.get("scaffold"),
+        "source": "project-json",
+    }
+
+
 # --- subcommands -------------------------------------------------------------
 
 def cmd_resolve(args: argparse.Namespace) -> int:
+    if getattr(args, "scope", SCOPE_FEATURE) == SCOPE_PROJECT:
+        print(json.dumps(resolve_project(Path(args.config)), ensure_ascii=False, indent=2))
+        return 0
     cfg = StateConfig(Path(args.config))
     print(json.dumps(resolve(cfg), ensure_ascii=False, indent=2))
     return 0
@@ -469,11 +521,79 @@ def cmd_migrate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_init_scaffold(args: argparse.Namespace) -> int:
+    """(project) 建 .dev-flow/project.json 骨架（phase=scaffold:planning, ready=false）。"""
+    config_path = Path(args.config)
+    path = project_state_path(config_path)
+    existing = load_project_state(path)
+    if existing.get("phase") == "scaffold:done":
+        print(json.dumps({"status": "error",
+                          "reason": "project already initialized (scaffold:done); refuse to overwrite",
+                          "state-path": str(path)}, ensure_ascii=False, indent=2))
+        return 1
+    path.parent.mkdir(parents=True, exist_ok=True)
+    now = datetime.now(timezone.utc).isoformat()
+    data = {
+        "phase": "scaffold:planning",
+        "scaffold": {"template": args.template, "ready": False},
+        "started-at": now,
+        "history": [{"timestamp": now, "event": "scaffold_planning",
+                     "detail": f"template={args.template}"}],
+    }
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps({"status": "ok", "scope": "project",
+                      "phase": "scaffold:planning", "state-path": str(path)},
+                     ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_set_scaffold_phase(args: argparse.Namespace) -> int:
+    """(project) 更新 project 级 phase + scaffold 子字段。"""
+    if args.phase not in SCAFFOLD_PHASES:
+        print(json.dumps({"status": "error",
+                          "reason": f"invalid phase: {args.phase}; must be one of {list(SCAFFOLD_PHASES)}"},
+                         ensure_ascii=False, indent=2))
+        return 1
+    config_path = Path(args.config)
+    path = project_state_path(config_path)
+    data = load_project_state(path)
+    if not data:
+        print(json.dumps({"status": "error",
+                          "reason": "project.json not initialized; run init-scaffold first",
+                          "state-path": str(path)}, ensure_ascii=False, indent=2))
+        return 1
+    now = datetime.now(timezone.utc).isoformat()
+    data["phase"] = args.phase
+    sc = data.setdefault("scaffold", {})
+    if args.template:
+        sc["template"] = args.template
+    if args.ready is not None:
+        sc["ready"] = (str(args.ready).lower() == "true")
+    if args.java_version is not None:
+        sc["java-version"] = args.java_version
+    if args.boot_version is not None:
+        sc["boot-version"] = args.boot_version
+    if args.generated_by:
+        sc["generated-by"] = args.generated_by
+    if args.phase == "scaffold:done":
+        data["finished-at"] = now
+        sc["ready"] = True
+    data.setdefault("history", []).append(
+        {"timestamp": now, "event": _SCAFFOLD_EVENTS[args.phase], "detail": ""})
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps({"status": "ok", "scope": "project", "phase": args.phase,
+                      "state-path": str(path), "scaffold": sc}, ensure_ascii=False, indent=2))
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Resolve the active dev-flow state file for parallel features."
     )
     parser.add_argument("--config", default=CONFIG_DEFAULT)
+    parser.add_argument("--scope", choices=[SCOPE_FEATURE, SCOPE_PROJECT],
+                        default=SCOPE_FEATURE,
+                        help="feature=feature 级状态；project=项目级状态(.dev-flow/project.json)")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_resolve = sub.add_parser("resolve", help="Print the active state descriptor.")
@@ -494,6 +614,21 @@ def main() -> int:
     p_migrate.add_argument("--feature", help="Fallback feature slug if state has none.")
     p_migrate.add_argument("--force", action="store_true")
     p_migrate.set_defaults(func=cmd_migrate)
+
+    p_init = sub.add_parser("init-scaffold",
+                            help="(project) Create .dev-flow/project.json skeleton (phase=scaffold:planning).")
+    p_init.add_argument("--template", required=True, choices=["java-web", "java-mcp"])
+    p_init.set_defaults(func=cmd_init_scaffold)
+
+    p_ssp = sub.add_parser("set-scaffold-phase",
+                           help="(project) Update project-level phase + scaffold fields.")
+    p_ssp.add_argument("--phase", required=True)
+    p_ssp.add_argument("--template")
+    p_ssp.add_argument("--ready", default=None, help="true|false")
+    p_ssp.add_argument("--java-version", type=int, default=None)
+    p_ssp.add_argument("--boot-version", default=None)
+    p_ssp.add_argument("--generated-by", default=None)
+    p_ssp.set_defaults(func=cmd_set_scaffold_phase)
 
     args = parser.parse_args()
     return args.func(args)

@@ -1,0 +1,22 @@
+package {{package}};
+
+import org.springframework.ai.mcp.server.autoconfigure.McpServerAutoConfiguration;
+import org.springframework.ai.mcp.server.autoconfigure.McpWebMvcServerAutoConfiguration;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+/**
+ * exclude 说明：Spring AI 1.0.x 的 mcp-server autoconfigure 只装配 SSE 传输
+ * （/sse + /mcp/message）。改为标准 Streamable HTTP 传输（/mcp），由
+ * {@link {{package}}.config.McpStreamableServerConfig} 手动装配，
+ * 故排除以下两个 auto-config，避免与自建 McpSyncServer bean 冲突。
+ */
+@SpringBootApplication(exclude = {
+        McpServerAutoConfiguration.class,
+        McpWebMvcServerAutoConfiguration.class
+})
+public class Application {
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+}

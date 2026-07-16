@@ -1,0 +1,47 @@
+# java-mcp template —— Spring AI MCP Server：java21 + Boot3.5 + Spring AI 1.0.x
+# 独立模板，不继承 java-web；自包含 jakarta 版 RequestIdFilter + ExampleTools + McpStreamableServerConfig。
+# 覆盖 base-mixin 的 Application（exclude SSE auto-config）与 README（补 MCP 端点节）——java-mcp 专属，java-web 不受影响。
+# 传输：Streamable HTTP（/mcp），非 Spring AI 1.0.x auto-config 默认的 SSE。
+# swagger 用 springdoc-openapi-starter-webmvc-api 2.8.17（OpenAPI3，api-only 无 UI，Boot3/jakarta）
+name: java-mcp
+description: Spring AI MCP Server(java21/Streamable HTTP webmvc)
+
+variables:
+  java.version: 21
+  boot.version: "RESOLVED_BY_VERSION_CHECK(3.5.)"
+  spring-ai.version: "RESOLVED_BY_VERSION_CHECK(1.0.)"
+  logstash-encoder.version: "RESOLVED_BY_VERSION_CHECK(8.)"
+  server.port: 8700
+  swagger.api.url: "http://localhost:{{server.port}}/v3/api-docs"
+
+pom:
+  properties:
+    - spring-ai.version: "{{spring-ai.version}}"
+  dependencyManagement:
+    - {ref: "org.springframework.ai:spring-ai-bom", version: "{{spring-ai.version}}", type: pom, scope: import}
+    - {ref: "org.springdoc:springdoc-openapi-starter-webmvc-api", version: "2.8.17"}
+  dependencies:
+    - "org.springframework.boot:spring-boot-starter-web"           # Boot3/jakarta，webmvc
+    - "org.springframework.boot:spring-boot-starter-validation"   # @ToolParam 校验
+    - "org.springframework.boot:spring-boot-starter-actuator"     # 健康检查/监控
+    - "org.springframework.ai:spring-ai-starter-mcp-server-webmvc"   # MCP server 核心
+    - "org.springdoc:springdoc-openapi-starter-webmvc-api"        # OpenAPI3 JSON(/v3/api-docs)，无 UI，Boot3/jakarta
+
+extra-config:
+  - "  ai:"
+  - "    mcp:"
+  - "      server:"
+  - "        name: {{project.name}}"
+  - "        version: 1.0.0"
+
+provides:
+  files:
+    # 自包含 jakarta 版（Boot3/jakarta），不继承 javax 版，从根上消除残留风险
+    - {from: files/src/main/java/RequestIdFilter.java.tmpl, to: "{{core.module.name}}/src/main/java/{{package.path}}/config/RequestIdFilter.java"}
+    - {from: files/src/main/java/ExampleTools.java.tmpl, to: "{{core.module.name}}/src/main/java/{{package.path}}/mcp/ExampleTools.java"}
+    # 覆盖 base-mixin 的 plain Application：exclude Spring AI SSE auto-config，改由 McpStreamableServerConfig 装配 Streamable HTTP
+    - {from: files/src/main/java/Application.java.tmpl, to: "{{core.module.name}}/src/main/java/{{package.path}}/Application.java"}
+    # 手动装配标准 Streamable HTTP 传输（/mcp 端点）+ @Tool 注册（Spring AI 1.0.x auto-config 只装配 SSE 且不自动注册 @Tool）
+    - {from: files/src/main/java/McpStreamableServerConfig.java.tmpl, to: "{{core.module.name}}/src/main/java/{{package.path}}/config/McpStreamableServerConfig.java"}
+    # 覆盖 base-mixin 的 README：补 MCP 端点 / 传输类型 / 握手示例（java-mcp 专属）
+    - {from: files/README.md.tmpl, to: "README.md"}

@@ -28,12 +28,22 @@
     {
       "name": "dev-lifecycle",
       "title": "开发全流程编排",
-      "version": "0.1.5",
+      "version": "0.1.6",
       "category": "dev",
       "path": "skills/dev/dev-lifecycle",
-      "description": "编排 dev-spec、git-flow、ci-trigger 三个 skill，实现业务闭环级步骤开发、实时 step 状态、构建失败回修和可中断恢复流程；状态按功能隔离支持多功能并行开发，活动指针以当前分支为准同步；GUI merge 是默认关闭的可选辅助能力。Orchestrate lifecycle with per-feature parallel state, branch-authoritative active pointer, and optional GUI merge fallback.",
+      "description": "编排 project-init、dev-spec、git-flow、ci-trigger 四个 skill，实现项目级 scaffold → feature 级 spec/code/ci 的可中断恢复开发流程；状态分两层：项目级 .dev-flow/project.json（scaffold phase）与 feature 级 .dev-flow/states/<feature>.json（per-feature 并行，活动指针以当前分支为准同步）；GUI merge 是默认关闭的可选辅助能力。Orchestrate project-level scaffold and feature-level spec/code/ci with two-layer state, per-feature parallel state, branch-authoritative active pointer, and optional GUI merge fallback.",
       "supportedAgents": ["claude-code", "codex", "generic"],
       "sideEffects": ["shell", "filesystem-read", "filesystem-write", "network", "external-service"]
+    },
+    {
+      "name": "project-init",
+      "title": "Java 项目脚手架生成器",
+      "version": "0.2.0",
+      "category": "dev",
+      "path": "skills/dev/project-init",
+      "description": "把空目录变成可立即 mvn package + 可构建镜像 + 可被 dev-lifecycle 接管的 Java Spring Boot 项目骨架（java-web 传统 Web 服务 / java-mcp Spring AI MCP Server）。采用 template + mixin 独立模板架构，template 不继承、零 exclude，从根上消除 javax/jakarta 版本残留；生成 .dev-flow.yml（含 scaffold 块 + build-credentials）并写入项目级状态 .dev-flow/project.json，作为 dev-lifecycle 协议的第 0 个 cascade 节点（项目级 scaffold 阶段）。Generate a ready-to-build Java Spring Boot scaffold; template+mixin architecture with zero inheritance, scaffold-phase woven into dev-lifecycle protocol.",
+      "supportedAgents": ["claude-code", "codex", "generic"],
+      "sideEffects": ["filesystem-read", "filesystem-write", "shell", "network"]
     },
     {
       "name": "dev-spec",

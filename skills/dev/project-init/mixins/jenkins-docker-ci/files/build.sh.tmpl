@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# build.sh —— 构建并推送镜像。凭据由 Jenkinsfile withCredentials 注入 SWR_USER/SWR_TOKEN env。
+#   build.sh <project> <version> <active>
+# env 可覆盖：REGISTRY / NAMESPACE_TEST / NAMESPACE_PROD / PULL
+set -e
+PROJECT_NAME="$1"; VERSION="$2"; ACTIVE="$3"
+REGISTRY="${REGISTRY:-{{registry}}}"
+
+case "$ACTIVE" in
+  prod) NAMESPACE="${NAMESPACE_PROD:-{{namespace.prod}}}" ;;
+  *)    NAMESPACE="${NAMESPACE_TEST:-{{namespace.test}}}" ;;
+esac
+
+IMAGE="${REGISTRY}/${NAMESPACE}/${PROJECT_NAME}:${VERSION}"
+IMAGE_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "${IMAGE_DIR}"
+
+# mask：只判断非空，绝不打印凭据值（禁用 ${VAR:-<unset>}，VAR 非空时会输出值=泄密）
+mask() { [[ -n "${1:-}" ]] && echo '<set>' || echo '<unset>'; }
+echo "=== build 配置 ==="
+echo "  PROJECT_NAME: ${PROJECT_NAME}"
+echo "  VERSION:      ${VERSION}"
+echo "  ACTIVE:       ${ACTIVE}"
+echo "  REGISTRY:     ${REGISTRY}"
+echo "  NAMESPACE:    ${NAMESPACE}"
+echo "  IMAGE:        ${IMAGE}"
+echo "  IMAGE_DIR:    ${IMAGE_DIR}"
+echo "  SWR_USER:     $(mask "$SWR_USER")"
+echo "  SWR_TOKEN:    $(mask "$SWR_TOKEN")"
+echo "=================="
+
+if [[ -n "${SWR_USER:-}" && -n "${SWR_TOKEN:-}" ]]; then
+  docker login -u "${SWR_USER}" -p "${SWR_TOKEN}" "${REGISTRY}"
+fi
+
+# 默认不 --pull：离线/受限网络下 base 镜像已 docker load 到本地，--pull 会强制走
+# Docker Hub 而超时。需强制刷新 base 时 PULL=true（前提：节点能访问 Docker Hub 或已配镜像源）。
+PULL_FLAG=""
+[[ "${PULL:-false}" == "true" ]] && PULL_FLAG="--pull"
+docker build ${PULL_FLAG} -t "${IMAGE}" .
+docker push "${IMAGE}"
+echo "pushed ${IMAGE}"
