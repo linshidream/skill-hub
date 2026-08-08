@@ -1,0 +1,65 @@
+package {{package}}.health;
+
+import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+/**
+ * rocketmq 健康检查：向 nameserver 查 {@code health-check} topic 路由
+ * （{@code producer.fetchPublishMessageQueues}，查路由不产消息，无副作用）。
+ *
+ * 返回逻辑：
+ *   - 查到路由 → {@link Status#UP}（nameserver 可达 + topic 路由存在）；
+ *   - 任何异常 → {@link Status#DOWN}。
+ *
+ * 设计说明（API 限制，偏离原评审的"异常分类"方案）：
+ *   {@code fetchPublishMessageQueues} 只声明抛 {@code MQClientException}——nameserver 不可达与
+ *   topic 无路由均以 "No route info" 的 MQClientException 出现，**无法按异常类型区分**。
+ *   故不做 UP+warning 的细分，失败即 DOWN（保守：查不到路由=无法发布=rocketmq 未就绪）。
+ *   rootCause 引导运维核对 nameserver 可达性 + {@code health-check} topic 路由。
+ *
+ * 未选 rocketmq 数据源（无 RocketMQTemplate bean，或 producer 未启动）时返回 SKIPPED。
+ * 单项异常内部捕获，不抛出。java8 兼容。
+ */
+@Slf4j
+@Component
+public class RocketmqHealthChecker implements HealthChecker {
+
+    private static final String HEALTH_TOPIC = "health-check";
+
+    @Autowired(required = false)
+    private RocketMQTemplate rocketMQTemplate;
+
+    @Override
+    public String name() {
+        return "rocketmq";
+    }
+
+    @Override
+    public Status check() {
+        if (rocketMQTemplate == null) {
+            return Status.SKIPPED;
+        }
+        DefaultMQProducer producer = rocketMQTemplate.getProducer();
+        if (producer == null) {
+            // producer 由 starter 启动；未启动或启动异常时跳过
+            return Status.SKIPPED;
+        }
+        try {
+            // 查 topic 路由，不产消息；返回即表示 nameserver 可达且路由存在
+            producer.fetchPublishMessageQueues(HEALTH_TOPIC);
+            return Status.UP;
+        } catch (Exception e) {
+            // nameserver 不可达 或 topic 无路由（API 无法区分，统一 DOWN）
+            log.warn("rocketmq health check failed for topic '{}': {}", HEALTH_TOPIC, e.getMessage());
+            return Status.DOWN;
+        }
+    }
+
+    @Override
+    public String rootCause() {
+        return "verify nameserver reachability + topic '" + HEALTH_TOPIC + "' route (producer must be started)";
+    }
+}

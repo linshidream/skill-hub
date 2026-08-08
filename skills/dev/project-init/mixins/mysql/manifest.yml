@@ -1,0 +1,33 @@
+# mysql mixin —— 可选数据源：mysql（HikariCP 连接池 + mysql-connector-j 驱动）
+# 条件加载：include.mysql=y 时由 merge.py 装配（默认 y，--var include.mysql=n 关闭）。
+# 依赖版本不钉：mysql-connector-j 由 spring-boot-starter-parent 的 dependencyManagement 管理
+#   （Boot 2.7.18 = 8.0.33；Boot 3.5.x 管理同名新坐标，自动跟随 Boot 版本）。
+# 配置注入：spring.datasource 块经 extra-config 注入环境文件 application-{local,test,prod}.yml
+#   的 spring: 占位（@@SPRING-EXTRA@@），值用 ${MYSQL_*:本地默认}——local 用默认，test/prod 环境变量覆盖。
+name: mysql
+description: 可选数据源 mysql（HikariCP + mysql-connector-j，parent 管理版本）
+
+pom:
+  dependencies:
+    - "org.springframework.boot:spring-boot-starter-jdbc"          # HikariCP + JdbcTemplate 自动配置
+    - {ref: "com.mysql:mysql-connector-j", scope: runtime}        # 版本由 Boot parent 管理（2.7.18=8.0.33 / 3.5.x 同名新坐标）
+
+# spring: 子级配置块（注入环境文件 spring: 下的 @@SPRING-EXTRA@@ 占位，2 空格缩进）
+extra-config:
+  - "  datasource:"
+  - "    url: 'jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:appdb}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8&useSSL=false'"
+  - "    username: ${MYSQL_USER:root}"
+  - "    password: ${MYSQL_PASSWORD:pwd123456}"
+  - "    driver-class-name: com.mysql.cj.jdbc.Driver"
+  - "    hikari:"
+  - "      pool-name: HikariCP-{{short}}"
+  - "      maximum-pool-size: 10"
+  - "      minimum-idle: 2"
+  - "      connection-timeout: 30000"
+  - "      idle-timeout: 600000"
+  - "      max-lifetime: 1800000"
+
+provides:
+  files:
+    - {from: files/MysqlHealthChecker.java.tmpl, to: "{{core.module.name}}/src/main/java/{{package.path}}/health/MysqlHealthChecker.java"}
+    - {from: files/health-check.sql, to: "docs/sql/health-check.sql"}

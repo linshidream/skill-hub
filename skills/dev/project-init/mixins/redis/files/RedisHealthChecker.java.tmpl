@@ -1,0 +1,59 @@
+package {{package}}.health;
+
+import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RBucket;
+import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+/**
+ * redis 健康检查：检查预留键 {@code health:check} 是否存在（可配 {@code health.redis.key}）。
+ *
+ * 连通即 UP；键缺失给 warning（连通正常但预留键未设置，仍 UP）；连不上才 DOWN。
+ * 预留键初始化（一次性运维）：{@code redis-cli -a "$REDIS_PASSWORD" SET health:check "1"}，
+ *   执行后 isExists()=true，消除 warning。
+ * 未选 redis 数据源（无 RedissonClient bean）时返回 SKIPPED。单项异常内部捕获，不抛出。
+ *
+ * java8 兼容。
+ */
+@Slf4j
+@Component
+public class RedisHealthChecker implements HealthChecker {
+
+    private static final String DEFAULT_KEY = "health:check";
+
+    @Value("${health.redis.key:" + DEFAULT_KEY + "}")
+    private String key;
+
+    @Autowired(required = false)
+    private RedissonClient redissonClient;
+
+    @Override
+    public String name() {
+        return "redis";
+    }
+
+    @Override
+    public Status check() {
+        if (redissonClient == null) {
+            return Status.SKIPPED;
+        }
+        try {
+            RBucket<Object> bucket = redissonClient.getBucket(key);
+            boolean exists = bucket.isExists();
+            if (!exists) {
+                log.warn("redis connected but reserved key '{}' not set (still UP)", key);
+            }
+            return Status.UP;
+        } catch (Exception e) {
+            log.warn("redis health check failed: {}", e.getMessage());
+            return Status.DOWN;
+        }
+    }
+
+    @Override
+    public String rootCause() {
+        return "reserved key '" + key + "' not set (SET it: redis-cli -a \"$REDIS_PASSWORD\" SET " + DEFAULT_KEY + " \"1\")";
+    }
+}

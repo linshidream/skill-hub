@@ -1,0 +1,30 @@
+# rocketmq mixin —— 可选数据源：rocketmq（rocketmq-spring-boot-starter 2.2.3，Boot2 定制）
+# 条件加载：include.rocketmq=y 时由 merge.py 装配（默认 y，--var include.rocketmq=n 关闭）。
+# rocketmq-spring-boot-starter 2.2.3：2026-08-08 查证 org/apache/rocketmq/rocketmq-spring-boot-starter
+#   maven-metadata，2.2.x 系列最大 GA，针对 Boot 2.x。voucher-ledger 项目实测全绿。
+#   已知限制：2.2.3 基于 Boot2/javax，在 Boot3.5/jakarta 下编译通过但 autoconfigure 运行时
+#   可能因 jakarta 命名空间变化报错（编译≠运行兼容）；java-mcp 启用后需运行冒烟。
+# 配置注入：rocketmq.* 顶层块经 top-config 注入环境文件 @@TOP-EXTRA@@ 占位，值 ${ROCKETMQ_*:本地默认}。
+name: rocketmq
+description: 可选数据源 rocketmq（rocketmq-spring-boot-starter 2.2.3，Boot2 定制）
+
+variables:
+  rocketmq-spring.version: "2.2.3"   # 2026-08-08 查证：2.2.x 系列最大 GA，针对 Boot 2.x
+
+pom:
+  dependencyManagement:
+    - {ref: "org.apache.rocketmq:rocketmq-spring-boot-starter", version: "{{rocketmq-spring.version}}"}
+  dependencies:
+    - "org.apache.rocketmq:rocketmq-spring-boot-starter"
+
+# 顶层配置块（注入环境文件 @@TOP-EXTRA@@ 占位，0 缩进——rocketmq: 不属于 spring: 命名空间）
+# producer.group 用 ${spring.profiles.active} 占位（Spring 运行时按 active profile 解析为 local/test/prod）
+top-config:
+  - "rocketmq:"
+  - "  name-server: ${ROCKETMQ_NAME_SERVER:127.0.0.1:9876}"
+  - "  producer:"
+  - "    group: {{project.name}}-${spring.profiles.active}"
+
+provides:
+  files:
+    - {from: files/RocketmqHealthChecker.java.tmpl, to: "{{core.module.name}}/src/main/java/{{package.path}}/health/RocketmqHealthChecker.java"}

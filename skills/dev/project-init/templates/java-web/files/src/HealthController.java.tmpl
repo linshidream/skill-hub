@@ -1,21 +1,65 @@
 package {{package}}.controller;
 
+import {{package}}.health.HealthChecker;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+/**
+ * 健康检查端点（/health）：聚合所有 {@link HealthChecker}（SPI）结果。
+ *
+ * 数据源检查天然条件性——选了对应数据源（include.{mysql,redis,rocketmq}=y）才有 Checker bean，
+ * 未选则 List 中该项缺省（Spring 收集为空/不含该项），整体仍 UP。
+ *
+ * 整体 status：全 UP/SKIPPED 为 UP，否则 DEGRADED（部分失败不代表整体不可用，不报 DOWN）。
+ * 每项异常在 Checker 内部已 try-catch，外层再 try-catch 兜底，保证 /health 自身不抛异常。
+ *
+ * mysql 检查依赖 t_health_check 表（DDL + 种子见 docs/sql/health-check.sql），须提前建表并 INSERT。
+ */
 @Slf4j
 @RestController
 public class HealthController {
+
+    @Autowired(required = false)
+    private List<HealthChecker> checkers;
+
     @GetMapping("/health")
     public Map<String, Object> health() {
         log.info("health check");
         Map<String, Object> result = new HashMap<>();
-        result.put("status", "UP");
         result.put("app", "{{project.name}}");
+
+        String overall = "UP";
+        Map<String, Object> components = new HashMap<>();
+        if (checkers != null) {
+            for (HealthChecker checker : checkers) {
+                Map<String, Object> item = new HashMap<>();
+                HealthChecker.Status status;
+                try {
+                    status = checker.check();
+                } catch (Exception e) {
+                    // 兜底：Checker 未内部捕获的异常，整体降级但不抛出
+                    status = HealthChecker.Status.DOWN;
+                    item.put("rootCause", e.getMessage());
+                }
+                item.put("status", status.name());
+                String rc = checker.rootCause();
+                if (rc != null && !rc.isEmpty() && !item.containsKey("rootCause")) {
+                    item.put("rootCause", rc);
+                }
+                components.put(checker.name(), item);
+                if (status != HealthChecker.Status.UP && status != HealthChecker.Status.SKIPPED) {
+                    overall = "DEGRADED";
+                }
+            }
+        }
+        result.put("status", overall);
+        result.put("components", components);
         return result;
     }
 }

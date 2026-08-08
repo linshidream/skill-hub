@@ -1,0 +1,53 @@
+package {{package}}.health;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Component;
+
+/**
+ * mysql 健康检查：{@code SELECT COUNT(*) FROM t_health_check}（验库连通 + 表存在，只读无副作用）。
+ *
+ * 表 DDL + 种子见 {@code docs/sql/health-check.sql}，须提前建表并 INSERT——否则检查报 DOWN（表不存在）。
+ * 未选 mysql 数据源（无 JdbcTemplate bean）时 {@code @Autowired(required=false)} 注入为 null，返回 SKIPPED。
+ * 单项异常在内部捕获返回 DOWN，不向 HealthController 抛出。
+ *
+ * java8 兼容（被 java-web(java8) 复用；java-mcp(java21) 亦兼容）。
+ */
+@Slf4j
+@Component
+public class MysqlHealthChecker implements HealthChecker {
+
+    private static final String HEALTH_TABLE = "t_health_check";
+    private static final String COUNT_SQL = "SELECT COUNT(*) FROM " + HEALTH_TABLE;
+
+    @Autowired(required = false)
+    private JdbcTemplate jdbcTemplate;
+
+    @Override
+    public String name() {
+        return "mysql";
+    }
+
+    @Override
+    public Status check() {
+        if (jdbcTemplate == null) {
+            return Status.SKIPPED;
+        }
+        try {
+            Integer count = jdbcTemplate.queryForObject(COUNT_SQL, Integer.class);
+            if (count != null && count >= 0) {
+                return Status.UP;
+            }
+            return Status.DOWN;
+        } catch (Exception e) {
+            log.warn("mysql health check failed: {}", e.getMessage());
+            return Status.DOWN;
+        }
+    }
+
+    @Override
+    public String rootCause() {
+        return "requires table " + HEALTH_TABLE + " (see docs/sql/health-check.sql)";
+    }
+}

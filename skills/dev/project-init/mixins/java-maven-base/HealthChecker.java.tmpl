@@ -1,0 +1,39 @@
+package {{package}}.health;
+
+/**
+ * 健康检查 SPI：各数据源（mysql / redis / rocketmq）提供对应实现（{@code @Component}），
+ * {@code HealthController} 注入 {@code List<HealthChecker>} 自动聚合——天然条件性
+ * （选了对应数据源才有 Checker bean，无则该项缺省，List 为空）。
+ *
+ * 设计原则：① 有数据源才检查；② 单项异常不影响其他（实现内部 try-catch 返回 DOWN，不抛出）；
+ * ③ 响应完整诊断（每个 Checker 贡献 name/status/rootCause）。
+ *
+ * 本接口置于 base mixin（所有项目共享），空接口 + 一个 default 方法，无数据源时无副作用。
+ * java8 兼容（java-maven-base 共享件被 java-web(java8) 复用）。
+ */
+public interface HealthChecker {
+
+    /** 检查项名称（如 mysql / redis / rocketmq）。 */
+    String name();
+
+    /**
+     * 执行检查，返回 {@link Status}。
+     * 异常应在实现内部捕获并返回 {@link Status#DOWN}，禁止向调用方抛出。
+     */
+    Status check();
+
+    /** 可选：异常/降级根因说明（默认空，实现可覆写）。 */
+    default String rootCause() {
+        return "";
+    }
+
+    /** 检查结果状态。 */
+    enum Status {
+        /** 健康。 */
+        UP,
+        /** 不可用。 */
+        DOWN,
+        /** 跳过（如对应 bean 缺失，未启用该数据源）。 */
+        SKIPPED
+    }
+}
