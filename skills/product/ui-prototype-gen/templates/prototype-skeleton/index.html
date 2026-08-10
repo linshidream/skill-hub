@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OPC Prototype</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="主导航">
+        <div class="brand">OPC Demo</div>
+        <button class="nav-item active" data-screen="dashboard">总览</button>
+        <button class="nav-item" data-screen="workflow">流程</button>
+        <button class="nav-item" data-screen="detail">详情</button>
+      </aside>
+
+      <main class="workspace">
+        <section class="topbar">
+          <div>
+            <p class="eyebrow">客户签字演示</p>
+            <h1>业务主流程</h1>
+          </div>
+          <button class="primary-action" data-screen="workflow">开始处理</button>
+        </section>
+
+        <section class="screen active" id="dashboard">
+          <div class="metric-grid">
+            <article class="metric-card">
+              <span>待处理</span>
+              <strong>12</strong>
+            </article>
+            <article class="metric-card">
+              <span>处理中</span>
+              <strong>8</strong>
+            </article>
+            <article class="metric-card">
+              <span>已完成</span>
+              <strong>31</strong>
+            </article>
+          </div>
+          <div class="panel">
+            <h2>今日任务</h2>
+            <button class="row-button" data-screen="detail">
+              <span>客户 A 的新需求确认</span>
+              <small>查看详情</small>
+            </button>
+            <button class="row-button" data-screen="workflow">
+              <span>客户 B 的流程待推进</span>
+              <small>继续处理</small>
+            </button>
+          </div>
+        </section>
+
+        <section class="screen" id="workflow">
+          <div class="panel">
+            <h2>处理流程</h2>
+            <ol class="steps">
+              <li class="done">接收需求</li>
+              <li class="active">确认边界</li>
+              <li>生成演示物</li>
+              <li>客户签字</li>
+            </ol>
+            <div class="action-row">
+              <button class="secondary-action" data-screen="dashboard">返回总览</button>
+              <button class="primary-action" data-screen="detail">查看详情</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="detail">
+          <div class="panel">
+            <h2>需求详情</h2>
+            <dl class="detail-list">
+              <div>
+                <dt>目标用户</dt>
+                <dd>业务负责人</dd>
+              </div>
+              <div>
+                <dt>核心动作</dt>
+                <dd>查看、确认、推进、冻结</dd>
+              </div>
+              <div>
+                <dt>当前状态</dt>
+                <dd>等待客户确认</dd>
+              </div>
+            </dl>
+            <div class="action-row">
+              <button class="secondary-action" data-screen="workflow">返回流程</button>
+              <button class="primary-action" data-screen="dashboard">确认完成</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="./app.js"></script>
+  </body>
+</html>

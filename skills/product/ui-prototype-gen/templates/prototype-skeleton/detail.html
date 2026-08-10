@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>详情 · OPC Prototype</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="主导航">
+        <div class="brand">OPC Demo</div>
+        <a class="nav-link" href="./home.html">首页</a>
+        <a class="nav-link active" href="./detail.html">详情</a>
+        <a class="nav-link" href="./form.html">表单</a>
+        <a class="nav-link" href="./empty.html">空态</a>
+        <a class="nav-link" href="./error.html">异常</a>
+      </aside>
+
+      <main class="workspace">
+        <section class="topbar">
+          <div>
+            <p class="eyebrow">核心对象详情</p>
+            <h1>客户 A 的新需求确认</h1>
+          </div>
+          <a class="secondary-link" href="./home.html">返回首页</a>
+        </section>
+
+        <section class="panel">
+          <h2>详情字段</h2>
+          <dl class="detail-list">
+            <div>
+              <dt>目标用户</dt>
+              <dd>业务负责人</dd>
+            </div>
+            <div>
+              <dt>核心动作</dt>
+              <dd>查看、确认、推进、冻结</dd>
+            </div>
+            <div>
+              <dt>当前状态</dt>
+              <dd><span class="status-pill success">等待客户确认</span></dd>
+            </div>
+          </dl>
+          <div class="action-row">
+            <a class="secondary-link" href="./error.html">查看异常态</a>
+            <a class="primary-link" href="./form.html">编辑</a>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

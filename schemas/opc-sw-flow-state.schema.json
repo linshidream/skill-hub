@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/skill-hub/schemas/opc-sw-flow-state.schema.json",
+  "title": "OPC Software Flow State",
+  "type": "object",
+  "required": ["schemaVersion", "flow", "current_phase", "product_workspace", "dev_projects", "handoff"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "0.1.0"
+    },
+    "flow": {
+      "type": "string",
+      "const": "opc-sw-flow"
+    },
+    "current_phase": {
+      "type": "string",
+      "enum": [
+        "product:running",
+        "product:signed-off",
+        "dev-spec:running",
+        "dev-spec:ready",
+        "dev-lifecycle:running",
+        "released"
+      ]
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["opc", "team"],
+      "default": "opc"
+    },
+    "engagement": {
+      "type": "object",
+      "description": "Optional engagement metadata for resume prompts and human review.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "examples": ["20260629+客户项目名"]
+        },
+        "customer": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["opc", "team"]
+        }
+      },
+      "additionalProperties": true
+    },
+    "product_workspace": {
+      "type": "string",
+      "description": "Absolute or engagement-relative path to the product workspace."
+    },
+    "dev_projects": {
+      "type": "object",
+      "description": "Map of dev project keys to code project roots. Prefer object values; string values are shorthand paths that should be normalized before writing new state.",
+      "minProperties": 1,
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string",
+            "description": "Shorthand code project root path."
+          },
+          {
+            "type": "object",
+            "required": ["root", "kind"],
+            "properties": {
+              "root": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "examples": ["backend-java", "frontend-vue", "miniprogram-wx"]
+              },
+              "dev_flow_config": {
+                "type": "string",
+                "default": ".dev-flow.yml"
+              },
+              "dev_flow_state": {
+                "type": "string",
+                "default": ".dev-flow-state.json"
+              },
+              "spec_output_dir": {
+                "type": "string",
+                "default": "docs/specs"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pending", "spec-running", "spec-ready", "dev-running", "released"],
+                "default": "pending"
+              }
+            },
+            "additionalProperties": true
+          }
+        ]
+      }
+    },
+    "handoff": {
+      "type": "object",
+      "required": ["requirements_doc_path", "prototype_path"],
+      "properties": {
+        "requirements_doc_path": {
+          "type": "string"
+        },
+        "prototype_path": {
+          "type": "string"
+        },
+        "requirements_doc": {
+          "type": "string",
+          "description": "Compatibility alias for requirements_doc_path."
+        },
+        "prototype_dir": {
+          "type": "string",
+          "description": "Compatibility alias for prototype_path."
+        },
+        "signed_off_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "signed_off_by": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["event", "at"],
+        "properties": {
+          "event": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "default": []
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

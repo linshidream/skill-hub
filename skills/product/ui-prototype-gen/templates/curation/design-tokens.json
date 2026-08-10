@@ -1,0 +1,109 @@
+{
+  "$comment": "设计 tokens 三套 preset。配合 design-tokens-说明.md 使用。量化阈值见 thresholds。",
+  "thresholds": {
+    "contrast_ratio_min": "4.5:1",
+    "spacing_grid": "8pt",
+    "type_scale_max_levels": 5,
+    "click_target_min_pt": 44,
+    "font_family_max": 1
+  },
+  "presets": {
+    "高级极简": {
+      "style_tone": "低饱和中性主导、主色稀用、慷慨留白、统一圆角",
+      "color": {
+        "neutral": {
+          "bg": "#FFFFFF",
+          "surface": "#F7F7F8",
+          "border": "#E5E5E7",
+          "text_primary": "#1D1D1F",
+          "text_secondary": "#6E6E73"
+        },
+        "primary": "#0066CC",
+        "primary_usage": "稀用：仅主操作和关键状态",
+        "saturation_rule": "低饱和中性主导，主色占比 ≤ 10%"
+      },
+      "typography": {
+        "font_family": "1 套（系统无衬线优先）",
+        "scale": ["28", "22", "17", "15", "13"],
+        "line_height": 1.5
+      },
+      "spacing": {
+        "grid": "8",
+        "steps": ["4", "8", "12", "16", "24", "32", "48"]
+      },
+      "radius": {
+        "uniform": "8",
+        "rule": "全局统一，不混用"
+      },
+      "shadow": {
+        "rule": "极少或不用，用 border 替代分层",
+        "elevation": ["none", "0 1px 2px rgba(0,0,0,0.04)"]
+      }
+    },
+    "商务高密度": {
+      "style_tone": "信息密集、间距收紧、商务蓝主色、小圆角",
+      "color": {
+        "neutral": {
+          "bg": "#FFFFFF",
+          "surface": "#FAFAFA",
+          "border": "#E8E8EC",
+          "text_primary": "#1F1F2C",
+          "text_secondary": "#595959"
+        },
+        "primary": "#1668DC",
+        "primary_usage": "主操作、选中态、链接",
+        "saturation_rule": "中性为主，主色用于功能强调"
+      },
+      "typography": {
+        "font_family": "1 套",
+        "scale": ["24", "18", "15", "13", "12"],
+        "line_height": 1.45
+      },
+      "spacing": {
+        "grid": "8",
+        "steps": ["4", "8", "12", "16", "20", "24"]
+      },
+      "radius": {
+        "uniform": "4",
+        "rule": "小圆角，密度优先"
+      },
+      "shadow": {
+        "rule": "克制，仅表头/抽屉分层",
+        "elevation": ["none", "0 1px 2px rgba(0,0,0,0.06)"]
+      }
+    },
+    "活泼移动": {
+      "style_tone": "饱和度可高、圆润大圆角、大点击区",
+      "color": {
+        "neutral": {
+          "bg": "#FFFFFF",
+          "surface": "#FFF8F0",
+          "border": "#F0E6D9",
+          "text_primary": "#1A1A1A",
+          "text_secondary": "#8C8C8C"
+        },
+        "primary": "#FF6A00",
+        "primary_usage": "主操作、引导、情绪点",
+        "saturation_rule": "主色可饱和，但仍限一个主色相"
+      },
+      "typography": {
+        "font_family": "1 套",
+        "scale": ["22", "18", "16", "14", "12"],
+        "line_height": 1.5
+      },
+      "spacing": {
+        "grid": "8",
+        "steps": ["8", "12", "16", "20", "24", "32"]
+      },
+      "radius": {
+        "uniform": "12",
+        "rule": "大圆角，圆润"
+      },
+      "shadow": {
+        "rule": "允许柔和投影增加层次",
+        "elevation": ["none", "0 4px 12px rgba(0,0,0,0.08)"]
+      },
+      "click_target_min_pt": 44
+    }
+  }
+}

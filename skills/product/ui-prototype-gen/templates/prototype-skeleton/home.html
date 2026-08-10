@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>首页 · OPC Prototype</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="主导航">
+        <div class="brand">OPC Demo</div>
+        <a class="nav-link active" href="./home.html">首页</a>
+        <a class="nav-link" href="./detail.html">详情</a>
+        <a class="nav-link" href="./form.html">表单</a>
+        <a class="nav-link" href="./empty.html">空态</a>
+        <a class="nav-link" href="./error.html">异常</a>
+      </aside>
+
+      <main class="workspace">
+        <section class="topbar">
+          <div>
+            <p class="eyebrow">核心流程入口</p>
+            <h1>首页</h1>
+          </div>
+          <a class="primary-link" href="./form.html">新建</a>
+        </section>
+
+        <section class="metric-grid">
+          <article class="metric-card">
+            <span>待处理</span>
+            <strong>12</strong>
+          </article>
+          <article class="metric-card">
+            <span>处理中</span>
+            <strong>8</strong>
+          </article>
+          <article class="metric-card">
+            <span>已完成</span>
+            <strong>31</strong>
+          </article>
+        </section>
+
+        <section class="panel">
+          <h2>业务对象</h2>
+          <a class="row-link" href="./detail.html">
+            <span>客户 A 的新需求确认</span>
+            <small>查看详情</small>
+          </a>
+          <a class="row-link" href="./detail.html">
+            <span>客户 B 的流程待推进</span>
+            <small>继续处理</small>
+          </a>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

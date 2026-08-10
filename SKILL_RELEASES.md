@@ -14,6 +14,11 @@
 
 | 发布时间 | Skill | 版本 | 分类 | 变更类型 | 状态 | 支持 Agent | 变更摘要 | 入口 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-06-29 19:47 +0800 | `opc-sw-flow` | `0.1.0` | `dev` | 新增 | 可用 | Claude Code / Codex / Generic | 新增 OPC 软开顶层编排协议，显式串联 product-lifecycle、dev-spec 与 dev-lifecycle，支持 engagement 工作区与多个代码项目之间的状态映射和 handoff。 | `skills/dev/opc-sw-flow` |
+| 2026-06-29 19:47 +0800 | `product-lifecycle` | `0.1.0` | `product` | 新增 | 可用 | Claude Code / Codex / Generic | 新增产品侧签字生命周期，覆盖轻量澄清、演示物生成、有限轮次评审、签字冻结和 `需求签字记录.md` 交接。 | `skills/product/product-lifecycle` |
+| 2026-06-29 19:47 +0800 | `ui-prototype-gen` | `0.1.0` | `product` | 新增 | 可用 | Claude Code / Codex / Generic | 新增 UI 演示原型生成 skill，默认产出可点击静态 HTML 原型档，并为团队模式预留 open-design 生成档。 | `skills/product/ui-prototype-gen` |
+| 2026-08-10 17:14 +0800 | `product-lifecycle` | `0.1.1` | `product` | 更新 | 可用 | Claude Code / Codex / Generic | 引入 N3 self-check 自检 gate（设计策展层第 4 层，质量不靠客户兜底），状态机 N0–N6 重编号并补兼容别名，adapter 补自检步骤。 | `skills/product/product-lifecycle` |
+| 2026-08-10 17:14 +0800 | `ui-prototype-gen` | `0.1.1` | `product` | 更新 | 可用 | Claude Code / Codex / Generic | 增「设计策展层」章（四层有序选型 + tokens preset + 量化阈值），新增 templates/curation/ 六个文件（风格定调、组件库选型、design-tokens、设计自检清单、平台差异）。 | `skills/product/ui-prototype-gen` |
 | 2026-06-27 21:45 +0800 | `diverge-converge` | `0.1.0` | `creative` | 新增 | 可用 | Claude Code / Codex / Generic | 新增领域无关的扩散收敛思维方法，支持将半成熟想法、多轮探索或开放复杂课题沉淀为可实施、可交接的手稿。 | `skills/creative/diverge-converge` |
 | 2026-06-17 18:44 +0800 | `dev-lifecycle` | `0.1.4` | `dev` | 更新 | 可用 | Claude Code / Codex / Generic | 将 GUI merge 明确为默认关闭的可选辅助能力；开启后要求检测 IntelliJ IDEA 命令和 Git mergetool 配置，不可用时自动降级到文本冲突流程，不阻断 lifecycle 主流程。 | `skills/dev/dev-lifecycle` |
 | 2026-06-17 18:44 +0800 | `git-flow` | `0.1.4` | `dev` | 更新 | 可用 | Claude Code / Codex / Generic | 新增 `integration.conflict.gui-merge` 配置，默认关闭；开启后默认使用 `intellij` / `idea`，冲突报告输出检测结果和降级原因，并补充 IDEA 命令行与 mergetool 配置指南。 | `skills/dev/git-flow` |
