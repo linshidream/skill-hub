@@ -16,6 +16,14 @@ Claude Code 生成 HTML 原型档时：
 4. 保持纯静态：本地 HTML/CSS/JS，不依赖 CDN，不接真实后端。
 5. 生成后说明入口文件路径、关键页面清单和待确认项，并把这些内容交给 `product-lifecycle` 写入 state。
 
+## 策展层与 DESIGN.md 交接
+
+Claude Code 跑策展层四层选型（风格定调 → 组件库 → tokens → 自检）时：
+
+1. 自检 pass 后，把选定结果写实例到 engagement 工作区根 `design-tokens.instance.json`（`preset` + `brand_overrides` + 合并后的 `tokens`），结构见 `SKILL.md`「tokens 实例存储与 DESIGN.md 交接」。
+2. 后续 `product-lifecycle` N6 handoff 用 `templates/curation/DESIGN.md.template` 套 instance 值生成 engagement 根 `DESIGN.md`（采纳 Google Labs DESIGN.md spec，字段溯源见 `DESIGN.md-spec-notes.md`）。`shadow` 不进 frontmatter，落入 body「Elevation & Depth」节。
+3. 后端无 UI 的 engagement 不写 instance、不生成 DESIGN.md。
+
 多页原型建议至少覆盖：
 
 - `index.html`：入口和流程导航。

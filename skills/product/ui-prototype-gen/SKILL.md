@@ -51,9 +51,29 @@ description: "Generate signed-off UI demonstration artifacts for product-lifecyc
 
 - `风格定调.md`：四档定调的判断依据与示例句。
 - `组件库选型.md`：组件库活跃度（2026-07 查证）与按端筛选规则。
-- `design-tokens.json` + `design-tokens-说明.md`：三套 preset（高级极简 / 商务高密度 / 活泼移动）。
+- `design-tokens.json` + `design-tokens-说明.md`：三套 preset（高级极简 / 商务高密度 / 活泼移动）；`说明.md` 末尾「→ DESIGN.md 映射」节给出 tokens → DESIGN.md frontmatter/body 的逐字段映射。
 - `设计自检清单.md`：8 项 gate，同时作为 `product-lifecycle` N3 自检 gate 的检查依据。
 - `平台差异.md`：Web / 小程序 / 移动端的硬过滤差异。
+- `DESIGN.md-spec-notes.md`：Google Labs DESIGN.md spec 亲读笔记（读取日期 2026-07-07，version alpha），字段溯源依据。
+- `DESIGN.md.template`：按 spec frontmatter+body 结构、用商务高密度 preset 值填充的输出模板。
+
+### tokens 实例存储与 DESIGN.md 交接
+
+策展完成（第 4 层自检 pass）时，把选定结果写实例到 engagement 工作区根的 `design-tokens.instance.json`：
+
+```json
+{
+  "preset": "商务高密度",
+  "brand_overrides": { "color.primary": "#1668DC" },
+  "tokens": { "color": {}, "typography": {}, "spacing": {}, "radius": {}, "shadow": {} }
+}
+```
+
+- `preset`：选定的 preset 名（高级极简 / 商务高密度 / 活泼移动 / 科技）。
+- `brand_overrides`：客户品牌色/字体的替换值（无品牌时为空对象）。
+- `tokens`：合并 preset 默认值与 `brand_overrides` 后的最终 token 集，供 `product-lifecycle` N6 handoff 生成 `DESIGN.md`（用 `DESIGN.md.template` 套值）。spec frontmatter 无 `shadow` 键，`shadow` 落入 DESIGN.md body「Elevation & Depth」节。
+
+后端无 UI 的 engagement 不写 instance、不生成 DESIGN.md。
 
 ### 量化阈值（审美可工程化的一半）
 
@@ -92,6 +112,7 @@ tokens 不是玄学，有硬指标可校验：
 
 - `prototype_path`：原型目录。
 - `prototype_pages`：关键页面清单与用途。
+- `design_tokens_instance_path`：策展完成时写入 engagement 根的 `design-tokens.instance.json` 路径（供 `product-lifecycle` N6 生成 `DESIGN.md`）。
 - `open_questions`：不确定字段、流程或规则。
 
 ## 建议目录
@@ -142,6 +163,7 @@ HTML 原型档最小校验：
 test -f "演示原型/index.html"
 test -f "演示原型/styles.css"
 test -f "演示原型/app.js"
+test -f "design-tokens.instance.json"   # 策展完成时写 engagement 根；后端无 UI 跳过
 ```
 
 人工校验：

@@ -17,7 +17,8 @@ Claude Code 执行 product-lifecycle 时：
 5. 进入客户评审 loop（N4），按 `round_cap` 控制轮次。
 6. 客户确认后写入 `frozen=true`、`signed_off=false` 与 `sign_off.status=approved`，进入 handoff 前先提示可选 git commit/tag（N5）。
 7. 用 `templates/需求签字记录.md` 输出 `需求签字记录.md`。
-8. handoff（N6）完成后写入 `signed_off=true`、`prototype_pages`、`open_questions` 和 `updated_at`。
+8. 由 `ui-prototype-gen` 策展完成时写入的 `design-tokens.instance.json`（选定 preset + 品牌色替换值）生成 `DESIGN.md`（采纳 Google Labs DESIGN.md spec，模板见 `ui-prototype-gen/templates/curation/DESIGN.md.template`），放 engagement 根；后端无 UI 的 engagement 跳过，`design_md_path` 留空。
+9. handoff（N6）完成后写入 `signed_off=true`、`prototype_pages`、`design_md_path`（可选）、`open_questions` 和 `updated_at`。
 
 ## 对话约束
 

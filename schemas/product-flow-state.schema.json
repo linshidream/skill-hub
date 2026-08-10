@@ -99,6 +99,10 @@
     "requirements_doc_path": {
       "type": "string"
     },
+    "design_md_path": {
+      "type": "string",
+      "description": "Optional. Path to the generated DESIGN.md (Google Labs DESIGN.md spec, version alpha) at the engagement root. Produced by N6 handoff from design-tokens.instance.json. Absent when the engagement has no UI design system (e.g. backend-only)."
+    },
     "sign_off": {
       "type": "object",
       "required": ["status"],

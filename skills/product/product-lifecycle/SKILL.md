@@ -77,7 +77,7 @@ Node 的 canonical 写法使用 `N0:intake` 这类稳定编号。读到旧状态
 | `N3:self-check` | 过 `ui-prototype-gen` 的设计自检清单（8 项 gate），质量不靠客户兜底 | `self_check` 记录（pass/fail + 问题项） |
 | `N4:review` | 客户评审，有限轮次修改 | `round` 增长，记录反馈 |
 | `N5:sign-off` | 冻结版本，提示用户可自行 commit/tag | `frozen=true`，`sign_off.status=approved` |
-| `N6:handoff` | 输出 `需求签字记录.md`，供 dev-spec 消费 | `requirements_doc_path` |
+| `N6:handoff` | 输出 `需求签字记录.md` + `DESIGN.md`（由 `design-tokens.instance.json` 生成），供 dev-spec 消费 | `requirements_doc_path`、`design_md_path` |
 
 ## 澄清边界
 
@@ -128,11 +128,12 @@ git tag product-signoff-r{round}
 
 ## Handoff 输出
 
-N6 必须确保两类路径存在：
+N6 必须确保三类交接物路径存在：
 
 ```text
 演示原型/
 需求签字记录.md
+DESIGN.md
 ```
 
 `需求签字记录.md` 使用 `templates/需求签字记录.md`。它不是 spec，只是 dev-spec 的需求材料。最小必填内容：
@@ -145,12 +146,15 @@ N6 必须确保两类路径存在：
 - 冻结轮次。
 - 签字状态。
 
+`DESIGN.md` 是 dev 侧设计系统标准载体（采纳 Google Labs DESIGN.md spec，version alpha；字段溯源见 `ui-prototype-gen/templates/curation/DESIGN.md-spec-notes.md`）。N6 由 `ui-prototype-gen` 策展完成时写入的 `design-tokens.instance.json`（选定 preset + 品牌色替换值）生成，放 engagement 根。它与 HTML 原型前端骨架不同：HTML 骨架只是 bonus、不进下游契约；DESIGN.md 是 product → dev 的正式设计系统交接物，dev-spec/dev-lifecycle 据此对齐视觉 token。后端无 UI 的 engagement 可不产出 DESIGN.md，`design_md_path` 留空。
+
 N6 完成后写入：
 
 - `signed_off=true`。
 - `frozen=true`。
 - `sign_off.status=approved`。
 - `prototype_pages`：原型关键页面清单，供 dev-spec 识别页面覆盖面。
+- `design_md_path`：DESIGN.md 路径（可选，无 UI 时留空）。
 - `open_questions`：不阻塞签字但要带入 dev-spec 的待确认项。
 
 ## 恢复协议
@@ -180,6 +184,7 @@ N6 完成后写入：
 test -f .product-flow-state.json
 test -d "演示原型"
 test -f "需求签字记录.md"
+test -f "DESIGN.md"   # 可选：后端无 UI 的 engagement 不存在，design_md_path 留空
 ```
 
 仓库级校验：

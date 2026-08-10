@@ -12,8 +12,8 @@ Claude Code 执行 `opc-sw-flow` 时：
 
 1. 以 engagement 工作区为锚点读取或创建 `.opc-sw-flow-state.json`。
 2. 在 product 工作区运行 `product-lifecycle`，直到 `.product-flow-state.json` 显示已签字冻结。
-3. 将 `需求签字记录.md` 和 `演示原型/` 的路径写入 `.opc-sw-flow-state.json`。
-4. 对每个 `dev_projects.*.root`，切换到代码项目根运行 `dev-spec`，显式传入上述两个 handoff 路径；如果当前 Claude Code 工作流要求从 `dev-lifecycle` 启动，则把这两个路径传给其 `spec:intake` 段。
+3. 将 `需求签字记录.md`、`演示原型/` 和 `DESIGN.md`（可选）的路径写入 `.opc-sw-flow-state.json`（`handoff.design_md`）。
+4. 对每个 `dev_projects.*.root`，切换到代码项目根运行 `dev-spec`，显式传入上述 handoff 路径；P2 将 `DESIGN.md` 复制到该 dev 项目根（后端无 UI 项目跳过）；如果当前 Claude Code 工作流要求从 `dev-lifecycle` 启动，则把这些路径传给其 `spec:intake` 段。
 5. `dev-spec` 生成 spec 后，按该代码项目自己的 `dev-lifecycle` 协议继续。
 
 ## 对话约束

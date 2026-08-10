@@ -108,6 +108,10 @@
         "prototype_path": {
           "type": "string"
         },
+        "design_md": {
+          "type": "string",
+          "description": "Optional. Path to the DESIGN.md handed from product-lifecycle (engagement root) into the dev project root at P2. Absent when the engagement has no UI design system (e.g. backend-only)."
+        },
         "requirements_doc": {
           "type": "string",
           "description": "Compatibility alias for requirements_doc_path."

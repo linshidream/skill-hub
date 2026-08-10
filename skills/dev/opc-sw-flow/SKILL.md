@@ -57,6 +57,7 @@ P1 product-lifecycle -> P2 dev-spec -> P3 dev-lifecycle -> released
 | `dev_projects` | 代码项目 map，支持一个 engagement 对多个项目 |
 | `handoff.requirements_doc_path` | `product-lifecycle` 输出的 `需求签字记录.md` 路径 |
 | `handoff.prototype_path` | `product-lifecycle` 输出的演示原型目录路径 |
+| `handoff.design_md` | `product-lifecycle` 输出的 `DESIGN.md` 路径（可选；P2 复制到各 dev 项目根） |
 
 各 dev 代码项目仍在自身根目录维护 `.dev-flow.yml`、`.dev-flow-state.json` 和 `docs/specs/`。
 
@@ -95,10 +96,11 @@ P1 product-lifecycle -> P2 dev-spec -> P3 dev-lifecycle -> released
    - `team`：可走 open-design 生成档；未核实本地 open-design 能力前，只保留为候选。
 3. 运行 `product-lifecycle` 至签字冻结，产出 `需求签字记录.md` 和 `演示原型/`。
 4. 读取 `.product-flow-state.json`，确认 `frozen=true` 且签字状态为 `approved`。
-5. 将 handoff 路径写入 `.opc-sw-flow-state.json`。
+5. 将 handoff 路径写入 `.opc-sw-flow-state.json`（含可选 `handoff.design_md`）。
 6. 对每个目标代码项目，以该项目根作为工作目录运行 `dev-spec`，并显式传入：
    - `需求签字记录.md` 作为用户需求材料。
    - `演示原型/` 作为原型图/交互材料。
+   - `DESIGN.md` 作为设计系统 token 载体（P2 将其复制到该 dev 项目根；后端无 UI 项目跳过）。
 7. 等 `dev-spec` 产出 `docs/specs/*.md` 并更新 `.dev-flow-state.json` 后，按既有 `dev-lifecycle` 协议推进开发、review、发布。
 8. 更新 `.opc-sw-flow-state.json` 中对应 dev project 的状态与 history。
 
@@ -106,12 +108,13 @@ P1 product-lifecycle -> P2 dev-spec -> P3 dev-lifecycle -> released
 
 ## Handoff 契约
 
-product -> dev 的契约只有两类材料：
+product -> dev 的契约有三类材料：
 
 1. 签字冻结演示物：通常为 `演示原型/` 下的可点击静态 HTML 原型。
 2. `需求签字记录.md`：客户人话需求、功能边界、待确认项、冻结轮次和签字状态。
+3. `DESIGN.md`：dev 侧设计系统标准载体（采纳 Google Labs DESIGN.md spec，version alpha），由 `product-lifecycle` N6 从 `design-tokens.instance.json` 生成、放 engagement 根。P2 装入 handoff 时复制到各 dev 项目根，供 dev-spec/dev-lifecycle 对齐视觉 token。后端无 UI 的 engagement 无此项。
 
-不要把 `需求签字记录.md` 当成 dev spec。规格化、技术方案、验收标准和 implementation steps 由 `dev-spec` 在代码项目根完成。
+不要把 `需求签字记录.md` 当成 dev spec。规格化、技术方案、验收标准和 implementation steps 由 `dev-spec` 在代码项目根完成。`DESIGN.md` 是设计 token 载体，不是 spec，不替代技术方案与验收标准。
 
 ## 多项目规则
 
@@ -148,6 +151,7 @@ test -f .opc-sw-flow-state.json
 test -f .product-flow-state.json
 test -f "需求签字记录.md"
 test -d "演示原型"
+test -f "DESIGN.md"   # 可选：后端无 UI 的 engagement 不存在
 ```
 
 仓库级校验：
