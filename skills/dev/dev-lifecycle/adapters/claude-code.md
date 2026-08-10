@@ -29,8 +29,8 @@ Use $dev-lifecycle to start developing user-points feature.
 ```
 
 Claude Code 将：
-1. 读取 `.dev-flow.yml` 和 `.dev-flow-state.json`（如果存在）
-2. 如果 state 存在且 phase 非 `done`/`not-started`，恢复到上次中断点
+1. 读取 `.dev-flow.yml`，调 `resolve-active-state.py resolve` 解析当前活动状态文件路径
+2. 如果活动状态存在且 phase 非 `done`/`not-started`，恢复到上次中断点
 3. 如果从头开始，进入需求材料 intake 和 Review Loop 1（证据化 spec 生成）
 4. spec approved 后创建 feature 分支
 5. 如果 spec 包含 `implementation.steps`，按 step 顺序开发和 review；否则使用兼容的整体 code review
@@ -41,7 +41,9 @@ Claude Code 将：
 Use $dev-lifecycle to continue development.
 ```
 
-Claude Code 读取 `.dev-flow-state.json`，根据 phase 字段自动恢复。
+Claude Code 先调 `resolve-active-state.py resolve` 取活动状态文件路径，再读其 `phase` 自动恢复。若 `source=ambiguous`（多个 feature 在飞、无指针、不在 feature 分支上），先问你要激活哪个 feature，再继续。
+
+多功能并行：在 feature 分支上时 resolver 以分支为准并自动同步指针；切回 master 时用指针记忆上次在干哪个。状态文件互不覆盖。
 
 ### Review 交互
 
@@ -53,7 +55,7 @@ Claude Code 读取 `.dev-flow-state.json`，根据 phase 字段自动恢复。
 
 ### Step Loop 行为
 
-当 `.dev-flow-state.json` 中存在 `implementation.steps` 时，Claude Code 应：
+当活动状态文件中存在 `implementation.steps` 时，Claude Code 应：
 
 1. 选择第一个 `pending` 或 `revising` step
 2. 设置 `implementation.current-step`
@@ -64,11 +66,12 @@ Claude Code 读取 `.dev-flow-state.json`，根据 phase 字段自动恢复。
 
 V1 所有 step 都在同一个 feature 分支上顺序完成，不创建 step branch 或 worktree。
 
-推荐使用脚本更新 state：
+推荐使用脚本更新 state。`$STATE` 由 resolver 解析给出：
 
 ```bash
-python3 .claude/skills/dev-lifecycle/scripts/update-step-state.py --state .dev-flow-state.json --step S3 --status awaiting-review
-python3 .claude/skills/dev-lifecycle/scripts/update-step-state.py --state .dev-flow-state.json --step S3 --status approved --advance
+STATE=$(python3 .claude/skills/dev-lifecycle/scripts/resolve-active-state.py --config .dev-flow.yml resolve | python3 -c "import sys,json;print(json.load(sys.stdin)['state-path'])")
+python3 .claude/skills/dev-lifecycle/scripts/update-step-state.py --state "$STATE" --step S3 --status awaiting-review
+python3 .claude/skills/dev-lifecycle/scripts/update-step-state.py --state "$STATE" --step S3 --status approved --advance
 ```
 
 如果发现 spec 把 DTO、配置、工具类、client、service、controller 拆成多个 step，应先合并成业务闭环 step，再继续开发。
@@ -95,9 +98,11 @@ GUI merge 也是可选项。只有 `.dev-flow.yml` 中 `integration.conflict.gui
 
 ## 状态文件
 
-- `.dev-flow-state.json` 自动维护，不要手动编辑
-- 如果需要重置流程，删除此文件即可从头开始
-- 加入 `.gitignore`，不提交进仓库
+- 默认 per-feature：`.dev-flow/states/<feature>.json` 每功能一份，`.dev-flow/active` 指针标记当前活动功能
+- 指针与状态文件自动维护，不要手动编辑
+- 如果需要重置某个 feature，删除对应的 `.dev-flow/states/<feature>.json`（必要时同步指针）
+- 列出全部在飞功能：`python3 .../resolve-active-state.py --config .dev-flow.yml list`
+- `.dev-flow/` 与 `.dev-flow-state.json` 都加入 `.gitignore`，不提交进仓库
 - `spec-sources` 记录需求材料来源摘要，不写入明文敏感值
 - `implementation` 记录复杂度、当前 step、step 状态和每步检查结果
 

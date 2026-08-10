@@ -25,7 +25,7 @@ Claude Code 的工作流程：
 5. 引导式对话补齐缺口（参见 SKILL.md 执行流程）
 6. 根据模板（`templates/default.md`、`templates/api-integration.md` 或 `templates/minimal.md`）生成 spec
 7. 写入 `{spec.output-dir}/{spec.naming}`（默认 `docs/specs/YYYYMMDD-{feature}.md`）
-8. 更新 `.dev-flow-state.json` 的 `feature`、`spec`、`spec-sources` 和 `implementation` 字段
+8. 确定 feature slug 后，先调 `dev-lifecycle` 的 `resolve-active-state.py set <feature>` 建立活动状态文件并写指针（per-feature 模式），再更新解析出的活动状态文件的 `feature`、`spec`、`spec-sources` 和 `implementation` 字段；路径由 `resolve` 子命令的 `state-path` 给出，`single` 模式回退到 `.dev-flow-state.json`
 9. 校验 `spec.required-sections` 时按 SKILL.md 的 slug 映射匹配中文标题
 
 ### 对话引导要点
@@ -61,7 +61,7 @@ S2 联调、异常和构建验证
 
 ### 状态写入建议
 
-`.dev-flow-state.json` 中建议记录：
+活动状态文件（per-feature 模式下 `.dev-flow/states/<feature>.json`，由 `resolve-active-state.py` 解析路径）中建议记录：
 
 ```json
 {

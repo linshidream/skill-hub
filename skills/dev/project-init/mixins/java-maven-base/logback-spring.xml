@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 结构化 JSON 日志（LogstashEncoder）+ 按小时滚动（不压缩，近期可 grep）+ hostname 区分多容器。 -->
+<!-- 超期压缩由 scripts/compress-old-logs.sh（crontab）处理，非 logback 即时压缩。 -->
+<configuration>
+    <springProperty name="APP_NAME" source="spring.application.name" defaultValue="app"/>
+    <springProperty name="LOG_DIR" source="logging.file.path" defaultValue="logs"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"app":"${APP_NAME}","host":"${HOSTNAME}"}</customFields>
+        </encoder>
+    </appender>
+
+    <appender name="APP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/${HOSTNAME}.log</file>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"app":"${APP_NAME}","host":"${HOSTNAME}"}</customFields>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/${HOSTNAME}-%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>
+            <maxFileSize>512MB</maxFileSize>
+            <maxHistory>2160</maxHistory>
+            <totalSizeCap>50GB</totalSizeCap>
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+    </appender>
+
+    <appender name="ASYNC_APP_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="APP_FILE"/>
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>false</neverBlock>
+    </appender>
+
+    <springProfile name="prod | default">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_APP_FILE"/>
+        </root>
+    </springProfile>
+    <springProfile name="test">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="APP_FILE"/>
+        </root>
+        <logger name="{{package}}" level="DEBUG"/>
+    </springProfile>
+</configuration>

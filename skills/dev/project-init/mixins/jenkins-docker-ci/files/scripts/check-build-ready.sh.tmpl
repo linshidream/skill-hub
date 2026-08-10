@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# check-build-ready.sh —— 构建前全景体检。不取任何凭据值，只验引用就位。
+# 三层：L1 复用 ci-trigger / L2 jenkins credentials API 验引用存在 / L3 registry v2 可达
+# 全绿才让 ci-trigger 触发构建。输出统一 JSON。
+set -uo pipefail
+# 自动切到项目根（脚本在 scripts/，项目根=父目录）：确保 read_bc 与 ci-trigger --validate-config
+# 都读到项目根的 .dev-flow.yml，而非 cwd 的（否则从任意目录跑会全红）。
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$(cd "$SCRIPT_DIR/.." && pwd)"
+PASS=0; FAIL=0
+# 格式串 %s 前不留多余 "：调用方传入的 '"message":...' 已自带前导引号，否则输出 ,"  → 非法 JSON。
+report() { printf '{"status":"%s","layer":"%s",%s}\n' "$1" "$2" "$3"; }
+
+# ---------- L1: agent 触发层（复用 ci-trigger） ----------
+CI_TRIGGER="$(ls ~/.claude/skills/ci-trigger/scripts/trigger.sh 2>/dev/null || echo '')"
+if [[ -n "$CI_TRIGGER" ]]; then
+  if bash "$CI_TRIGGER" --check-env --system jenkins >/dev/null 2>&1; then
+    report ok L1 '"message":"jenkins env (JENKINS_URL/USER/TOKEN) set"'; PASS=$((PASS+1))
+  else
+    report error L1 '"message":"jenkins env missing (JENKINS_URL/USER/TOKEN)"'; FAIL=$((FAIL+1))
+  fi
+  if bash "$CI_TRIGGER" --validate-config >/dev/null 2>&1; then
+    report ok L1 '"message":"dev-flow.yml ci.system/ci.jenkins.job ok"'; PASS=$((PASS+1))
+  else
+    report error L1 '"message":"dev-flow.yml ci config invalid"'; FAIL=$((FAIL+1))
+  fi
+else
+  report error L1 '"message":"ci-trigger skill not found, cannot verify env"'; FAIL=$((FAIL+1))
+fi
+
+[[ -z "${JENKINS_URL:-}" || -z "${JENKINS_USER:-}" || -z "${JENKINS_TOKEN:-}" ]] && { echo '{"status":"error","summary":"L1 failed, abort L2/L3"}'; exit 1; }
+
+# ---------- L2: 构建凭据层（jenkins credentials API 验引用存在） ----------
+# -g 关闭 URL globbing：?tree=credentials[id] 的 [] 否则被 curl 当 range 通配 → 调用失效
+# → 2>/dev/null || echo '{}' 兜底空 → existing_ids 恒空 → 所有凭据误报"在 jenkins 不存在"。
+CREDS_JSON=$(curl -g -sS --max-time 15 -u "${JENKINS_USER}:${JENKINS_TOKEN}" \
+  "${JENKINS_URL}/credentials/store/system/domain/_/api/json?tree=credentials[id]" 2>/dev/null || echo '{}')
+existing_ids=$(echo "$CREDS_JSON" | python3 -c 'import sys,json
+try: d=json.load(sys.stdin); print("\n".join(c["id"] for c in d.get("credentials",[])))
+except: print("")')
+
+# 运行时从 .dev-flow.yml 动态读 build-credentials：check-build-ready.sh 是配置校验器，
+# 必须读同一份运行时配置，而非生成时固化的快照（用户事后回填 .dev-flow.yml 才会同步生效）。
+# 字段名对齐 dev-flow.schema.json 的 ci.jenkins.build-credentials。
+read_bc() { python3 -c "import yaml; d=yaml.safe_load(open('.dev-flow.yml')); print(d['ci']['jenkins']['build-credentials']['$1'])" 2>/dev/null; }
+GITEE_ID=$(read_bc gitee-id)
+DOCKER_CREDS_ID=$(read_bc docker-creds-id)
+
+check_cred() {
+  local label="$1" id="$2"
+  if [[ -z "$id" || "$id" == REPLACE_WITH_* ]]; then
+    report warn L2 "\"message\":\"${label} 未配置(占位未填)\""; FAIL=$((FAIL+1))
+  elif echo "$existing_ids" | grep -qx "$id"; then
+    report ok L2 "\"message\":\"${label}(${id}) 存在\""; PASS=$((PASS+1))
+  else
+    report error L2 "\"message\":\"${label}(${id}) 在 jenkins 不存在\""; FAIL=$((FAIL+1))
+  fi
+}
+check_cred "gitee-id" "$GITEE_ID"
+check_cred "docker-creds-id" "$DOCKER_CREDS_ID"
+# maven fileId 属 config-file-provider 插件（不同 API），软检查：触发时 jenkins 自验
+report warn L2 '"message":"maven-file-id 软检查(config-file-provider 插件，触发时自验)"'
+
+# ---------- L3: 交付可达层（registry v2 ping，不 login） ----------
+# registry 约定为 host[:port]（无 scheme，与 docker pull 一致）；强制 https：
+# 私有 registry（Harbor / 华为云 SWR）多走 443，无 scheme 时 curl 默认 http 连不上 → 误报不可达。
+REG="$(read_bc docker-registry)"
+case "$REG" in
+  http://*|https://*) REG="${REG#*://}";;   # 去掉误填的 scheme，统一走 https
+esac
+if [[ -z "$REG" || "$REG" == REPLACE_WITH_* ]]; then
+  report warn L3 "\"message\":\"registry 未配置(占位未填)\""; FAIL=$((FAIL+1))
+else
+  code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 "https://${REG}/v2/" 2>/dev/null || echo 000)
+  case "$code" in
+    200|401) report ok L3 "\"message\":\"registry ${REG} 可达(http ${code})\""; PASS=$((PASS+1));;
+    *) report error L3 "\"message\":\"registry ${REG} 不可达(http ${code})\""; FAIL=$((FAIL+1));;
+  esac
+fi
+
+echo "---"
+printf '{"summary":"pass=%d fail=%d","status":"%s"}\n' "$PASS" "$FAIL" "$([[ $FAIL -eq 0 ]] && echo ok || echo error)"
+[[ $FAIL -eq 0 ]]

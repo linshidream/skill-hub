@@ -1,0 +1,21 @@
+# fastjson2-hutool mixin —— 个人技术偏好基础栈（跨 template 正交，仅 Java 后端 import）
+# fastjson2（非 fastjson1，有反序列化漏洞史）+ hutool-all + lombok + guava
+name: fastjson2-hutool
+description: 个人偏好(json fastjson2 / http hutool / lombok / guava)
+
+variables:
+  fastjson2.version: "RESOLVED_BY_VERSION_CHECK(2.0.)"
+  hutool.version: "RESOLVED_BY_VERSION_CHECK(5.8.)"
+  # guava 33.6.0-jre：parent pom 确认 java8 兼容，-jre 后缀不走 version-check，直接钉查证值
+  guava.version: "33.6.0-jre"
+
+pom:
+  dependencyManagement:
+    - {ref: "com.alibaba.fastjson2:fastjson2", version: "{{fastjson2.version}}"}
+    - {ref: "cn.hutool:hutool-all", version: "{{hutool.version}}"}
+    - {ref: "com.google.guava:guava", version: "{{guava.version}}"}
+  dependencies:
+    - "com.alibaba.fastjson2:fastjson2"
+    - "cn.hutool:hutool-all"
+    - {ref: "org.projectlombok:lombok", optional: true}
+    - "com.google.guava:guava"

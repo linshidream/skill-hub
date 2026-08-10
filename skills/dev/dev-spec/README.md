@@ -17,7 +17,7 @@
 - 需求材料与证据摘要
 - API 对接信息、原型交互信息和待确认问题
 - 复杂度分级和按业务闭环拆分的推荐实施步骤
-- `.dev-flow-state.json` 中的 spec、sources、implementation 信息
+- 活动状态文件（per-feature 模式下 `.dev-flow/states/<feature>.json`，由 dev-lifecycle 的 `resolve-active-state.py` 解析路径）中的 spec、sources、implementation 信息
 
 ## 模板
 

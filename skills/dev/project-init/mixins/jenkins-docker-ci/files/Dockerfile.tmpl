@@ -1,0 +1,21 @@
+# 运行镜像由 project-type 的 java.version 驱动（与 pom compiler / jenkins 构建镜像四处对齐）
+# java8: openjdk:8-jre-alpine  |  java21: eclipse-temurin:21-jre-alpine
+FROM {{docker.run.image}}
+
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+
+ENV JAVA_OPTS=""
+ENV PARAMS=""
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo '$TZ' > /etc/timezone
+
+RUN rm -rf /opt/app/
+WORKDIR /opt/app/
+VOLUME ["/opt/app/logs"]
+
+# ADD 的 jar 名 = pom <finalName>（= core.module.name）
+ADD {{core.module.name}}.jar /opt/app/{{core.module.name}}.jar
+
+EXPOSE {{server.port}}
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar -Djava.security.egd=file:/dev/./urandom {{core.module.name}}.jar $PARAMS "]

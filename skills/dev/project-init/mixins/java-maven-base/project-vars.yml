@@ -1,0 +1,54 @@
+# project-vars.yml —— 核心变量定义（merge.py 机器可读）
+#
+# 占位语法：{{var}} 由 merge.py 替换（仅替换本文件 vars/derived 声明的变量名）。
+#           ${...}（maven/spring env 引用）与未声明的 {{...}}（如 dev-lifecycle 的
+#           {{version}}/{{branch}} 运行时占位）原样保留，不动。
+
+# ---- 独立输入变量 ----
+vars:
+  project.name:
+    source: [spec, dir_name, prompt]   # 优先取目录名（往往已定义）
+    default: null
+  project.groupId:
+    source: [spec, prompt]
+    default: "com.own.{{short}}"
+    pattern: '^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)+$'   # 合法 groupId
+  core.module.name:
+    source: [spec, prompt]
+    default: "{{project.name}}-server"
+    pattern: '^[a-z][a-z0-9-]*$'                      # 合法 artifactId/文件夹名
+  branch.production:
+    source: [spec, prompt]
+    default: master
+  branch.test:
+    source: [spec, prompt]
+    default: test
+  developers:                          # {key: {name}} 至少一个
+    source: [spec, git_config, prompt]
+    default: null
+
+# ---- project-type 提供的变量（此处仅声明占位，默认值在各 profile manifest 的 variables 段）----
+#   java.version / boot.version / spring-ai.version / fastjson2.version / hutool.version / server.port
+
+# ---- 固定项（不问用户，直接写死）----
+fixed:
+  version: "1.0.0-SNAPSHOT"
+  packaging.parent: pom
+  packaging.module: jar
+
+# ---- 派生变量（merge.py 计算）----
+derived:
+  # 文本替换型（直接引用其他变量）
+  parent.artifactId: "{{project.name}}"
+  module.artifactId: "{{core.module.name}}"
+  module.folder: "{{core.module.name}}"
+  finalName: "{{core.module.name}}"
+  package: "{{project.groupId}}"            # java 包名 = groupId
+  # 计算型（merge.py 函数实现，非纯文本替换）：
+  short: <compute>                          # 从 project.name 取小写字母简写，去日期前缀(如20260708)、去常见后缀
+  package.path: <compute>                   # package 的点号转斜杠，如 com.own.x -> com/own/x
+
+# ---- 来源优先级说明 ----
+# spec > dir_name/git_config > prompt > default
+# spec = 背景实施方案文档(当前项目内自写 md)，只抽结构字段，不碰需求
+# 抽取失败不阻断，降级到下一来源

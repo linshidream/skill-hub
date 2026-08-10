@@ -1,0 +1,38 @@
+# {{project.name}}
+
+> 由 `project-init` skill 生成。
+
+## 项目结构
+
+- **父 POM**：`{{project.groupId}}:{{project.name}}` `1.0.0-SNAPSHOT` (packaging=pom，纯聚合)
+- **核心模块**：`{{core.module.name}}` (继承父，packaging=jar)
+- **启动类**：`{{package}}.Application`
+- **finalName**：`{{core.module.name}}.jar` → 供 Dockerfile `ADD`
+- **Java**：{{java.version}}（pom/jenkins maven镜像/docker运行镜像 四处对齐）
+- **Spring Boot**：{{boot.version}}
+
+## 配置加载链路（关键，易踩坑）
+
+容器运行时由 `run.sh` 注入：
+```
+--spring.profiles.active=${ACTIVE}
+--spring.config.additional-location=file:${CONFIG_DIR}/
+```
+
+**坑（已规避）**：
+- 用 `additional-location`（追加，保留 jar 内默认），不用 `location`（替换，丢默认）。
+- 外置 `spring.config.import` 的 `file:` 必须用绝对路径——相对路径解析到容器 CWD。
+
+## 构建与部署
+
+- 本地：`mvn -pl {{core.module.name}} -am clean package`
+- CI：`deploy/jenkins/Jenkinsfile`
+- 部署：`deploy/docker/run.sh {{core.module.name}} <version> <active>`
+- 回滚：`deploy/docker/rollback.sh {{core.module.name}} <active>`（读 `.deploy-history`）
+- 就绪检查：`scripts/check-build-ready.sh`（机器）+ `docs/checklist/build-readiness.md`（人工）
+
+## 与 dev-lifecycle 衔接
+
+- `.dev-flow.yml` 已生成。启动开发：`开始开发 <功能>`。
+- spec 由 `dev-spec` 产出至 `docs/specs/`，本 skill 只建空目录。
+- 分支：`master` / `test` / `feat/{developer}/{feature}`。

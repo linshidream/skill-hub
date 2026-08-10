@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# run.sh —— 主机级通用部署器（一套脚本跨服务共用，env/参数驱动）。
+#   run.sh <project> <version> <active> [host_port]
+# env 可覆盖（带 init 默认）：REGISTRY / NAMESPACE_TEST / NAMESPACE_PROD / DEPLOY_ROOT / HOSTID / JAVA_OPTS
+# SERVER_PORT（容器内监听）固化 = application.yml 的 server.port，不可覆盖（须一致）。
+# HOST_PORT（宿主机映射）第4参，默认=SERVER_PORT；HOST_PORT 即节点标识——同主机多实例选不同 HOST_PORT
+#   （构建期 Jenkinsfile 提供 server.port 与 server.port+1 两个选项），避免端口冲突。
+# 容器名：{project}-{active}-{version}-{hostid}-{host_port}，version 进名便于同位替换/蓝绿过渡。
+# rm 策略：同位模糊删（project+active+hostid+host_port 相同、version 不同）的旧容器，新 version 同位替换。
+# 顺序：pull → rm 同位旧 version → run（pull 失败旧容器仍在，服务不中断）。
+set -e
+PROJECT_NAME="$1"; VERSION="$2"; ACTIVE="$3"; HOST_PORT="${4:-}"
+REGISTRY="${REGISTRY:-{{registry}}}"
+DEPLOY_ROOT="${DEPLOY_ROOT:-{{deploy.root}}}"
+SERVER_PORT="{{server.port}}"
+HOSTID="${HOSTID:-$(hostname -s)}"
+HOST_PORT="${HOST_PORT:-${SERVER_PORT}}"
+JAVA_OPTS="${JAVA_OPTS:--Xms512m -Xmx512m -Xss256k}"
+
+case "$ACTIVE" in
+  prod) NAMESPACE="${NAMESPACE_PROD:-{{namespace.prod}}}" ;;
+  *)    NAMESPACE="${NAMESPACE_TEST:-{{namespace.test}}}" ;;
+esac
+
+IMAGE="${REGISTRY}/${NAMESPACE}/${PROJECT_NAME}:${VERSION}"
+CONTAINER="${PROJECT_NAME}-${ACTIVE}-${VERSION}-${HOSTID}-${HOST_PORT}"
+CONFIG_DIR="${DEPLOY_ROOT}/server/${PROJECT_NAME}"            # 宿主机外置配置目录（随部署目录）
+LOG_DIR="${DEPLOY_ROOT}/logs/${PROJECT_NAME}"                 # 宿主机日志目录（随部署目录）
+CONTAINER_CONFIG_DIR="/opt/app/server/${PROJECT_NAME}"       # 容器内外置配置目录（固定 /opt/app/，与宿主机无关）
+HISTORY="${CONFIG_DIR}/.deploy-history"
+
+# 宿主机建目录提前到 docker run 前，避免 bind-mount 让 docker 自动创建属主 root 的目录
+mkdir -p "${CONFIG_DIR}"
+
+echo "=== run 配置 ==="
+echo "  PROJECT_NAME:           ${PROJECT_NAME}"
+echo "  VERSION:                ${VERSION}"
+echo "  ACTIVE:                 ${ACTIVE}"
+echo "  HOSTID:                 ${HOSTID}"
+echo "  HOST_PORT(节点id):       ${HOST_PORT}"
+echo "  REGISTRY:               ${REGISTRY}"
+echo "  NAMESPACE:              ${NAMESPACE}"
+echo "  IMAGE:                  ${IMAGE}"
+echo "  CONTAINER:              ${CONTAINER}"
+echo "  DEPLOY_ROOT:            ${DEPLOY_ROOT}"
+echo "  CONFIG_DIR(host):       ${CONFIG_DIR}"
+echo "  LOG_DIR(host):          ${LOG_DIR}"
+echo "  CONTAINER_CONFIG_DIR:   ${CONTAINER_CONFIG_DIR}"
+echo "  SERVER_PORT(container):  ${SERVER_PORT}"
+echo "  HOST_PORT(host):         ${HOST_PORT}"
+echo "  JAVA_OPTS:              ${JAVA_OPTS}"
+echo "  HISTORY:                ${HISTORY}"
+echo "========================"
+
+docker pull "${IMAGE}"
+# 同位模糊删：project+active+hostid+host_port 相同的所有容器（version 段 .+ 通配，含当前 version 同名）。
+# docker run 复用 CONTAINER 名，同名必须先删——排除同名（grep -v）会导致重跑同 version 时 run 名字冲突。
+docker ps -a --format '{{.Names}}' \
+  | grep -E "^${PROJECT_NAME}-${ACTIVE}-.+-${HOSTID}-${HOST_PORT}$" \
+  | while read -r old; do docker rm -f "$old" 2>/dev/null || true; done
+
+docker run -d --name "${CONTAINER}" --hostname "${CONTAINER}" \
+  --restart=unless-stopped \
+  --log-opt max-size=512m --log-opt max-file=3 \
+  -e JAVA_OPTS="${JAVA_OPTS}" \
+  -e PARAMS="--spring.profiles.active=${ACTIVE} --spring.config.additional-location=file:${CONTAINER_CONFIG_DIR}/" \
+  -p "${HOST_PORT}:${SERVER_PORT}" \
+  -v "${CONFIG_DIR}:${CONTAINER_CONFIG_DIR}" \
+  -v "${LOG_DIR}:/opt/app/logs" \
+  "${IMAGE}"
+
+echo "{\"version\":\"${VERSION}\",\"image\":\"${IMAGE}\",\"active\":\"${ACTIVE}\",\"hostid\":\"${HOSTID}\",\"container\":\"${CONTAINER}\",\"host_port\":\"${HOST_PORT}\",\"server_port\":\"${SERVER_PORT}\",\"action\":\"deploy\",\"deployed_at\":\"$(date -u +%FT%TZ)\"}" >> "${HISTORY}"
+echo "deployed ${IMAGE} as ${CONTAINER} (host ${HOST_PORT} -> container ${SERVER_PORT})"

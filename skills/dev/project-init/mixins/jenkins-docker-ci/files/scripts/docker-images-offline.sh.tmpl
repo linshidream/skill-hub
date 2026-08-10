@@ -1,0 +1,234 @@
+#!/usr/bin/env bash
+# docker-images-offline.sh —— 预加载镜像离线分发（每镜像独立存档，按需载入）
+#
+# 背景：Jenkins 节点(centos7)拉不到 Docker Hub，需在能联网的本机(macOS)
+# 拉好 amd64 镜像、打包成单个 bundle 文件，手动上传（跳板机无直连 ssh）后在
+# 服务器按需载入——只有本地缺失的镜像才解压 load，已存在(amd64)的不碰。
+#
+# 用法:
+#   本机打包:   ./scripts/docker-images-offline.sh local   [输出目录]
+#   服务器载入: ./scripts/docker-images-offline.sh server  [bundle.tar.gz|目录]
+#
+# 架构坑（最易踩）: 本机 Apple Silicon(arm64)、服务器 amd64，故 local 强制
+# --platform linux/amd64 并校验 Architecture=amd64，否则服务器跑不起来。
+# 幂等: local 先查本地，已是 amd64 的镜像跳过 pull；server 逐镜像查本地，
+#       已存在(amd64)的跳过 load，只 load 缺失/错架构的。
+# server 解包: bundle 内容解到当前目录下 ./preload-images/ 子目录（已存在则复用），
+#       不污染当前目录。
+set -euo pipefail
+
+# ---- 预加载镜像清单（按所选 template 的 java 版本派生，与 pom compiler /
+#       Jenkinsfile 构建镜像 / Dockerfile 运行镜像四处对齐；merge.py 注入
+#       {{docker.build.image}} / {{docker.run.image}}，故本模板不含其它 {{var}}）----
+PRELOAD_IMAGES=(
+  "{{docker.build.image}}"   # 构建镜像（Jenkinsfile packaging 阶段 maven 容器）
+  "{{docker.run.image}}"     # 运行镜像（Dockerfile FROM，按 java 版本派生）
+)
+TARGET_PLATFORM="linux/amd64"                      # 服务器(centos7)架构
+PACKAGE_NAME="preload-images"                      # 产物名（生成 preload-images.tar.gz）
+PRELOAD_DIR="preload-images"                       # server 解包子目录（当前目录下）
+DEFAULT_OUTPUT_DIR="${HOME}/Downloads"            # local 默认输出目录
+DEFAULT_INPUT_FILE="${PACKAGE_NAME}.tar.gz"        # server 默认输入文件（当前目录）
+
+# ---- 颜色（非 tty 自动关闭，CI 日志不漏转义）----
+if [[ -t 1 ]]; then
+  C_B='\033[1m'; C_G='\033[32m'; C_Y='\033[33m'; C_R='\033[31m'; C_C='\033[36m'; C_D='\033[2m'; C_N='\033[0m'
+else
+  C_B=''; C_G=''; C_Y=''; C_R=''; C_C=''; C_D=''; C_N=''
+fi
+banner() { printf "\n${C_B}${C_C}━━━ %s ━━━${C_N}\n" "$*"; }
+say()    { printf "${C_B}%s${C_N}\n" "$*"; }
+ok()   { printf "  ${C_G}%-10s${C_N} %s\n" "[$1]" "$2"; }
+warn() { printf "  ${C_Y}%-10s${C_N} %s\n" "[$1]" "$2"; }
+err()  { printf "  ${C_R}%-10s${C_N} %s\n" "[$1]" "$2" >&2; }
+die()  { printf "${C_R}${C_B}ERROR: %s${C_N}\n" "$*" >&2; exit 1; }
+
+usage() {
+  cat <<EOF
+docker-images-offline.sh <local|server> [arg]
+  local   [输出目录]    本机拉 amd64 镜像，每镜像独立存档打包成 bundle（默认: ${DEFAULT_OUTPUT_DIR}）
+  server  [bundle|目录] 服务器逐镜像判断：缺失才 load，已存在跳过；解包到 ./${PRELOAD_DIR}/（默认: ./${DEFAULT_INPUT_FILE}）
+EOF
+}
+
+require_cmd() { command -v "$1" >/dev/null 2>&1 || die "缺少命令: $1"; }
+
+# 本地镜像架构；不存在返回空串
+local_arch() {
+  docker image inspect "$1" --format '{{.Architecture}}' 2>/dev/null || echo ""
+}
+
+# 镜像 ref -> 文件名安全（: 和 / 都换 _；可逆性靠 image-list 清单，不靠文件名）
+safe_name() { printf '%s' "$1" | tr ':/' '__'; }
+
+# 从 tar/tar.gz 取单个成员内容到 stdout（不解包到磁盘）
+tar_extract_file() {
+  case "$1" in
+    *.tar.gz|*.tgz) tar -xzf "$1" -O "$2" 2>/dev/null ;;
+    *.tar)          tar -xf  "$1" -O "$2" 2>/dev/null ;;
+  esac
+}
+
+# 从 docker-save tar 的 manifest.json 取镜像 ref（RepoTags），每行一个
+docker_save_refs() {
+  tar_extract_file "$1" manifest.json 2>/dev/null | python3 -c '
+import sys, json
+try:
+    for e in json.load(sys.stdin):
+        for t in (e.get("RepoTags") or []):
+            if t: print(t)
+except Exception:
+    pass
+'
+}
+
+# ---- local: 前置判断 + 按需拉取 + 校验 + 每镜像存档 + 打包成单 bundle ----
+do_local() {
+  local out_dir="${1:-$DEFAULT_OUTPUT_DIR}"
+  require_cmd docker; require_cmd tar; require_cmd gzip
+  mkdir -p "$out_dir"
+
+  banner "本机打包预加载镜像  ·  local"
+  say "镜像清单（${#PRELOAD_IMAGES[@]} 个，platform=${TARGET_PLATFORM}）："
+  local img
+  for img in "${PRELOAD_IMAGES[@]}"; do printf "  - %s\n" "$img"; done
+
+  local arch pulled=0 cached=0
+  banner "前置判断（缺失/非 amd64 才拉）"
+  for img in "${PRELOAD_IMAGES[@]}"; do
+    arch="$(local_arch "$img")"
+    if [[ "$arch" == "amd64" ]]; then
+      ok "cached" "$img (amd64) 跳过 pull"; cached=$((cached+1))
+    elif [[ -n "$arch" ]]; then
+      warn "replace" "$img 本地 arch=$arch，重拉 amd64"; docker pull --platform "$TARGET_PLATFORM" "$img"; pulled=$((pulled+1))
+    else
+      warn "missing" "$img 拉取 amd64"; docker pull --platform "$TARGET_PLATFORM" "$img"; pulled=$((pulled+1))
+    fi
+  done
+
+  banner "校验架构（必须 amd64，否则服务器跑不起来）"
+  for img in "${PRELOAD_IMAGES[@]}"; do
+    arch="$(local_arch "$img")"
+    [[ "$arch" == "amd64" ]] || die "$img 非 amd64（${arch:-缺失}）"
+    ok "amd64" "$img"
+  done
+
+  # 每镜像独立 docker save + image-list 清单（server 据此逐镜像按需 load）
+  local staging; staging="$(mktemp -d)"; trap "rm -rf '$staging'" EXIT
+  local safe list_file="$staging/image-list"; : > "$list_file"
+  local tar_files=()
+  banner "每镜像独立存档"
+  for img in "${PRELOAD_IMAGES[@]}"; do
+    safe="$(safe_name "$img")"
+    say "save $img -> ${safe}.tar"
+    docker save "$img" -o "$staging/${safe}.tar"
+    tar_files+=("${safe}.tar")
+    printf '%s.tar\t%s\n' "$safe" "$img" >> "$list_file"
+  done
+
+  local bundle="${out_dir}/${PACKAGE_NAME}.tar.gz"
+  banner "打包成单文件 bundle"
+  rm -f "$bundle"
+  tar -czf "$bundle" -C "$staging" image-list "${tar_files[@]}"
+
+  printf "\n${C_B}${C_G}================ 预加载镜像打包完成 ================${C_N}\n"
+  printf "  产物:   ${C_B}%s${C_N}  (${C_D}%s${C_N})\n" "$bundle" "$(du -h "$bundle" | awk '{print $1}')"
+  printf "  镜像:   ${C_B}%d${C_N} 个（新拉 ${pulled}，cached ${cached}）\n" "${#PRELOAD_IMAGES[@]}"
+  for img in "${PRELOAD_IMAGES[@]}"; do printf "    %s\n" "$img"; done
+  printf "  下一步: ${C_Y}经跳板机上传 %s 到 centos7${C_N}\n" "${bundle##*/}"
+  printf "          然后在服务器执行: ${C_B}bash %s server %s${C_N}\n" "$(basename "$0")" "${bundle##*/}"
+  printf "${C_B}${C_G}====================================================${C_N}\n"
+}
+
+# ---- server: 逐镜像按需 load（仅缺失/错架构），全在则整体跳过 ----
+do_server() {
+  local input="${1:-$DEFAULT_INPUT_FILE}"
+  require_cmd docker; require_cmd tar
+  [[ -e "$input" ]] || die "找不到: $input"
+
+  banner "服务器载入预加载镜像  ·  server"
+  say "输入: $input"
+
+  local staging=""
+  if [[ -d "$input" ]]; then
+    staging="$input"   # 目录直接用，退出不清理
+    say "使用目录: $staging"
+  else
+    case "$input" in
+      *.tar.gz|*.tgz|*.tar) ;;
+      *) die "文件需为 .tar/.tar.gz/目录: $input" ;;
+    esac
+    # 窥探是否含 image-list（新格式 bundle）；含才解包，避免无谓全量解压
+    if [[ -n "$(tar_extract_file "$input" image-list 2>/dev/null)" ]]; then
+      if [[ -f "$PRELOAD_DIR/image-list" ]]; then
+        say "复用已解包目录: $PRELOAD_DIR/"
+      else
+        mkdir -p "$PRELOAD_DIR"
+        say "解包到: $PRELOAD_DIR/"
+        case "$input" in
+          *.tar.gz|*.tgz) tar -xzf "$input" -C "$PRELOAD_DIR" ;;
+          *.tar)          tar -xf  "$input" -C "$PRELOAD_DIR" ;;
+        esac
+      fi
+      staging="$PRELOAD_DIR"
+    fi
+  fi
+
+  if [[ -n "$staging" && -f "$staging/image-list" ]]; then
+    # 新格式 bundle：逐镜像选择性载入，只有缺失/错架构的才 load
+    banner "前置判断（仅缺失才 load，已存在不碰）"
+    local file ref arch loaded=0 cached=0
+    while IFS=$'\t' read -r file ref; do
+      [[ -z "${ref:-}" ]] && continue
+      arch="$(local_arch "$ref")"
+      if [[ "$arch" == "amd64" ]]; then
+        ok "cached" "$ref (amd64) 跳过"; cached=$((cached+1))
+      elif [[ -n "$arch" ]]; then
+        warn "replace" "$ref 本地 arch=$arch ← $file"; docker load -i "$staging/$file"; loaded=$((loaded+1))
+      else
+        warn "missing" "$ref ← $file"; docker load -i "$staging/$file"; loaded=$((loaded+1))
+      fi
+    done < "$staging/image-list"
+    _server_summary "$loaded" "$cached" "$staging"
+  else
+    # 兼容旧版合并 docker-save tar（无 image-list 清单）
+    banner "兼容模式（旧版合并 docker-save tar）"
+    local refs ref arch all_present=1 present=0 missing=0
+    refs="$(docker_save_refs "$input")"
+    [[ -n "$refs" ]] || die "无法从 $input 读出镜像列表（非 docker-save tar？）"
+    while IFS= read -r ref; do
+      [[ -z "$ref" ]] && continue
+      arch="$(local_arch "$ref")"
+      if [[ "$arch" == "amd64" ]]; then ok "cached" "$ref -> $arch"; present=$((present+1))
+      else warn "missing" "$ref -> ${arch:-缺失}"; missing=$((missing+1)); all_present=0; fi
+    done <<< "$refs"
+    if [[ "$all_present" -eq 1 ]]; then
+      say "全部已存在(amd64)，整体跳过（不解压、不 load）"
+      _server_summary 0 "$present" "(直接读 tar，未解包)"
+    else
+      say "存在缺失，docker load 整包（已存在镜像幂等跳过）"
+      docker load -i "$input"
+      _server_summary "$missing" "$present" "(直接读 tar，未解包)"
+    fi
+  fi
+}
+
+_server_summary() {
+  local loaded="$1" cached="$2" dir="$3"
+  printf "\n${C_B}${C_G}================ 服务器载入完成 ================${C_N}\n"
+  printf "  新载入: ${C_Y}%d${C_N}    跳过(cached): ${C_G}%d${C_N}\n" "$loaded" "$cached"
+  printf "  解包目录: ${C_B}%s${C_N}\n" "$dir"
+  printf "${C_B}${C_G}==============================================${C_N}\n"
+}
+
+main() {
+  local mode="${1:-}"
+  case "$mode" in
+    local)  shift; do_local "${1:-}" ;;
+    server) shift; do_server "${1:-}" ;;
+    -h|--help|"") usage ;;
+    *) die "未知模式: $mode（用 local 或 server）"; usage; exit 1 ;;
+  esac
+}
+
+main "$@"

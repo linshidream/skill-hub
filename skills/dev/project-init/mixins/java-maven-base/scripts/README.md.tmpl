@@ -1,0 +1,63 @@
+# scripts/
+
+项目辅助脚本。按"在哪运行"分三类：本机开发机、部署服务器、构建前校验。
+
+## 速查表
+
+| 脚本 | 作用 | 典型用法 | 运行位置 |
+|---|---|---|---|
+| `check-build-ready.sh` | 构建前全景体检（CI 凭据引用 + registry 可达），输出 JSON | `./scripts/check-build-ready.sh` | 本机 / CI 节点 |
+| `docker-images-offline.sh` | 预加载 Docker 镜像离线分发（打包/按需载入） | `./scripts/docker-images-offline.sh local` / `... server <bundle>` | local=本机；server=部署服务器 |
+| `push-remote.sh` | 初始化后推送 master+test 到 gitee 远程（SSH 免密） | `./scripts/push-remote.sh [git-url]` | 本机 |
+| `compress-old-logs.sh` | 延迟压缩超 N 天的归档日志（logback 滚动不压缩） | `compress-old-logs.sh <log_dir> [days]` | 部署服务器（crontab） |
+
+## 各脚本说明
+
+### check-build-ready.sh —— 构建前体检
+构建前三层校验，**只验引用就位、不取凭据值**：
+- **L1**：复用 `ci-trigger`，验 `JENKINS_URL/USER/TOKEN` env + `.dev-flow.yml` + ci 配置。
+- **L2**：用 jenkins env 调 credentials API，验 `.dev-flow.yml` 声明的 gitee-id / docker-creds-id 在 jenkins credentials store 存在；maven-file-id 软检查。
+- **L3**：`curl registry/v2/` ping docker registry 网络可达（200/401 都算可达）。
+
+全绿才让 `ci-trigger` 触发构建。输出统一 JSON，便于机器解析。
+```bash
+./scripts/check-build-ready.sh
+```
+前提：`JENKINS_URL` / `JENKINS_USER` / `JENKINS_TOKEN` env 已配，`.dev-flow.yml` 的 `build-credentials` 已回填。
+
+### docker-images-offline.sh —— 预加载镜像离线分发
+背景：Jenkins 节点(centos7)拉不到 Docker Hub。本机(macOS)拉好 amd64 镜像打包成单 bundle，手动上传后在服务器按需载入——**只有缺失的镜像才 load，已存在的不碰**。
+
+**预加载镜像清单（2 个，按所选 template 的 java 版本派生）**：构建镜像 + 运行镜像，与 pom compiler / Jenkinsfile 构建镜像 / Dockerfile 运行镜像四处对齐（java-web=java8 一套，java-mcp=java21 一套）。
+
+```bash
+# 本机打包：拉缺失镜像（已是 amd64 的跳过）→ 每镜像独立存档 → 打成单 bundle
+./scripts/docker-images-offline.sh local [输出目录]      # 默认输出 ~/Downloads/preload-images.tar.gz
+
+# 服务器载入：解包到 ./preload-images/ 子目录，逐镜像判断缺失才 load
+bash docker-images-offline.sh server [bundle.tar.gz|目录]  # 默认读 ./preload-images.tar.gz
+```
+- 幂等：local 有镜像就不 pull；server 有镜像(amd64)就不 load。
+- 架构坑：本机 Apple Silicon(arm64)、服务器 amd64，local 强制 `--platform linux/amd64` 并校验 `Architecture=amd64`。
+- 兼容旧版合并 docker-save tar（无 `image-list` 清单）：读 `manifest.json` 取镜像列表，全在则整体跳过，有缺则整包 load。
+
+### push-remote.sh —— 推送到 gitee 远程
+初始化仓库后把 `master` + `test` 推到 gitee（SSH 免密）。
+```bash
+./scripts/push-remote.sh [git-url]    # 不传参则从 .dev-flow.yml 读 git-repo-url(HTTPS) 并转 SSH
+```
+前提：本机已配 gitee SSH key（`ssh -T git@gitee.com` 返回 authenticated）；远程私有仓库需先在 gitee 网页建好（**不勾选初始化**），再跑本脚本。
+
+### compress-old-logs.sh —— 归档日志延迟压缩
+logback 滚动时不压缩（保留近期可 grep），此脚本压缩超过 N 天的归档。活跃日志文件 mtime 持续更新，不会被 `find -mtime +N` 命中，安全。
+```bash
+compress-old-logs.sh <log_dir> [days]    # 默认 days=60
+# 部署服务器 crontab 示例（每天 3 点压缩 60 天前的归档）：
+#   0 3 * * * {{deploy.root}}/server/{{core.module.name}}/compress-old-logs.sh {{deploy.root}}/logs/{{core.module.name}} 60
+```
+运行位置：部署服务器（放外置配置目录，与 `.dev-flow/` 状态分离）。
+
+## 约定
+- 所有脚本 `set -e`（或 `-euo pipefail`），失败即停，不静默。
+- 脚本自动切到项目根（`scripts/` 的父目录），可在任意 cwd 调用。
+- 凭据不入脚本、不入仓库；jenkins/docker 凭据存 jenkins credentials store，本机只引用 id。

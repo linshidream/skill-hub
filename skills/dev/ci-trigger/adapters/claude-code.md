@@ -30,11 +30,11 @@ bash scripts/trigger.sh --validate-config
 
 ### 触发构建
 
-Claude Code 从 `.dev-flow.yml` 读取 `ci.jenkins.params`，替换 `{{branch}}` 和 `{{version}}` 后拼接参数字符串：
+Claude Code 从 `.dev-flow.yml` 读取 `ci.jenkins.params`，替换 `{{branch}}` 和 `{{version}}` 后拼接参数字符串。写状态时 `--state <path>` 由 dev-lifecycle 编排器通过 `resolve-active-state.py resolve` 解析后传入；未传入时脚本默认写 `.dev-flow-state.json`（legacy 兜底）：
 
 ```bash
 bash scripts/trigger.sh --system jenkins --job your-project-pipeline \
-  --params "CURRENT_VERSION=v1.0.1&ACTIVE=test&GIT_BRANCH=test"
+  --params "CURRENT_VERSION=v1.0.1&ACTIVE=test&GIT_BRANCH=test" --state "$STATE"
 ```
 
 ### 监控构建

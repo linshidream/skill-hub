@@ -1,8 +1,8 @@
 {
   "name": "dev-spec",
   "title": "开发需求规格化",
-  "version": "0.1.3",
-  "description": "将需求对话、需求文档、API 文档、本地 PDF/DOCX 和原型图整理为证据化 spec，按业务闭环拆分实施步骤并输出到 docs。Turn requirement materials into evidence-backed specs with business-slice implementation steps.",
+  "version": "0.1.4",
+  "description": "将需求对话、需求文档、API 文档、本地 PDF/DOCX 和原型图整理为证据化 spec，按业务闭环拆分实施步骤并输出到 docs；intake 确定 feature 后建立活动状态文件与指针。Turn requirement materials into evidence-backed specs with business-slice implementation steps; seeds the active per-feature state on intake.",
   "category": "dev",
   "license": "MIT",
   "entry": "SKILL.md",

@@ -16,7 +16,12 @@
 ## 配置
 
 - `.dev-flow.yml` — 项目配置（提交进仓库）
-- `.dev-flow-state.json` — 运行时状态（不提交）
+- `.dev-flow/` — per-feature 运行时状态与活动指针（不入库，加入 `.gitignore`）
+  - `active` — 当前正在开发的功能 slug
+  - `states/<feature>.json` — 每功能一份运行时状态
+- `.dev-flow-state.json` — 旧单文件状态（`state.storage: single` 或向后兼容时使用，不入库）
+
+默认 `state.storage: per-feature`，支持从 master 同时切多个 feature 并行开发而状态互不覆盖。解析规则：在 feature 分支上以分支推导的功能为准并同步指针；在 master 上回退指针。见 SKILL.md「多功能并行与活动状态解析」。
 
 V1 只支持 `implementation.mode: single-branch`。step branch 和 worktree 留作 V2，不在当前 MVP 中启用。
 
@@ -24,7 +29,8 @@ Step 不按 DTO、工具类、client、service、controller 等技术层拆分�
 
 ## 脚本
 
-- `scripts/update-step-state.py` — 更新 `implementation.current-step`、step status、phase 和 history，避免 current-step 滞后。
+- `scripts/resolve-active-state.py` — 解析当前活动状态文件路径（多功能并行核心入口），支持 `resolve` / `set` / `switch` / `list` / `migrate` 子命令
+- `scripts/update-step-state.py` — 更新 `implementation.current-step`、step status、phase 和 history，避免 current-step 滞后
 
 ## 模板
 
@@ -34,3 +40,21 @@ Step 不按 DTO、工具类、client、service、controller 等技术层拆分�
 
 - `schemas/dev-flow.schema.json` — .dev-flow.yml 的 JSON Schema
 - `schemas/dev-flow-state.schema.json` — .dev-flow-state.json 的 JSON Schema
+- `schemas/project-state.schema.json` — .dev-flow/project.json 的项目级状态 Schema
+
+## 安装
+
+dev-lifecycle 编排 project-init / dev-spec / git-flow / ci-trigger，建议**一键 bundle 安装**（连同 dependencies 一起装齐）：
+
+```bash
+# macOS / Linux
+scripts/install.sh dev-lifecycle --agent claude-code --bundle
+# Windows PowerShell
+scripts/install.ps1 -SkillName dev-lifecycle -Agent claude-code -Bundle
+```
+
+`--bundle` 递归读取 `skill.json` 的 `dependencies`，按"自身在前、依赖在后"顺序去重安装（防循环）。dev-lifecycle 的 dependencies = dev-spec / git-flow / ci-trigger / project-init，共 5 个 skill 一键装齐。
+
+也可单独装某个 skill（不带 `--bundle`）。各 agent 目标目录：claude-code `~/.claude/skills`、codex `~/.codex/skills`、openclaw `~/.openclaw/skills`。
+
+> 注意：project-init 的 `lib/merge.py` 通过相对路径 `../dev-lifecycle/` 调用 resolver，四个 sibling skill 须同级安装（bundle 安装自动满足）。

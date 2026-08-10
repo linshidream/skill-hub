@@ -7,15 +7,21 @@
 - 项目根目录的 `.dev-flow.yml` 配置文件
 - 开发者标识（如 `zx`）
 - 功能名称 slug（如 `user-points`）
-- `.dev-flow-state.json` 中的 `implementation.current-step`（可选）
+- 活动状态文件中的 `implementation.current-step`（可选；per-feature 模式下路径由 dev-lifecycle 的 `resolve-active-state.py` 解析，默认 `.dev-flow/states/<feature>.json`）
 
 ## 输出
 
 - 按规范命名的 feature 分支（如 `feat/zx/user-points`）
 - 结构化的 commit 历史；存在当前 step 时，commit 记录自动带上 step id
 - 合并到测试分支的结果（成功/冲突分类报告）
-- `.dev-flow-state.json` 中的 branch、commit、integration 状态更新
+- 活动状态文件中的 branch、commit、integration 状态更新
 - 冲突时的可选 GUI merge 检测结果或文本冲突块处理流程
+
+## 状态文件
+
+- 默认 per-feature：每功能一份 `.dev-flow/states/<feature>.json`，活动指针 `.dev-flow/active` 由 `init-branch.sh` 在建分支时写入
+- `state.storage: single` 或显式 `--state <path>` 时退回单一 `.dev-flow-state.json`
+- 各脚本均支持 `--state <path>` 覆盖；编排器（dev-lifecycle）用 `resolve-active-state.py` 解析出路径后传入
 
 ## 使用
 

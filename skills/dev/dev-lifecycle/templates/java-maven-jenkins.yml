@@ -89,6 +89,14 @@ implementation:
     - risk-gate
     - independent-acceptance
 
+# --- 运行时状态存储（多功能并行）---
+# 默认 per-feature：每功能一份状态文件 + 活动指针，支持从 master 并行开发多个功能
+# .dev-flow/ 与 .dev-flow-state.json 都不入库，须加入项目 .gitignore
+state:
+  storage: per-feature                   # per-feature | single（旧单文件模式）
+  dir: .dev-flow/states
+  pointer: .dev-flow/active
+
 # --- 自动化程度 ---
 automation:
   spec-confirm: prompt                   # prompt | quick

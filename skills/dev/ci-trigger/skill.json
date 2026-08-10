@@ -1,8 +1,8 @@
 {
   "name": "ci-trigger",
   "title": "CI/CD 触发与监控",
-  "version": "0.1.3",
-  "description": "触发 Jenkins CI 构建、轮询长流程、拉取失败日志、分析原因、更新 state，并可选发送钉钉通知。Trigger Jenkins builds, monitor long-running flows, fetch logs, update state, and optionally notify DingTalk.",
+  "version": "0.1.4",
+  "description": "触发 Jenkins CI 构建、轮询长流程、拉取失败日志、分析原因、更新 state，并可选发送钉钉通知；状态文件路径由编排器 resolver 解析后以 --state 传入。Trigger Jenkins builds, monitor long-running flows, fetch logs, update state, and optionally notify DingTalk; state path resolved by the orchestrator.",
   "category": "dev",
   "license": "MIT",
   "entry": "SKILL.md",

@@ -1,0 +1,39 @@
+# compat-table.yml —— 按 template 的兼容性矩阵 + 系列选择器
+# version-check.sh 按 series 前缀筛最大 GA（不取全局 latest）。
+compat:
+  java-web:
+    java: [8]
+    spring-boot:
+      series: "2.7."
+      artifact: org/springframework/boot/spring-boot-starter-parent
+    spring-ai: null
+    logstash-encoder:
+      series: "6."
+      artifact: net/logstash/logback/logstash-logback-encoder
+  java-mcp:
+    java: [17, 21]
+    spring-boot:
+      series: "3.5."
+      artifact: org/springframework/boot/spring-boot-starter-parent
+    spring-ai:
+      series: "1.0."
+      bom: org/springframework/ai/spring-ai-bom
+      starter: org/springframework/ai/spring-ai-starter-mcp-server-webmvc
+    logstash-encoder:
+      series: "8."
+      artifact: net/logstash/logback/logstash-logback-encoder
+tech-pref:
+  fastjson2-hutool:
+    fastjson2:
+      series: "2.0."
+      artifact: com/alibaba/fastjson2/fastjson2
+    hutool:
+      series: "5.8."
+      artifact: cn/hutool/hutool-all
+java_align:
+  - pom.mvn-compiler
+  - jenkins.maven-image
+  - docker.run-image
+pending:
+  - "Spring AI 2.0.0 ↔ Spring Boot 4.x 兼容性（P0 不升，升前官方确认）"
+  - "fastjson2 2.0.x / hutool 5.8.x 对 java8 的实际支持（落地冒烟验证）"
