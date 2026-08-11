@@ -23,3 +23,27 @@ product-lifecycle -> dev-spec -> dev-lifecycle
 ## 设计边界
 
 本 skill 不改 `dev-spec` 和 `dev-lifecycle`，只显式持有 product 工作区与一个或多个 dev 代码项目之间的映射。
+
+## 安装
+
+`opc-sw-flow` 是顶层编排，`skill.json` 的 `dependencies` = `product-lifecycle` / `ui-prototype-gen` / `dev-spec` / `dev-lifecycle`。
+
+完整安装（含 dev 侧编排，一键装齐及其下游）：
+
+```bash
+# macOS / Linux
+scripts/install.sh opc-sw-flow --agent claude-code --bundle
+# Windows PowerShell
+scripts/install.ps1 -SkillName opc-sw-flow -Agent claude-code -Bundle
+```
+
+只装 product 侧（`opc-sw-flow` + `product-lifecycle` + `ui-prototype-gen`，跳过 `dev-spec` / `dev-lifecycle`）：
+
+```bash
+# macOS / Linux
+scripts/install.sh opc-sw-flow --agent claude-code --bundle --exclude dev-spec --exclude dev-lifecycle
+# Windows PowerShell
+scripts/install.ps1 -SkillName opc-sw-flow -Agent claude-code -Bundle -Exclude dev-spec,dev-lifecycle
+```
+
+`--exclude` / `-Exclude` 在 bundle 解析时跳过指定 skill 及其下游依赖，适合先把 product 侧跑通、dev 侧已另行安装或暂不启用的场景。各 agent 目标目录：claude-code `~/.claude/skills`、codex `~/.codex/skills`、openclaw `~/.openclaw/skills`。
