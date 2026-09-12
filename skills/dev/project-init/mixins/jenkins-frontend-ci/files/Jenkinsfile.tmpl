@@ -1,0 +1,52 @@
+// Jenkinsfile —— 前端流水线（H5 静态部署 + 小程序 miniprogram-ci，无镜像）
+// 触发时机/phase 状态机归 ci-trigger/dev-lifecycle（本文件只交付能跑的流水线编排，P2 边界）。
+pipeline {
+  agent any
+  options { timestamps(); disableConcurrentBuilds() }
+  environment {
+    // 凭据从 Jenkins credentials 注入（同 Java 凭据红线，不进代码）
+    GITEE_CRED   = credentials("{{gitee.credential.id}}")
+    WEAPP_KEY    = credentials("{{weapp.upload.key.id}}")   // 小程序上传私钥
+  }
+  parameters {
+    choice(name: 'TARGET', choices: ['h5', 'weapp'], description: '构建目标端')
+    choice(name: 'ENV',    choices: ['test', 'prod'], description: '部署环境')
+  }
+  stages {
+    stage("checkout") {
+      steps {
+        checkout scm
+        sh "pnpm install --frozen-lockfile"
+      }
+    }
+    stage("lint + check:spec") {
+      steps {
+        sh "pnpm run lint"
+        sh "pnpm run check:spec"
+      }
+    }
+    stage("build") {
+      steps {
+        sh "bash scripts/build.sh ${params.TARGET}"
+      }
+    }
+    stage("deploy") {
+      when { expression { params.TARGET == 'h5' } }
+      steps {
+        // H5：rsync 到静态服务器（test/prod host 由 .dev-flow.yml build-credentials 读）
+        sh "rsync -az --delete dist/ ${{static.host.prod}}:/var/www/${params.ENV}/"
+      }
+    }
+    stage("upload weapp") {
+      when { expression { params.TARGET == 'weapp' } }
+      steps {
+        // 小程序：miniprogram-ci 上传（appid/私钥从 Jenkins credentials，不进仓库）
+        sh "miniprogram-ci upload --pp dist --ppp ./ --appid ${WEAPP_KEY_USR:-} --pkp ${WEAPP_KEY_FILE:-} --uv weapp"
+      }
+    }
+  }
+  post {
+    success { echo "前端构建部署成功: target=${params.TARGET} env=${params.ENV}" }
+    failure { echo "前端构建失败" }
+  }
+}

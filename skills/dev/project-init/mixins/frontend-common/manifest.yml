@@ -1,0 +1,75 @@
+# frontend-common mixin —— 前端公共层（端无关）
+# 两 template(web-pc/taro-mobile) 都叠加：目录骨架 + tsconfig strict + eslint flat config(import-boundary
+# 两层锁) + prettier + tailwind 基础 preset + design-token 单一来源 + 规约同源校验 + npm 公共依赖。
+# 叠加优先级最低（被 state-business / template / ci-type 覆盖）。端无关：不引 antd/nutui/taro 框架 API。
+#
+# npm 依赖片段：各层 manifest 声明 npm.dependencies/devDependencies: [{name, version}]，version 用
+# {{var}} 占位（version-check 填）或字面量；generate_package_json 聚合注入 package.json，精确锁无 ^。
+# 禁用 mixin 时其 npm 片段不进生成图——零副作用。
+name: frontend-common
+description: 前端公共层，端无关骨架 + 公共配置（tsconfig/eslint/prettier/tailwind/design-token/规约同源校验）
+
+# generate_dev_flow 据此设 language/build-tool（前端 V1 复用 java schema，F4 二期建 taro-frontend.yml）
+project:
+  language: typescript
+  build-tool: pnpm
+
+# 公共层版本敏感变量（前端共享 dev 工具 + react/typescript/tailwind 基线），由 compat-table
+# [frontend-shared | <template>] + version-check(npm) 解析。template 另声明其专属变量。
+variables:
+  react.version: "RESOLVED_BY_VERSION_CHECK"
+  typescript.version: "RESOLVED_BY_VERSION_CHECK"
+  tailwind.version: "RESOLVED_BY_VERSION_CHECK"
+  eslint.version: "RESOLVED_BY_VERSION_CHECK"
+  typescript-eslint.version: "RESOLVED_BY_VERSION_CHECK"
+  eslint-plugin-import.version: "RESOLVED_BY_VERSION_CHECK"
+  prettier.version: "RESOLVED_BY_VERSION_CHECK"
+  postcss.version: "RESOLVED_BY_VERSION_CHECK"
+  autoprefixer.version: "RESOLVED_BY_VERSION_CHECK"
+  types-node.version: "RESOLVED_BY_VERSION_CHECK"
+
+# 公共 npm 依赖片段（端无关：react/typescript/lint/tailwind 基础；antd/nutui/vite/taro 进各 template）
+# version 用 {{var}} 占位，由 compat-table(frontend-shared/web-pc/taro-mobile) + version-check 解析填充
+npm:
+  dependencies:
+    - {name: react, version: "{{react.version}}"}
+  devDependencies:
+    - {name: typescript, version: "{{typescript.version}}"}
+    - {name: "@types/react", version: "{{react.version}}"}
+    - {name: "@types/node", version: "{{types-node.version}}"}
+    - {name: prettier, version: "{{prettier.version}}"}
+    - {name: eslint, version: "{{eslint.version}}"}
+    - {name: eslint-plugin-import, version: "{{eslint-plugin-import.version}}"}
+    - {name: typescript-eslint, version: "{{typescript-eslint.version}}"}
+    - {name: tailwindcss, version: "{{tailwind.version}}"}
+    - {name: postcss, version: "{{postcss.version}}"}
+    - {name: autoprefixer, version: "{{autoprefixer.version}}"}
+
+# 产出文件映射：模板路径 -> 生成路径（生成路径支持 {{var}} 占位）。package.json.tmpl 由
+# generate_package_json 单独处理，不在此列（避免被 generate_files 原样拷贝覆盖）。
+provides:
+  files:
+    - {from: tsconfig.json, to: "tsconfig.json"}
+    - {from: eslint.config.js, to: "eslint.config.js"}
+    - {from: .npmrc, to: ".npmrc"}
+    - {from: prettier.config.js, to: "prettier.config.js"}
+    - {from: tailwind.preset.ts, to: "tailwind.preset.ts"}
+    - {from: postcss.config.js, to: "postcss.config.js"}
+    - {from: .gitignore, to: ".gitignore"}
+    - {from: README.md.tmpl, to: "README.md"}
+    - {from: src/design-token.ts, to: "src/design-token.ts"}
+    - {from: scripts/check-spec-sync.js, to: "scripts/check-spec-sync.js"}
+    - {from: docs/frontend-spec.md, to: "docs/frontend-spec.md"}
+    # 横切分层目录骨架（端无关纯 TS 层）
+    - {from: src/api/.gitkeep, to: "src/api/.gitkeep"}
+    - {from: src/service/README.md, to: "src/service/README.md"}
+    - {from: src/types/.gitkeep, to: "src/types/.gitkeep"}
+    - {from: src/utils/.gitkeep, to: "src/utils/.gitkeep"}
+    - {from: src/hooks/business/.gitkeep, to: "src/hooks/business/.gitkeep"}
+    - {from: src/hooks/platform/.gitkeep, to: "src/hooks/platform/.gitkeep"}
+    - {from: src/components/business/.gitkeep, to: "src/components/business/.gitkeep"}
+    - {from: src/components/platform/.gitkeep, to: "src/components/platform/.gitkeep"}
+    - {from: src/pages/common/.gitkeep, to: "src/pages/common/.gitkeep"}
+    - {from: src/pages/platform/.gitkeep, to: "src/pages/platform/.gitkeep"}
+    - {from: src/assets/.gitkeep, to: "src/assets/.gitkeep"}
+    - {from: src/constants/index.ts, to: "src/constants/index.ts"}

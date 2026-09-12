@@ -1,0 +1,46 @@
+# {{project.name}}
+
+> 由 project-init 生成（template={{scaffold.template}}，ci=jenkins-frontend-ci）。
+
+## 技术栈
+
+- 语言：TypeScript（strict + noUncheckedIndexedAccess）
+- 构建：pnpm（精确锁，save-exact=true）
+- 规约：`docs/frontend-spec.md`（人读）+ `eslint.config.js`（可执行=规范源），双轨同源，`scripts/check-spec-sync.js` 校验编号一致
+
+依赖版本由 `version-check` 实时解析 series 最新稳定 GA，精确锁无 `^`，禁硬编码 patch 入库。
+
+## 目录结构（横切分层为骨架 + 叶子层分端，规约5）
+
+```
+src/
+├── api/                  # 纯网络请求层（对标 Java Feign），端无关纯 TS，禁塞页面逻辑（规约24/25）
+├── service/              # 纯业务逻辑层（对标 Java Service），禁引 React/Taro（规约3），可单测可复用
+├── types/                # TS 类型/DTO（对标 Java 实体），端无关
+├── utils/                # 无状态纯函数（对标 Java util），端无关
+├── hooks/
+│   ├── business/         # 业务 Hook（调 service），端无关
+│   └── platform/         # Taro/平台专属能力（路由/存储/弹窗）
+├── components/
+│   ├── business/         # 多端通用业务组件
+│   └── platform/         # 端专属：pc/（antd）/ h5/ weapp/（NutUI）/ rn/
+├── pages/
+│   ├── common/           # 多端通用页面
+│   └── platform/         # 端专属页面
+├── assets/               # 静态资源统一入口（规约7，禁散落）
+├── constants/            # 常量/枚举/配置
+└── store/                # [仅 state-business 启用时] zustand store
+```
+
+## 分层对标（规约6）
+
+`api`=Feign 请求层、`service`=Service 业务层、`types`=实体/DTO、`components`/`pages`=视图层。后端一眼对上。
+
+## 下一步
+
+```bash
+pnpm install
+pnpm run build
+```
+
+构建就绪检查：`scripts/check-build-ready.sh`（机器）+ `docs/checklist/build-readiness.md`（人工）。

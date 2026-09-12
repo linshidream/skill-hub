@@ -1,35 +1,172 @@
 # compat-table.yml —— 按 template 的兼容性矩阵 + 系列选择器
-# version-check.sh 按 series 前缀筛最大 GA（不取全局 latest）。
+# version-check 按 series 前缀筛最大 GA（不取全局 latest）。
+# 每个条目声明 variable（对应 merge.py 中 RESOLVED_BY_VERSION_CHECK 的变量名）+ series + artifact + kind。
+#   kind=maven：artifact 是 maven 路径（groupId/artifactId 形式），走 maven-metadata.xml。
+#   kind=npm  ：artifact 是 npm 包名（scoped 包带 @），走 registry.npmjs.org，scoped 包 URL 编码 %2F。
+# 新增依赖只改本表，不改 merge.py 的 compat_entry_for（表驱动）。
 compat:
   java-web:
     java: [8]
     spring-boot:
+      variable: boot.version
       series: "2.7."
       artifact: org/springframework/boot/spring-boot-starter-parent
-    spring-ai: null
+      kind: maven
     logstash-encoder:
+      variable: logstash-encoder.version
       series: "6."
       artifact: net/logstash/logback/logstash-logback-encoder
+      kind: maven
   java-mcp:
     java: [17, 21]
     spring-boot:
+      variable: boot.version
       series: "3.5."
       artifact: org/springframework/boot/spring-boot-starter-parent
+      kind: maven
     spring-ai:
+      variable: spring-ai.version
       series: "1.0."
-      bom: org/springframework/ai/spring-ai-bom
+      artifact: org/springframework/ai/spring-ai-bom
       starter: org/springframework/ai/spring-ai-starter-mcp-server-webmvc
+      kind: maven
     logstash-encoder:
+      variable: logstash-encoder.version
       series: "8."
       artifact: net/logstash/logback/logstash-logback-encoder
+      kind: maven
+  web-pc:
+    # 纯 PC web：vite + React18 + antd5.22 + tailwind3.4（非 Taro）
+    react:
+      variable: react.version
+      series: "18."
+      artifact: react
+      kind: npm
+    react-dom:
+      variable: react-dom.version
+      series: "18."
+      artifact: react-dom
+      kind: npm
+    antd:
+      variable: antd.version
+      series: "5.22."
+      artifact: antd
+      kind: npm
+    vite:
+      variable: vite.version
+      series: "5."
+      artifact: vite
+      kind: npm
+    vite-plugin-react:
+      variable: vite-plugin-react.version
+      series: "4."
+      artifact: "@vitejs/plugin-react"
+      kind: npm
+    tailwindcss:
+      variable: tailwind.version
+      series: "3.4."
+      artifact: tailwindcss
+      kind: npm
+    typescript:
+      variable: typescript.version
+      series: "5.5."
+      artifact: typescript
+      kind: npm
+  taro-mobile:
+    # Taro3.6 + NutUI3.0（H5 + 微信小程序多端）
+    taro:
+      variable: taro.version
+      series: "3.6."
+      artifact: "@tarojs/taro"
+      kind: npm
+    nutui:
+      variable: nutui.version
+      series: "3."
+      artifact: "@nutui/nutui-react-taro"
+      kind: npm
+    react:
+      variable: react.version
+      series: "18."
+      artifact: react
+      kind: npm
+    tailwindcss:
+      variable: tailwind.version
+      series: "3.4."
+      artifact: tailwindcss
+      kind: npm
+    typescript:
+      variable: typescript.version
+      series: "5.5."
+      artifact: typescript
+      kind: npm
+    weapp-tailwindcss:
+      variable: weapp-tailwindcss.version
+      series: "3"
+      artifact: weapp-tailwindcss
+      kind: npm
+  frontend-shared:
+    eslint:
+      variable: eslint.version
+      series: "9."
+      artifact: eslint
+      kind: npm
+    typescript-eslint:
+      variable: typescript-eslint.version
+      series: "8."
+      artifact: typescript-eslint
+      kind: npm
+    eslint-plugin-import:
+      variable: eslint-plugin-import.version
+      series: "2."
+      artifact: eslint-plugin-import
+      kind: npm
+    prettier:
+      variable: prettier.version
+      series: "3."
+      artifact: prettier
+      kind: npm
+    postcss:
+      variable: postcss.version
+      series: "8."
+      artifact: postcss
+      kind: npm
+    autoprefixer:
+      variable: autoprefixer.version
+      series: "10."
+      artifact: autoprefixer
+      kind: npm
+    types-node:
+      variable: types-node.version
+      series: "20."
+      artifact: "@types/node"
+      kind: npm
+    babel-core:
+      variable: babel-core.version
+      series: "7."
+      artifact: "@babel/core"
+      kind: npm
+    react-query:
+      variable: react-query.version
+      series: "5."
+      artifact: "@tanstack/react-query"
+      kind: npm
+    zustand:
+      variable: zustand.version
+      series: "4."
+      artifact: zustand
+      kind: npm
 tech-pref:
   fastjson2-hutool:
     fastjson2:
+      variable: fastjson2.version
       series: "2.0."
       artifact: com/alibaba/fastjson2/fastjson2
+      kind: maven
     hutool:
+      variable: hutool.version
       series: "5.8."
       artifact: cn/hutool/hutool-all
+      kind: maven
 java_align:
   - pom.mvn-compiler
   - jenkins.maven-image
@@ -37,3 +174,5 @@ java_align:
 pending:
   - "Spring AI 2.0.0 ↔ Spring Boot 4.x 兼容性（P0 不升，升前官方确认）"
   - "fastjson2 2.0.x / hutool 5.8.x 对 java8 的实际支持（落地冒烟验证）"
+  - "NutUI(@nutui/nutui-react-taro) 对 Taro3.6 的 H5/小程序支持 + 主题定制机制（落地冒烟）"
+  - "React Query 在 Taro weapp 运行时的 selector 订阅边缘行为（首个落地项目冒烟）"

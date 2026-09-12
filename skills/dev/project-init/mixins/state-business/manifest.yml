@@ -1,0 +1,19 @@
+# state-business mixin —— 可选状态管理（默认关，--var include.state-business=y 启用）
+# 双层：TanStack Query（服务端态缓存）+ Zustand（客户端共享态）。对标后端查询缓存层 + 会话级单例 bean。
+# 禁用时不加载——npm 片段与文件均不进生成图（零副作用）。极小跨页态用 React Context（零依赖，手册推荐不预置）。
+name: state-business
+description: 可选状态管理（Query+Zustand 双层，业务启用）
+
+variables:
+  react-query.version: "RESOLVED_BY_VERSION_CHECK"
+  zustand.version: "RESOLVED_BY_VERSION_CHECK"
+
+npm:
+  dependencies:
+    - {name: "@tanstack/react-query", version: "{{react-query.version}}"}
+    - {name: zustand, version: "{{zustand.version}}"}
+
+provides:
+  files:
+    - {from: store/index.ts, to: "src/store/index.ts"}
+    - {from: hooks/business/use-query-client.ts, to: "src/hooks/business/use-query-client.ts"}

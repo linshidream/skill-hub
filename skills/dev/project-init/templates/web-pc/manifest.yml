@@ -1,0 +1,37 @@
+# web-pc template —— 纯 PC web 工程模板：vite + React18 + antd5.22 + tailwind3.4（非 Taro）
+# 自包含版本敏感件（vite/react/antd 版本），不 extends 任何模板，叠加 frontend-common 公共层。
+# 适用于官网 / 管理后台 / ToB PC 后台。antd 仅限 components/platform/pc、pages/platform/pc-admin 叶子层（规约18）。
+name: web-pc
+description: 纯 PC web 模板（vite+React+antd，非 Taro）
+
+# 版本敏感变量：由 compat-table[web-pc] + version-check(npm) 实时解析最新稳定 GA
+variables:
+  react.version: "RESOLVED_BY_VERSION_CHECK"
+  react-dom.version: "RESOLVED_BY_VERSION_CHECK"
+  antd.version: "RESOLVED_BY_VERSION_CHECK"
+  vite.version: "RESOLVED_BY_VERSION_CHECK"
+  vite-plugin-react.version: "RESOLVED_BY_VERSION_CHECK"
+
+# npm 依赖片段（react/typescript/lint/tailwind 基础在 frontend-common，此处只加 web-pc 专属）
+npm:
+  dependencies:
+    - {name: react-dom, version: "{{react-dom.version}}"}
+    - {name: antd, version: "{{antd.version}}"}
+  devDependencies:
+    - {name: vite, version: "{{vite.version}}"}
+    - {name: "@vitejs/plugin-react", version: "{{vite-plugin-react.version}}"}
+  scripts:
+    dev: "vite"
+    build: "vite build"
+    preview: "vite preview"
+
+provides:
+  files:
+    - {from: vite.config.ts, to: "vite.config.ts"}
+    - {from: index.html, to: "index.html"}
+    - {from: tailwind.config.ts, to: "tailwind.config.ts"}
+    - {from: src/main.tsx, to: "src/main.tsx"}
+    - {from: src/App.tsx, to: "src/App.tsx"}
+    - {from: src/index.css, to: "src/index.css"}
+    - {from: src/components/platform/pc/.gitkeep, to: "src/components/platform/pc/.gitkeep"}
+    - {from: src/pages/platform/pc-admin/index.tsx, to: "src/pages/platform/pc-admin/index.tsx"}
