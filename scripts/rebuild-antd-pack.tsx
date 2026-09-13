@@ -35,7 +35,7 @@ const { flushSync } = await import('react-dom');
 const {
   ConfigProvider, Layout, Menu, Table, Card, Form, Input, Button,
   Empty, Tag, Steps, Breadcrumb, Statistic, List, Space, Typography,
-  Descriptions, Result, Row, Col, Avatar, Modal, Select, Drawer, Pagination,
+  Descriptions, Result, Row, Col, Avatar, Modal, Select, Drawer, Pagination, Dropdown,
 } = antd;
 
 const { Sider, Header, Content } = Layout;
@@ -184,6 +184,21 @@ const components: Record<string, React.ReactElement> = {
       </Modal>
       {/* Drawer open —— 注入 ant-drawer-* */}
       <Drawer open title="抽屉">抽屉内容</Drawer>
+      {/* Dropdown open —— 注入 ant-dropdown-menu-item 等样式（agent 手拼右上角用户菜单/行内操作菜单会用到） */}
+      <Dropdown open menu={{ items: [
+        { key: 'profile', label: '个人主页', icon: Ic(<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>) },
+        { key: 'logout', label: '退出登录', icon: Ic(<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></>) },
+      ] }}>
+        <a onClick={(e) => e.preventDefault()}>用户菜单 ▾</a>
+      </Dropdown>
+      {/* Sider collapsible collapsed —— 注入 ant-menu-inline-collapsed 样式（收起态菜单内容居中/藏文字靠它）。
+          注意：antd5 设计上不发 .ant-layout-sider-collapsed CSS 类（sider 宽度纯靠运行时 inline style），
+          故此 coverage 只为注入 Menu collapsed 态 CSS；agent 手拼收起态侧栏的容器宽度仍需 JS 改 inline flex-basis，见 tokens-override.md */}
+      <Sider collapsible collapsed defaultCollapsed width={220} collapsedWidth={64} style={{ background: '#001529' }}>
+        <Menu theme="dark" mode="inline" items={[
+          { key: 'a', label: '收起态菜单', icon: Ic(<><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></>) },
+        ]} />
+      </Sider>
     </div>
   ),
 };

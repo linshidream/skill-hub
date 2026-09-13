@@ -38,6 +38,13 @@
       "shadow": {
         "rule": "极少或不用，用 border 替代分层",
         "elevation": ["none", "0 1px 2px rgba(0,0,0,0.04)"]
+      },
+      "motion": {
+        "duration_fast": "120ms",
+        "duration_base": "200ms",
+        "easing": "cubic-bezier(0.2, 0, 0, 1)",
+        "rule": "克制，过渡仅用于状态切换",
+        "lottie": "延后（复杂序列动画用 Lottie，本期不预构建）"
       }
     },
     "商务高密度": {
@@ -70,6 +77,13 @@
       "shadow": {
         "rule": "克制，仅表头/抽屉分层",
         "elevation": ["none", "0 1px 2px rgba(0,0,0,0.06)"]
+      },
+      "motion": {
+        "duration_fast": "100ms",
+        "duration_base": "180ms",
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "rule": "高效，不拖泥带水",
+        "lottie": "延后（复杂序列动画用 Lottie，本期不预构建）"
       }
     },
     "活泼移动": {
@@ -102,6 +116,13 @@
       "shadow": {
         "rule": "允许柔和投影增加层次",
         "elevation": ["none", "0 4px 12px rgba(0,0,0,0.08)"]
+      },
+      "motion": {
+        "duration_fast": "150ms",
+        "duration_base": "250ms",
+        "easing": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "rule": "弹性回弹，增加生动感",
+        "lottie": "延后（复杂序列动画用 Lottie，本期不预构建）"
       },
       "click_target_min_pt": 44
     }

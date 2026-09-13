@@ -13,6 +13,7 @@
 | `spacing.grid` | 栅格基数 | 8pt |
 | `radius.uniform` | 统一圆角 | 全局统一，不混用 |
 | `shadow` | 阴影 | 极简/商务克制；活泼可柔和 |
+| `motion` | 动效时长/缓动 | 时长分级（fast/base）；缓动统一；复杂序列动画 Lottie 延后 |
 
 ## 量化阈值（硬指标，可校验）
 
@@ -66,6 +67,7 @@
 | `presets.<preset>.spacing.grid` / `steps` | `spacing.<level>` | `grid`→`spacing.base`；`steps`→`spacing.xs/sm/md/lg/xl` 等 | spec §Layout tokens |
 | `presets.<preset>.radius.uniform` | `rounded.<level>` | `uniform` 是统一约束；映射为各 scale 级同值或单一 `rounded.default` | spec §Shapes tokens |
 | `presets.<preset>.shadow` | **（spec 无 frontmatter 键）** | 阴影不进 frontmatter，落入 body "Elevation & Depth" 节 prose | spec §Elevation & Depth |
+| `presets.<preset>.motion` | **（spec 无 frontmatter 键）** | 动效不进 frontmatter，落入 body "Motion" 节（spec 无原生 Motion 章，标"本仓扩展"）；复杂序列动画 Lottie 延后 | spec §Consumer：未知章节保留 |
 | `thresholds.*` | **（spec 无 frontmatter 键）** | 量化阈值（对比度/8pt/字阶≤5/点击区≥44/字体≤1）落入 body "Do's and Don'ts"，作为校验护栏 | spec §Do's and Don'ts |
 
 ### B. 风格定调句/变量 → body 章节

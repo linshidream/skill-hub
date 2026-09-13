@@ -20,16 +20,13 @@
 ```text
 演示原型/
 ├── index.html
-├── home.html
-├── detail.html
-├── form.html
-├── empty.html
-├── error.html
-├── styles.css
-└── app.js
+├── antd.static.css       # 从起手包 copy（重资产，靠 release 分发）
+├── tokens-override.css    # :root 覆盖 --ant-*（由 instance 生成）
+├── icons/                 # Lucide SVG
+└── screens/               # 多页（home/detail/form/empty/error）
 ```
 
-产物可本地打开，不接真实后端，不依赖 CDN。`index.html` 可做单页多 screen 入口；多页模板用于客户逐页验收主流程、详情、表单、空态和异常态。
+产物可本地打开，不接真实后端，不依赖 CDN。`index.html` 可做单页多 screen 入口；多页用于客户逐页验收主流程、详情、表单、空态和异常态。
 
 ## 团队档位
 
@@ -44,7 +41,7 @@ open-design 生成档只保留为 adapter 占位。启用前需要核实本地 a
 
 ## 边界
 
-本 skill 生成的是签字锚点，不是真代码 demo。HTML 原型可作为前端骨架起点，但不写入 product -> dev 的正式契约；正式设计系统交接物是 `DESIGN.md`。
+本 skill 生成的是签字锚点，不是真代码 demo。演示原型是 handoff 第三类正式材料"还原参照契约"（与需求记录、DESIGN.md 并列），前端据其视觉/交互用 antd5 真实组件重写，不照搬静态 DOM；还原优先级见 `opc-sw-flow`。
 
 ## 安装
 

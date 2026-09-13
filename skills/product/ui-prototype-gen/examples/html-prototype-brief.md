@@ -12,8 +12,9 @@
 ```text
 演示原型/
 ├── index.html
-├── styles.css
-└── app.js
+├── antd.static.css
+├── tokens-override.css
+└── icons/
 ```
 
 ## 校验

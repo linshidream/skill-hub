@@ -98,7 +98,7 @@ tokens 不是玄学，有硬指标可校验：
 ## HTML 原型生成规则
 
 1. 生成多屏、可点击、可本地打开的静态原型。
-2. 基于 `templates/prototype-skeleton/` 的 antd5 预构建起手包（`antd.static.css` 真实 build 全量 CSS + 组件实例片段库）；tokens 用 CSS var 覆盖 antd5 cssVar（`:root{ --ant-*: ... }`），改主题只改变量值、不重新 build 组件库；用 Lucide SVG 图标替换 emoji；重资产（`antd.static.css`）靠 release 分发，不入产物 git。手拼 antd Button DOM 时 class 串须带 `ant-btn-color-*` + `ant-btn-variant-*` 新类（旧短名 `ant-btn-{type}` 在 antd5.29 是 no-op，无 CSS 规则），精确映射见 `prototype-skeleton/tokens-override.md` Button 类名双轨暗礁段。手拼 antd Layout+Sider DOM 时，外层 `<div class="ant-layout">` 必须同时带 `ant-layout-has-sider` 类（运行时 antd 自动加，手拼漏加则 `flex-direction:column` 塌成纵向、sider 塌顶部、侧栏不可见，见 `tokens-override.md` Layout has-sider 暗礁段）。菜单项（`ant-menu-item` 与 `ant-menu-submenu-title`）必须配 Lucide 图标：在 `<span class="ant-menu-title-content">` 前插 `<span class="ant-menu-item-icon"><svg class="lucide" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{paths}</svg></span>`，icon 颜色靠 `currentColor` 继承菜单文字色（dark 菜单白系、选中态纯白），不写死 fill；DOM 结构参考 `fragments/layout.html` 的首页 item。
+2. 基于 `templates/prototype-skeleton/` 的 antd5 预构建起手包（`antd.static.css` 真实 build 全量 CSS + 组件实例片段库）；tokens 用 CSS var 覆盖 antd5 cssVar（`:root{ --ant-*: ... }`），改主题只改变量值、不重新 build 组件库；用 Lucide SVG 图标替换 emoji；重资产（`antd.static.css`）靠 release 分发，不入产物 git。手拼 antd Button DOM 时 class 串须带 `ant-btn-color-*` + `ant-btn-variant-*` 新类（旧短名 `ant-btn-{type}` 在 antd5.29 是 no-op，无 CSS 规则），精确映射见 `prototype-skeleton/tokens-override.md` Button 类名双轨暗礁段。手拼 antd Layout+Sider DOM 时，外层 `<div class="ant-layout">` 必须同时带 `ant-layout-has-sider` 类（运行时 antd 自动加，手拼漏加则 `flex-direction:column` 塌成纵向、sider 塌顶部、侧栏不可见，见 `tokens-override.md` Layout has-sider 暗礁段）。菜单项（`ant-menu-item` 与 `ant-menu-submenu-title`）必须配 Lucide 图标：在 `<span class="ant-menu-title-content">` 前插 `<span class="ant-menu-item-icon"><svg class="lucide" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{paths}</svg></span>`，icon 颜色靠 `currentColor` 继承菜单文字色（dark 菜单白系、选中态纯白），不写死 fill；DOM 结构参考 `fragments/layout.html` 的首页 item。管理后台标准功能：submenu 默认只展开一级（手拼 DOM 时 submenu li 不带 `ant-menu-submenu-open`，点击 submenu-title 才 toggle open，见 `tokens-override.md` submenu 折叠规则）；需登录的后台加独立 `login.html`（账号+密码 input + 登录按钮，登录 click `location.href='index.html'`，退出 click `location.href='login.html'`）；右上角用户区配 Dropdown（`<div class="ant-dropdown"><ul class="ant-dropdown-menu"><li class="ant-dropdown-menu-item">`，带 Lucide 图标，点击 toggle `hidden` + 点外部关闭）；侧栏顶部加收起/展开 trigger，收起态 sider 220px→64px 只留图标列——**收起用 JS 直接改 inline `sider.style.flex='0 0 64px'`**（CSS `!important` 对 flex shorthand 在 inline 存在时不可靠，见 `tokens-override.md` Sider 收起态暗礁段）。
 3. 页面应覆盖主流程、关键状态、空态或异常态。
 4. 导航、按钮和流程跳转必须真实可点击。
 5. 使用清晰的业务文案，不在界面中解释“这是原型”“如何使用此原型”等元说明。
@@ -181,6 +181,11 @@ grep -q '\.root\.ant-menu-css-var' "演示原型/antd.static.css" 2>/dev/null &&
 python3 -c "import glob,re;[print('⚠ 含 Sider 但漏 ant-layout-has-sider 类，侧栏会塌顶部:',f) for f in glob.glob('演示原型/**/*.html',recursive=True) if re.search(r'ant-layout-sider',open(f).read()) and 'ant-layout-has-sider' not in open(f).read()]" 2>/dev/null
 # 菜单项 icon 哨兵：含菜单的页面，menu-item/submenu-title 应配 ant-menu-item-icon，否则菜单光秃无图标
 python3 -c "import glob,re;[print('⚠ 含菜单但 menu-item/submenu-title 缺 ant-menu-item-icon 图标:',f) for f in glob.glob('演示原型/**/*.html',recursive=True) if re.search(r'ant-menu-(item|submenu-title)',open(f).read()) and 'ant-menu-item-icon' not in open(f).read()]" 2>/dev/null
+# Dropdown CSS 哨兵：含 ant-dropdown-menu-item 的页面，antd.static.css 须有对应规则（rebuild coverage 漏 Dropdown 则手拼菜单无样式）
+grep -q 'ant-dropdown-menu-item' "演示原型/antd.static.css" 2>/dev/null || echo '⚠ antd.static.css 缺 Dropdown 规则（rebuild coverage 漏）→ 手拼用户菜单/操作菜单无样式，须手写 CSS 补丁或 re-build'
+# sider 收起态 CSS 哨兵：antd.static.css 须有 ant-menu-inline-collapsed 规则（收起态菜单图标居中/藏文字靠它）；
+# 注意 antd5 设计上不发 .ant-layout-sider-collapsed 类（sider 宽度纯靠运行时 inline style），故容器收起靠 JS 改 inline flex-basis + 自写 CSS，不指望 antd 给容器类
+grep -q 'ant-menu-inline-collapsed' "演示原型/antd.static.css" 2>/dev/null || echo '⚠ antd.static.css 缺 ant-menu-inline-collapsed（rebuild coverage 漏 Menu collapsed 态）→ 收起态菜单文字不隐藏、图标不居中'
 ```
 
 人工校验：
@@ -191,6 +196,7 @@ python3 -c "import glob,re;[print('⚠ 含菜单但 menu-item/submenu-title 缺 
 - Button 变体样式正确：link 呈链接态、text 去边框、danger 红色、primary 主色填充（若全像默认按钮 = 缺 color/variant 新类，见 Button 类名双轨暗礁）。
 - 侧栏在左侧正常显示：sider 深色背景撑满全高、菜单项可见（若侧栏塌成顶部一小截/菜单项不可见 = 外层 ant-layout 漏 ant-layout-has-sider 类，见 Layout has-sider 暗礁）。
 - 菜单项配 Lucide 图标：menu-item 与 submenu-title 前有 `<span class="ant-menu-item-icon"><svg class="lucide"...>`，深底白字可见（光秃文字菜单 = 漏 icon，见 `fragments/layout.html` 参考）。
+- 管理后台标准功能齐：登录页可输入账号密码、登录跳首页；右上角用户菜单 dropdown 可 toggle 显隐、点外部关闭、退出回登录页；侧栏顶部收起 trigger 点击后 sider 收至 64px 只留图标列、再点击展开回 220px；submenu 默认只展开一级不全部展开（若收起态 sider 不收缩 = JS 没改 inline flex-basis，见 Sider 收起态暗礁）。
 - 关键页面、状态和字段都能看到。
 - 没有真实敏感数据。
 
