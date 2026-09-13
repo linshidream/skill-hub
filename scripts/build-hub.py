@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import shutil
+import subprocess
 import tarfile
 import zipfile
 from datetime import datetime, timezone
@@ -51,7 +52,7 @@ def sha256_file(path: Path) -> str:
 
 def copy_tree(src: Path, dst: Path) -> None:
     def ignore(_: str, names: list[str]) -> set[str]:
-        return {name for name in names if name in SKIP_NAMES or name.endswith(".pyc")}
+        return {name for name in names if name in SKIP_NAMES or name.endswith(".pyc") or name == "node_modules"}
 
     shutil.copytree(src, dst, ignore=ignore)
 
@@ -97,11 +98,33 @@ def make_tarball(release_dir: Path, out_dir: Path, release_id: str) -> Path:
     return archive
 
 
+def rebuild_antd_pack(root: Path) -> None:
+    """re-build antd5 预构建起手包重资产（antd.static.css）到
+    skills/product/ui-prototype-gen/templates/prototype-skeleton/。
+
+    源码仓内 antd.static.css 被 .gitignore 忽略；release 打包前必须先 re-build 产出，
+    否则 release 包缺重资产（假升格风险，见 ui-prototype-gen 档位表注脚）。
+    """
+    scripts_dir = root / "scripts"
+    pkg = scripts_dir / "package.json"
+    script = scripts_dir / "rebuild-antd-pack.tsx"
+    if not pkg.exists() or not script.exists():
+        print("[rebuild-antd] scripts/rebuild-antd-pack.tsx 或 package.json 不存在，跳过")
+        return
+    node_modules = scripts_dir / "node_modules"
+    if not node_modules.exists():
+        print("[rebuild-antd] npm install --legacy-peer-deps ...")
+        subprocess.run(["npm", "install", "--legacy-peer-deps"], cwd=scripts_dir, check=True)
+    print("[rebuild-antd] npx tsx rebuild-antd-pack.tsx ...（~280s, happy-dom 提取）")
+    subprocess.run(["npx", "tsx", "rebuild-antd-pack.tsx"], cwd=scripts_dir, check=True)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build a deployable Skill Hub release.")
     parser.add_argument("--release-id", help="Release id, for example 20260601-001.")
     parser.add_argument("--out-dir", default="dist", help="Output directory.")
     parser.add_argument("--force", action="store_true", help="Overwrite an existing release directory.")
+    parser.add_argument("--skip-rebuild", action="store_true", help="Skip antd5 prototype pack re-build (重资产需已存在).")
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parents[1]
@@ -117,6 +140,9 @@ def main() -> int:
 
     release_dir.mkdir(parents=True)
     packages_dir.mkdir(parents=True)
+
+    if not args.skip_rebuild:
+        rebuild_antd_pack(root)
 
     for filename in RUNTIME_ROOT_FILES:
         src = root / filename
