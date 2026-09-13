@@ -33,9 +33,9 @@
       "kind": "backend-java",
       "status": "pending"
     },
-    "frontend-vue": {
+    "frontend-react": {
       "root": "/repo/crm-web",
-      "kind": "frontend-vue",
+      "kind": "frontend-react",
       "status": "pending"
     }
   },

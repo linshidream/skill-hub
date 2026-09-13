@@ -65,15 +65,15 @@ P1 product-lifecycle -> P2 dev-spec -> P3 dev-lifecycle -> released
 
 ```json
 {
-  "frontend-vue": {
+  "frontend-react": {
     "root": "/repo/crm-web",
-    "kind": "frontend-vue",
+    "kind": "frontend-react",
     "status": "pending"
   }
 }
 ```
 
-读取旧状态或临时状态时，也允许 `"frontend-vue": "/repo/crm-web"` 这种简写；继续写回时应规范化为对象。`handoff.requirements_doc` 和 `handoff.prototype_dir` 是兼容别名；新状态使用 `requirements_doc_path` 和 `prototype_path`。
+读取旧状态或临时状态时，也允许 `"frontend-react": "/repo/crm-web"` 这种简写；继续写回时应规范化为对象。`handoff.requirements_doc` 和 `handoff.prototype_dir` 是兼容别名；新状态使用 `requirements_doc_path` 和 `prototype_path`。
 
 ## Phase 规则
 
@@ -110,21 +110,27 @@ P1 product-lifecycle -> P2 dev-spec -> P3 dev-lifecycle -> released
 
 product -> dev 的契约有三类材料：
 
-1. 签字冻结演示物：通常为 `演示原型/` 下的可点击静态 HTML 原型。
+1. 还原参照契约（`演示原型/`）：真实组件库（antd5）渲染的高保真原型——静态 HTML + antd5 预构建 CSS + cssVar tokens 覆盖 + Lucide 图标。前端据 HTML 视觉/交互 + DESIGN.md token，用 antd5 真实组件**重写**，不照搬静态 DOM（静态 DOM 与 React 组件树+状态有不可消除 gap，定位"还原参照"而非"代码骨架契约"）。与需求记录、DESIGN.md 并列为三类正式 handoff 材料。
 2. `需求签字记录.md`：客户人话需求、功能边界、待确认项、冻结轮次和签字状态。
 3. `DESIGN.md`：dev 侧设计系统标准载体（采纳 Google Labs DESIGN.md spec，version alpha），由 `product-lifecycle` N6 从 `design-tokens.instance.json` 生成、放 engagement 根。P2 装入 handoff 时复制到各 dev 项目根，供 dev-spec/dev-lifecycle 对齐视觉 token。后端无 UI 的 engagement 无此项。
 
 不要把 `需求签字记录.md` 当成 dev spec。规格化、技术方案、验收标准和 implementation steps 由 `dev-spec` 在代码项目根完成。`DESIGN.md` 是设计 token 载体，不是 spec，不替代技术方案与验收标准。
+
+演示原型作为"还原参照契约"的还原优先级（前端用 antd5 真实组件重写时据）：
+
+- **必须还原**：布局栅格与信息架构、组件语义类型（Table / Form / Steps / Descriptions 等）、信息密度、主流程交互与跳转、主色与语义色、空态/异常态覆盖。
+- **建议还原**：间距节奏、图标语义、关键文案。
+- **可接受偏差**：antd5 真实组件的默认行为（Table 排序/分页、Form 校验时机等实现细节）、动画曲线、响应式断点微调——以 antd5 真实组件为准，不照搬静态 DOM 的内联 style。
 
 ## 多项目规则
 
 `dev_projects` 是 map，不是单路径。常见 key：
 
 - `backend-java`
-- `frontend-vue`
+- `frontend-react`
 - `miniprogram-wx`
 
-对后端项目，原型主要用于验证业务流程和接口范围，不承诺 UI 还原。对 Vue 前端，HTML 原型可以作为起点演化，但这只是 bonus，不进入下游契约。对微信小程序，HTML 原型到 WXML/WXSS 的重做成本要显式写进 spec 风险。
+对后端项目，原型主要用于验证业务流程和接口范围，不承诺 UI 还原。对 React 前端（antd5），演示原型是三类正式 handoff 材料之一（还原参照契约，见 Handoff 契约段），前端据其视觉/交互用 antd5 真实组件重写，不照搬静态 DOM——它不再是 bonus，而是与需求记录、DESIGN.md 并列的交付依据。对微信小程序，HTML 原型到 WXML/WXSS 的重做成本要显式写进 spec 风险。
 
 ## 恢复协议
 

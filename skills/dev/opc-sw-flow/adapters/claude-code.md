@@ -27,5 +27,5 @@ Claude Code 执行 `opc-sw-flow` 时：
 ## 示例提示
 
 ```text
-Use $opc-sw-flow for this engagement. Product workspace is ./20260629-client-crm, dev projects are backend-java=/repo/crm-api and frontend-vue=/repo/crm-web.
+Use $opc-sw-flow for this engagement. Product workspace is ./20260629-client-crm, dev projects are backend-java=/repo/crm-api and frontend-react=/repo/crm-web.
 ```

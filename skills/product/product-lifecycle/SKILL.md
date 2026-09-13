@@ -88,6 +88,7 @@ N1 是轻量澄清，不做重规格化。只问影响演示物生成和客户�
 - 必须展示的字段、状态和操作。
 - 明确不做的功能边界。
 - 客户签字时要看到什么才算“对，就是这个”。
+- 品牌资产清单（可选，有则收）：客户 logo、品牌主色/辅助色、指定字体、业务专属图标或插画倾向——供策展层第 ③ 层 `brand_overrides` 落品牌色、生成原型时注入定制资产。无品牌资产时跳过，用 preset 默认。风格锁护栏见 `ui-prototype-gen/templates/curation/风格锁.md`。
 
 API 契约、技术方案、验收标准和实施步骤留给 `dev-spec`。
 
@@ -146,13 +147,14 @@ DESIGN.md
 - 冻结轮次。
 - 签字状态。
 
-`DESIGN.md` 是 dev 侧设计系统标准载体（采纳 Google Labs DESIGN.md spec，version alpha；字段溯源见 `ui-prototype-gen/templates/curation/DESIGN.md-spec-notes.md`）。N6 由 `ui-prototype-gen` 策展完成时写入的 `design-tokens.instance.json`（选定 preset + 品牌色替换值）生成，放 engagement 根。它与 HTML 原型前端骨架不同：HTML 骨架只是 bonus、不进下游契约；DESIGN.md 是 product → dev 的正式设计系统交接物，dev-spec/dev-lifecycle 据此对齐视觉 token。后端无 UI 的 engagement 可不产出 DESIGN.md，`design_md_path` 留空。
+`DESIGN.md` 是 dev 侧设计系统标准载体（采纳 Google Labs DESIGN.md spec，version alpha；字段溯源见 `ui-prototype-gen/templates/curation/DESIGN.md-spec-notes.md`）。N6 由 `ui-prototype-gen` 策展完成时写入的 `design-tokens.instance.json`（选定 preset + 品牌色替换值）生成，放 engagement 根。演示原型（`演示原型/`）与 DESIGN.md 同属三类正式 handoff 材料：演示原型定位"还原参照契约"（详见 `opc-sw-flow` Handoff 段），前端据其视觉/交互用 antd5 真实组件重写，不照搬静态 DOM 作代码骨架契约；DESIGN.md 是 product → dev 的正式设计系统 token 交接物，dev-spec/dev-lifecycle 据此对齐视觉 token。后端无 UI 的 engagement 可不产出 DESIGN.md，`design_md_path` 留空。
 
 N6 完成后写入：
 
 - `signed_off=true`。
 - `frozen=true`。
 - `sign_off.status=approved`。
+- `prototype_path`：演示原型目录路径（handoff 还原参照契约路径，交 `opc-sw-flow` 写入 `handoff.prototype_path`）。
 - `prototype_pages`：原型关键页面清单，供 dev-spec 识别页面覆盖面。
 - `design_md_path`：DESIGN.md 路径（可选，无 UI 时留空）。
 - `open_questions`：不阻塞签字但要带入 dev-spec 的待确认项。
@@ -174,7 +176,7 @@ N6 完成后写入：
 
 - 不做获客；起点是已经接到的活。
 - 不生成真代码 demo 作为签字物，除非用户明确要求并接受 token 成本。
-- 不把 HTML 原型前端骨架写入下游契约；那只是可点击静态 HTML 原型档的 bonus。
+- 演示原型定位"还原参照契约"而非代码骨架契约：它是三类正式 handoff 材料之一，前端据其视觉/交互用 antd5 真实组件重写；不把静态 DOM 当可直接复用的代码骨架，也不承诺像素级绝对还原（还原优先级见 `opc-sw-flow`）。
 - 不自动 commit/tag。
 - 自检 gate 不可跳过；不把设计质量兜底推给客户评审。
 
