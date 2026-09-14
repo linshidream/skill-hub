@@ -3,7 +3,8 @@ param(
   [Parameter(Mandatory=$true)][ValidateSet("claude-code","openclaw","codex","generic")][string]$Agent,
   [ValidateSet("user","project")][string]$Scope = "user",
   [string]$Dest = "",
-  [switch]$Bundle
+  [switch]$Bundle,
+  [string[]]$Exclude = @()
 )
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -68,11 +69,14 @@ function Install-Skill([string]$Name, [string]$DestRoot) {
   return $true
 }
 
-# 递归读 skill.json dependencies，自身在前、依赖在后，去重防循环
+# 递归读 skill.json dependencies，自身在前、依赖在后，去重防循环；--exclude 跳过指定 skill 及其下游
 function Resolve-Bundle([string]$Name) {
   $script:bundleVisited = @{}
+  $script:bundleExclude = @{}
+  foreach ($x in $Exclude) { if ($x) { $script:bundleExclude[$x] = $true } }
   $script:bundleOrder = New-Object System.Collections.Generic.List[string]
   function Walk([string]$n) {
+    if ($script:bundleExclude.ContainsKey($n)) { return }
     if ($script:bundleVisited.ContainsKey($n)) { return }
     $dir = Locate-SkillDir $n
     if ($dir -eq "") { return }
@@ -96,6 +100,7 @@ if ($Bundle) {
   $list = @(Resolve-Bundle $SkillName)
   if ($list.Count -eq 0) { Write-Error "No bundle resolved for $SkillName (skill.json 无 dependencies 或未在 registry)"; exit 1 }
   Write-Host "== Bundle 安装：$SkillName 及其 dependencies =="
+  if ($Exclude -and $Exclude.Count -gt 0) { Write-Host "   排除：$($Exclude -join ',')" }
   $list | ForEach-Object { Write-Host $_ }
   Write-Host "----"
   $failed = $false
@@ -103,6 +108,7 @@ if ($Bundle) {
   if ($failed) { Write-Error "部分 skill 安装失败，见上"; exit 1 }
   Write-Host "== Bundle 完成 =="
 } else {
+  if ($Exclude -and $Exclude.Count -gt 0) { Write-Warning "-Exclude 仅在 -Bundle 模式下生效，已忽略" }
   $ok = Install-Skill $SkillName $DestRoot
   if (-not $ok) { exit 1 }
 }

@@ -1,0 +1,146 @@
+<!--
+DESIGN.md 模板（策展层 → dev 侧交接格式）
+
+- 结构与字段溯源：DESIGN.md-spec-notes.md（spec 读取日期 2026-07-07，version alpha）。
+- 示例值取自 design-tokens.json 的「商务高密度」preset；preset 未规定的字段（如 fontWeight）标「示例取值」。
+- spec frontmatter 无 shadow 键 → 阴影落入 body §5 Elevation & Depth。
+- 本仓扩展章节（组件库选型/平台差异/自检结果）带「（本仓扩展）」后缀，spec 对未知章节保留不报错（spec-notes §5）。
+- 用法：策展完成时按 design-tokens.instance.json 替换 frontmatter 值与 body prose，产出 engagement 根 DESIGN.md。
+- 占位标记 `{{品牌...}}` 处按客户品牌替换；无品牌时保留 preset 默认值。
+-->
+
+---
+version: alpha
+name: "{{品牌设计系统名 - 默认 商务高密度}}"
+description: "商务高密度 preset 示例：信息密集、间距收紧、商务蓝主色、小圆角。"
+colors:
+  primary: "#1668DC"
+  on-surface: "#1F1F2C"
+  surface: "#FFFFFF"
+  surface-variant: "#FAFAFA"
+  secondary: "#595959"
+  outline: "#E8E8EC"
+typography:
+  headline-lg:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+    fontSize: 24px
+    fontWeight: 700
+    lineHeight: 1.45
+  headline-md:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+    fontSize: 18px
+    fontWeight: 600
+    lineHeight: 1.45
+  body-md:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+    fontSize: 15px
+    fontWeight: 400
+    lineHeight: 1.45
+  body-sm:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+    fontSize: 13px
+    fontWeight: 400
+    lineHeight: 1.45
+  label:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+    fontSize: 12px
+    fontWeight: 500
+    lineHeight: 1.45
+spacing:
+  base: 8px
+  xs: 4px
+  sm: 8px
+  md: 12px
+  lg: 16px
+  xl: 20px
+  2xl: 24px
+rounded:
+  sm: 4px
+  md: 4px
+  lg: 4px
+  full: 9999px
+components:
+  button-primary:
+    backgroundColor: "{colors.primary}"
+    textColor: "#FFFFFF"
+    rounded: "{rounded.md}"
+    padding: 8px 16px
+  button-secondary:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.on-surface}"
+    rounded: "{rounded.md}"
+    padding: 8px 16px
+---
+
+# {{品牌设计系统名 - 默认 商务高密度}}
+
+## Overview
+
+商务高密度。信息密集、间距收紧、商务蓝主色、小圆角。面向后台/CRM/运营/数据看板等工作型软件，界面应安静、便于扫描，不做营销 landing page。无显式规则或 token 时，以本定调句为总纲。
+
+## Colors
+
+中性为主、商务蓝作功能强调。主色仅用于主操作、选中态、链接；不单一色相铺满全局。
+
+- **Primary (#1668DC):** 商务蓝，驱动主操作与关键交互。
+- **On-surface (#1F1F2C):** 主文字前景，对 surface 高对比可读。
+- **Surface (#FFFFFF) / Surface-variant (#FAFAFA):** 页面底色与卡片/表头分层。
+- **Secondary (#595959):** 次要文字、元数据。
+- **Outline (#E8E8EC):** 边框、分割线。
+
+## Typography
+
+1 套系统无衬线，字阶 5 级（24/18/15/13/12），行高 1.45 收紧以承信息密度。headline 用于标题与表头，body 用于正文与列表，label 用于元数据与操作。
+
+## Layout
+
+固定 8pt 栅格，间距序列 4/8/12/16/20/24，密度优先、留白克制。表格多列可滚动，卡片内边距 16px 起步。相关项用 contain 分组，避免装饰性留白。
+
+## Elevation & Depth
+
+克制使用阴影，仅表头/抽屉分层。扁平为主，用边框与对比传达层次。
+
+- 默认：无阴影（`none`）。
+- 表头/抽屉：`0 1px 2px rgba(0,0,0,0.06)`。
+
+## Shapes
+
+小圆角、密度优先，全局统一 4px，不混用大圆角。胶囊形（`full`）仅用于标签/状态点。
+
+## Components
+
+按钮分 primary（商务蓝实心）/ secondary（中性描边），padding 8×16，圆角 4px。列表、输入、表格服从 Antd/Element Plus 组件库规范，tokens 在其 theme 变量上覆盖。
+
+### 组件库选型（本仓扩展）
+
+> spec 无对应章节；本仓扩展。策展层第 2 层产物，平台=硬过滤、风格=软偏好。
+
+- Web 后台/CRM：Ant Design（React）/ Element Plus（Vue）/ shadcn（极简定制）。商务高密度优先 Antd/EP。
+- 移动 H5：Vant（稳定优先）/ NutUI（验证后）。
+- 微信小程序：TDesign（首选）/ WeUI（仅基础）。
+- Java 后端：无 UI 库，原型只验流程/接口，不承诺 UI 还原。
+
+库的活跃度会变，落地前应复核官方仓库近期提交与发版（查证带日期）。
+
+### 平台差异（本仓扩展）
+
+> spec 无对应章节；本仓扩展。策展层第 2 层硬过滤依据，禁把桌面布局硬缩小到移动端。
+
+- Web 后台：多列、高密度、可滚动表格；点击区鼠标精度 ≥ 24px 可接受。
+- 移动 H5：单列、卡片流；点击区 ≥ 44×44pt 强制；大圆角。
+- 微信小程序：单列、`pages/` 结构；HTML→WXML/WXSS 重做成本大，原型只验交互和内容范围，不承诺还原，写进 spec 风险。
+
+## Do's and Don'ts
+
+- Do 主色仅用于每屏单一最重要操作。
+- Do 维持 WCAG AA 对比度 ≥ 4.5:1（on-surface 对 surface、secondary 对 surface-variant）。
+- Do 8pt 栅格（间距为 8 的倍数，4 用于微调）。
+- Do 字阶层级 ≤ 5、字体家族 ≤ 1 套。
+- Don't 混用圆角，不单一色相铺满。
+- Don't 桌面高密度后台硬缩到移动屏。
+
+### 自检结果（本仓扩展）
+
+> spec 无对应章节；本仓扩展。策展层第 4 层 8 项 gate，pass 才生成原型 / 才进客户评审；同时是 product-lifecycle N3 自检 gate 的检查依据。
+
+8 项 gate：风格定调落地、组件库与端一致、tokens 符合量化阈值、色板纪律、页面覆盖、可点击与可读、无敏感数据、路径回写。全 pass 记 `self_check.status=pass` 进 N4 客户评审；任一 fail 记 `self_check.issues` 回 N2 重改。详见 `设计自检清单.md`。

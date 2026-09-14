@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "0.1.1",
+  "flow": "product-lifecycle",
+  "node": "N6:handoff",
+  "engagement": {
+    "name": "20260629+客户项目名",
+    "created_at": "2026-06-29",
+    "customer": "customer",
+    "mode": "opc"
+  },
+  "round": 2,
+  "round_cap": 3,
+  "max_rounds": 3,
+  "self_check": {
+    "status": "pass",
+    "issues": [],
+    "checked_at": "2026-06-29T17:30:00+08:00"
+  },
+  "frozen": true,
+  "signed_off": true,
+  "prototype_path": "./演示原型",
+  "requirements_doc_path": "./需求签字记录.md",
+  "sign_off": {
+    "status": "approved",
+    "signed_off_by": "customer",
+    "signed_off_at": "2026-06-29T18:00:00+08:00",
+    "freeze_reason": "客户确认核心流程和页面布局可进入开发规格化。"
+  },
+  "review_history": [
+    {
+      "round": 1,
+      "status": "generated",
+      "at": "2026-06-29T16:00:00+08:00",
+      "summary": "生成首版可点击原型。"
+    },
+    {
+      "round": 1,
+      "status": "self-check",
+      "at": "2026-06-29T16:20:00+08:00",
+      "summary": "设计自检清单 fail：对比度不足、空态缺失。回 N2 重改。"
+    },
+    {
+      "round": 2,
+      "status": "generated",
+      "at": "2026-06-29T17:00:00+08:00",
+      "summary": "按自检问题项重改原型。"
+    },
+    {
+      "round": 2,
+      "status": "self-check",
+      "at": "2026-06-29T17:30:00+08:00",
+      "summary": "设计自检清单 pass，路径回写 state，进客户评审。"
+    },
+    {
+      "round": 2,
+      "status": "approved",
+      "at": "2026-06-29T18:00:00+08:00",
+      "summary": "客户确认冻结。"
+    }
+  ],
+  "open_questions": [],
+  "prototype_pages": [
+    {
+      "path": "./演示原型/index.html",
+      "purpose": "原型入口和主流程总览"
+    }
+  ],
+  "git_hinted": true,
+  "updated_at": "2026-06-29T18:00:00+08:00"
+}

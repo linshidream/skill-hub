@@ -32,7 +32,8 @@ description: "Turn conversations, requirement documents, API docs, local PDF/DOC
 
 1. 读取项目根目录的 `.dev-flow.yml`（如果存在），获取 spec 配置。
 2. 读取项目 README、现有 spec 目录和相关代码入口，建立项目上下文。
-3. 建立材料清单：
+3. 建立材料清单（优先级：product handoff 已签字材料 > 用户临时描述 > 通用文档）：
+   - 先查 engagement 工作区根是否有 `.opc-sw-flow-state.json` 的 `handoff.*` 块（由 `opc-sw-flow` 编排传入）；有则按「材料输入规范 → product handoff 材料」消费三类已签字冻结材料，其可信度高于口头描述。
    - 用户直接描述的需求。
    - 公网 HTTP/HTTPS 文档地址。
    - 本地 `docx`、`pdf`、`md`、`txt`、表格或压缩包内的需求文档。
@@ -94,6 +95,29 @@ description: "Turn conversations, requirement documents, API docs, local PDF/DOC
 - response schema、error code、分页、幂等、超时、重试、限流。
 - callback/webhook、签名规则、mock/curl 示例。
 - 联调依赖、测试账号、待确认问题；敏感值只保留变量名或掩码。
+
+### product handoff 材料（opc-sw-flow 编排传入）
+
+当本 skill 由 `opc-sw-flow` 在 P2 阶段编排调用时，product 侧已签字冻结的三类正式 handoff 材料会传入。这些材料**已签字、可信度高于口头描述**，应作为需求材料的首选来源。从 engagement 工作区根的 `.opc-sw-flow-state.json` 的 `handoff.*` 块读取（或由编排层显式传入路径）：
+
+| handoff 字段（含兼容别名） | 材料 | 消费方式 |
+| --- | --- | --- |
+| `handoff.requirements_doc_path`（别名 `requirements_doc`） | `需求签字记录.md` | 需求材料首选来源：客户人话需求、功能边界、待确认项、签字状态已冻结，直接作为 spec「需求材料与证据」的主源 |
+| `handoff.prototype_path`（别名 `prototype_dir`） | `演示原型/` | 还原参照契约：UI 布局、信息架构、组件语义、字段/状态/空异常态、主流程交互的权威来源。作为 spec 功能清单与验收标准的视觉依据 |
+| `handoff.design_md`（别名 `design_md_path`） | `DESIGN.md` | 视觉 token 对齐：色板/字阶/间距/圆角/阴影，写入 spec 技术方案的视觉约束 |
+
+伴随两个非路径字段（在 `.opc-sw-flow-state.json` 顶层或 `handoff` 块，由 product-lifecycle N6 写入、opc-sw-flow 映射）：
+
+- `prototype_pages`（原型页面清单 `[{path,purpose}]`）：识别页面覆盖面——spec 的功能清单须覆盖原型全部页面，漏页面即漏需求。
+- `open_questions`（product 侧待确认项）：带入 spec「待确认问题」章节，不丢失；这些是产品侧已记录但未拍板的项。
+
+`dev_projects.kind` 消费权重（决定前端/后端对 handoff 材料的侧重）：
+
+- `frontend-react`：重点消费 `prototype_path` + `DESIGN.md`——还原参照契约是三类正式 handoff 材料之一，前端据其视觉/交互用 antd5 真实组件重写（还原优先级见 `opc-sw-flow` Handoff 段）。
+- `backend-java`：重点消费 `requirements_doc_path`（需求记录）+ 接口范围；原型只用于验证业务流程，不承诺 UI 还原。
+- `miniprogram-wx`：消费需求记录 + 原型交互；HTML→WXML/WXSS gap 大，重做成本写进 spec 风险。
+
+无 `.opc-sw-flow-state.json` 或无 `handoff` 块时（用户独立触发 dev-spec、非 OPC 流程），按上述通用材料输入规范处理，不强制 handoff。
 
 ## 模板
 
@@ -208,6 +232,7 @@ grep -c '## ' docs/specs/YYYYMMDD-xxx.md
 - 材料来源是否完整，敏感内容是否脱敏。
 - API 字段、错误码和验收标准是否有来源或明确标注为待确认。
 - 复杂度和实施步骤是否适合当前项目规模。
+- 若存在 `.opc-sw-flow-state.json` 的 `handoff` 块（OPC 流程）：spec 是否消费了三类 handoff 材料（需求记录/演示原型/DESIGN.md）、功能清单是否覆盖 `prototype_pages` 全部页面、`open_questions` 是否带入「待确认问题」章节、`dev_projects.kind` 消费权重是否正确（前端重点消费原型+DESIGN.md，后端只看需求记录+接口范围）。
 
 ## Agent 适配
 

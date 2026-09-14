@@ -46,12 +46,22 @@
       "sideEffects": ["filesystem-read", "filesystem-write", "shell", "network"]
     },
     {
+      "name": "opc-sw-flow",
+      "title": "OPC 软开顶层编排",
+      "version": "0.2.0",
+      "category": "dev",
+      "path": "skills/dev/opc-sw-flow",
+      "description": "顶层编排 product-lifecycle、dev-spec 与 dev-lifecycle，把客户人话需求转成签字演示物（与需求记录、DESIGN.md 并列三类正式 handoff 材料）、证据化开发 spec、实现和发布，支持一人软开公司与小团队交付；dev_projects 支持 backend-java/frontend-react/miniprogram-wx。Top-level OPC software delivery orchestration with three-type handoff contract.",
+      "supportedAgents": ["claude-code", "codex", "generic"],
+      "sideEffects": ["filesystem-read", "filesystem-write", "shell", "network", "external-service"]
+    },
+    {
       "name": "dev-spec",
       "title": "开发需求规格化",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "category": "dev",
       "path": "skills/dev/dev-spec",
-      "description": "将需求对话、需求文档、API 文档、本地 PDF/DOCX 和原型图整理为证据化 spec，按业务闭环拆分实施步骤并输出到 docs；intake 确定 feature 后建立活动状态文件与指针。Turn requirement materials into evidence-backed specs with business-slice implementation steps; seeds the active per-feature state on intake.",
+      "description": "将需求对话、需求文档、API 文档、本地 PDF/DOCX 和原型图整理为证据化 spec，按业务闭环拆分实施步骤输出到 docs；OPC 流程下显式消费 product-lifecycle 三类 handoff 材料（需求记录/演示原型/DESIGN.md）+ prototype_pages + open_questions，按 dev_projects.kind 调整消费权重；intake 确定 feature 后建立活动状态文件与指针。Turn requirement materials into evidence-backed specs; explicitly consumes product-lifecycle three-type handoff materials under OPC flow with kind-weighted consumption; seeds the active per-feature state on intake.",
       "supportedAgents": ["claude-code", "codex", "generic"],
       "sideEffects": ["filesystem-read", "filesystem-write", "network", "browser"]
     },
@@ -76,6 +86,26 @@
       "sideEffects": ["shell", "network", "external-service"]
     },
     {
+      "name": "product-lifecycle",
+      "title": "产品侧签字生命周期",
+      "version": "0.2.0",
+      "category": "product",
+      "path": "skills/product/product-lifecycle",
+      "description": "将客户人话需求转成可签字演示物（还原参照契约）和需求签字记录，含轻量澄清（含品牌资产清单）、演示物生成、设计自检 gate、有限轮次评审、签字冻结与三类 handoff 材料（演示原型/需求记录/DESIGN.md）交接。Product-side lifecycle for signed-off prototype and three-type dev handoff.",
+      "supportedAgents": ["claude-code", "codex", "generic"],
+      "sideEffects": ["filesystem-read", "filesystem-write"]
+    },
+    {
+      "name": "ui-prototype-gen",
+      "title": "UI 演示原型生成",
+      "version": "0.2.0",
+      "category": "product",
+      "path": "skills/product/ui-prototype-gen",
+      "description": "生成客户可评审签字的 UI 演示物，默认产出 antd5 真实 build 高保真原型档（预构建全量 CSS + 组件片段库 + cssVar tokens 覆盖 + Lucide 图标），内置设计策展层四层选型与 tokens preset，作为 product→dev 的还原参照契约；为团队模式预留 open-design 生成档。Generate antd5 high-fidelity prototypes as a product→dev restoration-reference contract for product-lifecycle sign-off.",
+      "supportedAgents": ["claude-code", "codex", "generic"],
+      "sideEffects": ["filesystem-read", "filesystem-write", "browser"]
+    },
+    {
       "name": "mafengwo-original-images",
       "title": "马蜂窝游记原图下载",
       "version": "0.1.0",
@@ -88,7 +118,7 @@
     {
       "name": "diverge-converge",
       "title": "扩散收敛法",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "category": "creative",
       "path": "skills/creative/diverge-converge",
       "description": "一种与 Agent 共建的思维方法:把不成熟的想法通过先扩散(铺开地图、暴露未知)后收敛(逐个锁定决策),逐步逼近成一份任何智能体都能接手的可实施手稿。领域无关,适用于软件架构、研究选题、商业决策、产品设计、写作等一切开放复杂课题。A thinking-partner method that turns an immature idea into an implementable manuscript through deliberate divergence then convergence; domain-agnostic.",

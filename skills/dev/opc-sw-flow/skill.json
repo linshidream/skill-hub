@@ -1,0 +1,19 @@
+{
+  "name": "opc-sw-flow",
+  "title": "OPC 软开顶层编排",
+  "version": "0.2.0",
+  "description": "顶层编排 product-lifecycle、dev-spec 与 dev-lifecycle，把客户人话需求转成签字演示物（与需求记录、DESIGN.md 并列三类正式 handoff 材料）、证据化开发 spec、实现和发布，支持一人软开公司与小团队交付；dev_projects 支持 backend-java/frontend-react/miniprogram-wx。Top-level OPC software delivery orchestration with three-type handoff contract.",
+  "category": "dev",
+  "license": "MIT",
+  "entry": "SKILL.md",
+  "requirements": ["python>=3.10"],
+  "supportedAgents": ["claude-code", "codex", "generic"],
+  "sideEffects": ["filesystem-read", "filesystem-write", "shell", "network", "external-service"],
+  "dependencies": ["product-lifecycle", "ui-prototype-gen", "dev-spec", "dev-lifecycle"],
+  "schemas": {
+    "state": "../../../schemas/opc-sw-flow-state.schema.json"
+  },
+  "adapters": {
+    "claude-code": "adapters/claude-code.md"
+  }
+}

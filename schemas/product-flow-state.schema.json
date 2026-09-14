@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/skill-hub/schemas/product-flow-state.schema.json",
+  "title": "Product Lifecycle State",
+  "type": "object",
+  "required": ["schemaVersion", "flow", "node", "round", "frozen", "signed_off", "prototype_path", "requirements_doc_path", "sign_off"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "0.1.1"
+    },
+    "flow": {
+      "type": "string",
+      "const": "product-lifecycle"
+    },
+    "engagement": {
+      "type": "object",
+      "description": "Optional engagement metadata used for resume prompts and output naming.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "examples": ["20260629+客户项目名"]
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "customer": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["opc", "team"]
+        }
+      },
+      "additionalProperties": true
+    },
+    "node": {
+      "type": "string",
+      "enum": [
+        "N0:intake",
+        "N1:elicitation",
+        "N2:generate",
+        "N3:self-check",
+        "N4:review",
+        "N5:sign-off",
+        "N6:handoff"
+      ]
+    },
+    "round": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "round_cap": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 3
+    },
+    "max_rounds": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 3,
+      "description": "Compatibility alias for round_cap."
+    },
+    "self_check": {
+      "type": "object",
+      "description": "N3 self-check gate record. Quality gate before customer review; quality must not be deferred to the customer.",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["pending", "pass", "fail"]
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Failing checklist items when status=fail.",
+          "default": []
+        },
+        "checked_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "frozen": {
+      "type": "boolean",
+      "default": false
+    },
+    "signed_off": {
+      "type": "boolean",
+      "default": false,
+      "description": "True after N6 handoff files are produced and the top-level opc-sw-flow may proceed."
+    },
+    "prototype_path": {
+      "type": "string"
+    },
+    "requirements_doc_path": {
+      "type": "string"
+    },
+    "design_md_path": {
+      "type": "string",
+      "description": "Optional. Path to the generated DESIGN.md (Google Labs DESIGN.md spec, version alpha) at the engagement root. Produced by N6 handoff from design-tokens.instance.json. Absent when the engagement has no UI design system (e.g. backend-only)."
+    },
+    "sign_off": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["not-requested", "awaiting", "approved", "rejected"]
+        },
+        "signed_off_by": {
+          "type": "string"
+        },
+        "signed_off_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "freeze_reason": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "review_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["round", "status", "at"],
+        "properties": {
+          "round": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": ["generated", "self-check", "feedback", "approved", "frozen"]
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "default": []
+    },
+    "open_questions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Questions that do not block prototype generation and should be handed to dev-spec when relevant.",
+      "default": []
+    },
+    "prototype_pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "purpose"],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "default": []
+    },
+    "git_hinted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the frozen node has already shown the optional git commit/tag hint."
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

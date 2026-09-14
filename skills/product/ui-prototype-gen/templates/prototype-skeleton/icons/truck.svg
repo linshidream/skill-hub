@@ -1,0 +1,18 @@
+<!-- @license lucide-static v1.37.0 - ISC（truck 为 Lucide 风格简化版，非官方精确 path）-->
+<svg
+  class="lucide lucide-truck"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M14 18V6a2 2 0 0 0-2-2H2v14h12" />
+  <path d="M14 9h5l4 4v5h-9" />
+  <circle cx="7" cy="18" r="2" />
+  <circle cx="17" cy="18" r="2" />
+</svg>

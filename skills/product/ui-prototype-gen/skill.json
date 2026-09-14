@@ -1,0 +1,19 @@
+{
+  "name": "ui-prototype-gen",
+  "title": "UI 演示原型生成",
+  "version": "0.2.0",
+  "description": "生成客户可评审签字的 UI 演示物，默认产出 antd5 真实 build 高保真原型档（预构建全量 CSS + 组件片段库 + cssVar tokens 覆盖 + Lucide 图标），内置设计策展层四层选型与 tokens preset，作为 product→dev 的还原参照契约；为团队模式预留 open-design 生成档。Generate antd5 high-fidelity prototypes as a product→dev restoration-reference contract for product-lifecycle sign-off.",
+  "category": "product",
+  "license": "MIT",
+  "entry": "SKILL.md",
+  "requirements": [],
+  "supportedAgents": ["claude-code", "codex", "generic"],
+  "sideEffects": ["filesystem-read", "filesystem-write", "browser"],
+  "templates": {
+    "html-prototype": "templates/prototype-skeleton",
+    "curation": "templates/curation"
+  },
+  "adapters": {
+    "claude-code": "adapters/claude-code.md"
+  }
+}

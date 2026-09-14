@@ -11,3 +11,12 @@ dist/
 .env.*
 !.env.example
 /docs/
+
+# antd5 预构建起手包重资产（靠 release 分发，不入源码 git）
+skills/product/ui-prototype-gen/templates/prototype-skeleton/antd.static.css
+# re-build 工作区依赖
+scripts/node_modules/
+
+# 本地 agent 记忆（非 skill 产物，不入仓库）
+memory/
+
