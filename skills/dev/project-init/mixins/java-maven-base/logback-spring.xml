@@ -38,7 +38,7 @@
             <appender-ref ref="ASYNC_APP_FILE"/>
         </root>
     </springProfile>
-    <springProfile name="test">
+    <springProfile name="test | local">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
             <appender-ref ref="APP_FILE"/>

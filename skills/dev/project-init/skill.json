@@ -1,8 +1,8 @@
 {
   "name": "project-init",
   "title": "Java 项目脚手架生成器",
-  "version": "0.2.0",
-  "description": "把空目录变成可立即 mvn package + 可构建镜像 + 可被 dev-lifecycle 接管的 Java Spring Boot 项目骨架（java-web 传统 Web 服务 / java-mcp Spring AI MCP Server）。采用 template + mixin 独立模板架构，template 不继承、零 exclude，从根上消除 javax/jakarta 版本残留；生成 .dev-flow.yml（含 scaffold 块 + build-credentials）并写入项目级状态 .dev-flow/project.json，作为 dev-lifecycle 协议的第 0 个 cascade 节点（项目级 scaffold 阶段）。Generate a ready-to-build Java Spring Boot scaffold; template+mixin architecture with zero inheritance, scaffold-phase woven into dev-lifecycle protocol.",
+  "version": "0.3.0",
+  "description": "把空目录变成可立即 mvn package + 可构建镜像 + 可被 dev-lifecycle 接管的 Java Spring Boot 项目骨架（java-web 传统 Web 服务 / java-mcp Spring AI MCP Server）。采用 template + mixin 独立模板架构，template 不继承、零 exclude，从根上消除 javax/jakarta 版本残留；生成 .dev-flow.yml（含 scaffold 块 + build-credentials）并写入项目级状态 .dev-flow/project.json，作为 dev-lifecycle 协议的第 0 个 cascade 节点（项目级 scaffold 阶段）。可选数据源 mixin（mysql HikariCP / redis redisson 单机 / rocketmq）经 include.{mysql,redis,rocketmq} 表单开关条件加载（默认全启用，n 关闭=零副作用），配置经 ${ENV:本地默认} 注入环境文件；HealthChecker SPI 聚合各数据源诊断到 /health（条件性+隔离+聚合）。Generate a ready-to-build Java Spring Boot scaffold; template+mixin architecture with zero inheritance, optional data-source mixins (mysql/redis/rocketmq) conditionally loaded, HealthChecker SPI aggregating datasource diagnostics, scaffold-phase woven into dev-lifecycle protocol.",
   "category": "dev",
   "license": "MIT",
   "entry": "SKILL.md",

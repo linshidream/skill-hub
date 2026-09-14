@@ -12,7 +12,10 @@ project-init/
 │   ├── java-web/                    # 传统 Web 服务（java8 / Boot2.7 / javax）
 │   └── java-mcp/                    # Spring AI MCP Server（java21 / Boot3.5 / jakarta）
 ├── mixins/                          # 可挂载共享块（被 template 或 --tech-pref/--ci-type 选载）
-│   ├── java-maven-base/             # 版本无关骨架（pom/logback/application/Application/docs）
+│   ├── java-maven-base/             # 版本无关骨架（pom/logback/application 四件套/Application/docs/HealthChecker SPI）
+│   ├── mysql/                       # 可选数据源：mysql（HikariCP，条件加载 include.mysql）
+│   ├── redis/                       # 可选数据源：redis（redisson 单机，条件加载 include.redis）
+│   ├── rocketmq/                    # 可选数据源：rocketmq（条件加载 include.rocketmq）
 │   ├── fastjson2-hutool/            # 技术偏好栈
 │   └── jenkins-docker-ci/           # CI 类型
 ├── lib/merge.py                     # 合并器引擎
@@ -20,7 +23,7 @@ project-init/
 └── adapters/                        # 各 agent 安装/执行差异
 ```
 
-叠加优先级：`java-maven-base < fastjson2-hutool < template < jenkins-docker-ci`（后层覆盖前层）。
+叠加优先级：`java-maven-base < [可选数据源] < fastjson2-hutool < template < jenkins-docker-ci`（后层覆盖前层）。可选数据源 mixin 经 `include.{mysql,redis,rocketmq}` 开关条件加载（默认全启用，填 n 关闭=零文件零依赖）。
 
 ## 与 dev-lifecycle 的协议织入
 

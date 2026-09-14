@@ -37,7 +37,13 @@ except ImportError:
     sys.exit("ERROR: 需要 PyYAML：pip3 install pyyaml")
 
 RESOLVED_MARK = "RESOLVED_BY_VERSION_CHECK"
-SKILL_VERSION = "0.2.0"   # 与 skill.json / registry.json / SKILL_RELEASES.md 同步，generated-by 标记用
+SKILL_VERSION = "0.3.0"   # 与 skill.json / registry.json / SKILL_RELEASES.md 同步，generated-by 标记用
+
+# 可选数据源默认开关：include.{mysql,redis,rocketmq} 默认 y（全启用），--var include.<ds>=n 关闭
+# 关闭的 mixin 不加载——其 provides.files 与 pom 片段均不进入生成图（零副作用，非"生成后删除"）
+_DS_LIST = ("mysql", "redis", "rocketmq")
+_DS_DEFAULTS = {f"include.{ds}": "y" for ds in _DS_LIST}
+_DS_DISABLE = {"n", "no", "false", "0"}
 
 
 # ============================ 工具 ============================
@@ -120,13 +126,14 @@ def resolve_versions(variables, project_type, tech_pref, compat):
 
 # ============================ layer 装配（非继承）============================
 def load_layer(kind, name=None):
-    """返回 (manifest, dir)。kind: base-mixin/tech-pref/ci-type/template。"""
+    """返回 (manifest, dir)。kind: base-mixin/tech-pref/ci-type/template/data-source。"""
     if kind == "base-mixin":
         return load_yaml(os.path.join(BASE_MIXIN, "manifest.yml")), BASE_MIXIN
     dirs = {
-        "tech-pref": os.path.join(MIXINS, name),        # fastjson2-hutool
-        "ci-type":   os.path.join(MIXINS, name),        # jenkins-docker-ci
-        "template":  os.path.join(TEMPLATES, name),    # java-web / java-mcp
+        "tech-pref":   os.path.join(MIXINS, name),        # fastjson2-hutool
+        "ci-type":     os.path.join(MIXINS, name),        # jenkins-docker-ci
+        "template":    os.path.join(TEMPLATES, name),    # java-web / java-mcp
+        "data-source": os.path.join(MIXINS, name),        # mysql / redis / rocketmq（可选，条件加载）
     }
     d = dirs[kind]
     return load_yaml(os.path.join(d, "manifest.yml")), d
@@ -216,6 +223,12 @@ def generate_files(layers, variables, project_dir, module_only=False):
         extra_all.extend((manifest or {}).get("extra-config") or [])
     extra_text = "\n".join(extra_all)
 
+    # top-config：顶层配置块（redis:/rocketmq: 等不属于 spring: 命名空间的键），注入 @@TOP-EXTRA@@
+    top_all = []
+    for manifest, _ in layers:
+        top_all.extend((manifest or {}).get("top-config") or [])
+    top_text = "\n".join(top_all)
+
     for dst, src_abs in file_map.items():
         out_abs = os.path.join(project_dir, dst)
         os.makedirs(os.path.dirname(out_abs), exist_ok=True)
@@ -224,6 +237,8 @@ def generate_files(layers, variables, project_dir, module_only=False):
         text = open(src_abs, encoding="utf-8").read()
         if "@@SPRING-EXTRA@@" in text:
             text = text.replace("  # @@SPRING-EXTRA@@", extra_text)
+        if "@@TOP-EXTRA@@" in text:
+            text = text.replace("# @@TOP-EXTRA@@", top_text)
         text = replace_vars(text, variables)
         with open(out_abs, "w", encoding="utf-8") as f:
             f.write(text)
@@ -560,20 +575,41 @@ def main():
     else:
         sys.exit(f"ERROR: ci profile 未定义 java {jv} 的构建/运行镜像")
 
+    # ---- 2b. 可选数据源 mixin（条件加载：include.{mysql,redis,rocketmq}，默认 y，--var ...=n 关闭）----
+    # 叠加顺序：base < [data-source] < tech-pref < template < ci-type（ds 插在 base 之后、tech-pref 之前）
+    # 未加载的 mixin provides.files 与 pom 片段均不进入生成图——零副作用
+    print("== 可选数据源 ==")
+    ds_layers = []
+    for ds in _DS_LIST:
+        flag = str(manual.get(f"include.{ds}", _DS_DEFAULTS[f"include.{ds}"])).strip().lower()
+        # 记录解析后的开关值，供摘要与下游感知（manual/--var 优先）
+        variables[f"include.{ds}"] = "n" if flag in _DS_DISABLE else "y"
+        if flag in _DS_DISABLE:
+            print(f"  跳过数据源 mixin: {ds}（include.{ds}={flag}）")
+            continue
+        ds_m, ds_d = load_layer("data-source", ds)
+        # ds 变量（redisson.version / rocketmq-spring.version 钉查证值）用 setdefault：
+        # manual(--var) 与 template 已在 variables 中则不覆盖，保证手动优先
+        for ds_k, ds_v in (ds_m.get("variables") or {}).items():
+            variables.setdefault(ds_k, ds_v)
+        ds_layers.append((ds_m, ds_d))
+        print(f"  装载数据源 mixin: {ds}")
+
     # ---- 3. 版本查证（RESOLVED_BY_VERSION_CHECK -> GA）----
     print("== 版本查证（按系列筛最新 GA，不取全局 latest） ==")
     resolve_versions(variables, args.project_type, args.tech_pref, compat)
 
-    # ---- 4. 装配 layers（base-mixin ∪ tech-pref ∪ template ∪ ci-type）----
+    # ---- 4. 装配 layers（base-mixin ∪ data-source ∪ tech-pref ∪ template ∪ ci-type）----
     base_m, base_d = load_layer("base-mixin")
-    layers = [(base_m, base_d), (tp_m, tp_dir), (tmpl_m, tmpl_dir), (ci_manifest, ci_dir)]
+    layers = ([(base_m, base_d)] + ds_layers
+              + [(tp_m, tp_dir), (tmpl_m, tmpl_dir), (ci_manifest, ci_dir)])
 
     # ---- 5. 生成普通文件 ----
     print("== 生成文件 ==")
     generate_files(layers, variables, project_dir)
 
-    # ---- 6. pom-server 占位注入（用 base + tech-pref + template 的 pom 片段）----
-    pom_layers = [base_m, tp_m, tmpl_m]
+    # ---- 6. pom-server 占位注入（用 base + data-source + tech-pref + template 的 pom 片段）----
+    pom_layers = [base_m] + [m for m, _ in ds_layers] + [tp_m, tmpl_m]
     pom_out = os.path.join(project_dir, variables["core.module.name"], "pom.xml")
     generate_pom_server(pom_layers, variables, pom_out)
     print(f"  pom.xml 已生成（占位注入：properties/depMgmt/deps）")
@@ -616,6 +652,9 @@ def main():
         "spring-ai.version": variables.get("spring-ai.version"),
         "fastjson2.version": variables.get("fastjson2.version"),
         "hutool.version": variables.get("hutool.version"),
+        "data-sources": {ds: variables.get("include." + ds) for ds in _DS_LIST},
+        "redisson.version": variables.get("redisson.version"),
+        "rocketmq-spring.version": variables.get("rocketmq-spring.version"),
     }, ensure_ascii=False, indent=2))
     print(f"\n下一步：cd {project_dir} && mvn -pl {variables['core.module.name']} -am clean package")
     print("构建就绪检查：scripts/check-build-ready.sh（机器）+ docs/checklist/build-readiness.md（人工）")

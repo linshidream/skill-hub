@@ -1,6 +1,6 @@
 ---
 name: project-init
-description: Initialize a Java Maven Spring Boot project scaffold into an empty directory (or add a new child module to an existing one). Generates parent/child POM, logback, layered application config, README, docs/ skeleton, test skeleton, Dockerfile/build.sh/run.sh/rollback.sh, Jenkinsfile, build-readiness checklist, and a .dev-flow.yml seed (with scaffold block + build-credentials) plus project-level state .dev-flow/project.json wired into dev-lifecycle as the project-level cascade-0 node. Template + mixin architecture: each project type (java-web / java-mcp) is a self-contained independent template with zero inheritance, eliminating javax/jakarta version residue. Triggered when the current project folder is empty OR the user explicitly asks to create a child module; when uncertain, ask first.
+description: Initialize a Java Maven Spring Boot project scaffold into an empty directory (or add a new child module to an existing one). Generates parent/child POM, logback, layered application config (application.yml core + local/test/prod env files), README, docs/ skeleton, test skeleton, Dockerfile/build.sh/run.sh/rollback.sh, Jenkinsfile, build-readiness checklist, and a .dev-flow.yml seed (with scaffold block + build-credentials) plus project-level state .dev-flow/project.json wired into dev-lifecycle as the project-level cascade-0 node. Template + mixin architecture: each project type (java-web / java-mcp) is a self-contained independent template with zero inheritance, eliminating javax/jakarta version residue. Optional data-source mixins (mysql HikariCP / redis redisson single-node / rocketmq) are conditionally loaded via include.{mysql,redis,rocketmq} form flags (default all-on, n to disable — zero side effects when disabled), injecting datasource config into env files via ${ENV:local-default} placeholders. HealthChecker SPI aggregates per-datasource diagnostics into /health (conditional + isolated + aggregated). Triggered when the current project folder is empty OR the user explicitly asks to create a child module; when uncertain, ask first.
 ---
 
 # project-init — Java 项目脚手架生成器
@@ -87,12 +87,15 @@ finalName         = ${core.module.name}     # 供 Dockerfile ADD 稳定引用
 ## 4. 扩展机制：template + mixin（非继承）
 
 ```
-产物 = java-maven-base mixin ∪ fastjson2-hutool mixin ∪ template ∪ jenkins-docker-ci mixin
+产物 = java-maven-base mixin ∪ [可选数据源 mixin] ∪ fastjson2-hutool mixin ∪ template ∪ jenkins-docker-ci mixin
 ```
+
+可选数据源 mixin（mysql / redis / rocketmq）：初始化表单按 `include.{mysql,redis,rocketmq}` 勾选（默认全启用，填 `n` 关闭），启用则自动生成对应依赖、配置块与（redis 的）配置类，禁用则 mixin 不加载——`provides.files` 与 pom 片段均不进入生成图，**零副作用**（不是「生成后删除」）。叠加顺序：`base-mixin ∪ [可选数据源] ∪ tech-pref ∪ template ∪ ci-type`，data-source mixin 插在 base 之后、tech-pref 之前。
 
 每个项目类型是一个**独立模板**（`templates/<name>/`），自包含全部版本敏感件，不 extends 任何模板，零 exclude、零覆盖。共享件通过可挂载的 mixin 复用，而非继承。
 
-- `mixins/java-maven-base/`：版本无关骨架（父/子 pom 骨架、logback、application 三件套、README、.gitignore、Application.java、docs 骨架、测试骨架）。所有 Java Maven 项目共享。版本敏感件（RequestIdFilter、各 template 的 pom 片段）不在 mixin，在各 template 自持。
+- `mixins/java-maven-base/`：版本无关骨架（父/子 pom 骨架、logback、application 四件套、README、.gitignore、Application.java、docs 骨架、测试骨架、`HealthChecker` SPI 接口）。所有 Java Maven 项目共享。版本敏感件（RequestIdFilter、各 template 的 pom 片段）不在 mixin，在各 template 自持。
+- `mixins/{mysql,redis,rocketmq}/`：可选数据源。mysql=HikariCP+jdbc+connector-j；redis=redisson 核心包 3.13.6（手写 `RedissonConfig`，单机）；rocketmq=rocketmq-spring-boot-starter 2.2.3。各提供对应 `*HealthChecker`（`@Component`，注入对应 bean `required=false`）。
 - `mixins/fastjson2-hutool/`：技术偏好栈（fastjson2 + hutool + lombok + guava），跨 template 正交。P0 仅此一个。
 - `templates/<name>/`：项目类型，独立模板。P0 两型：
   - `java-web`（java8 + Boot2.7 + SpringMVC + **javax**）：自包含 javax 版 RequestIdFilter + HealthController。
@@ -185,7 +188,7 @@ finalName         = ${core.module.name}     # 供 Dockerfile ADD 稳定引用
 
 回滚不进 dev-lifecycle V1 cascade（V1 到 `deployed-test` 停），由人手动触发。`.deploy-history` 不入 `.dev-flow/` 状态。
 
-## 10. 版本基线（2026-07-09 查证，仅参考，落地以 version-check 实时解析为准）
+## 10. 版本基线（2026-08-08 查证，仅参考，落地以 version-check 实时解析为准）
 
 | 依赖 | P0 选用系列 | 实测最新 GA |
 |---|---|---|
@@ -194,8 +197,13 @@ finalName         = ${core.module.name}     # 供 Dockerfile ADD 稳定引用
 | spring-ai-starter-mcp-server-webmvc | java-mcp=1.0.x | 1.0.9 |
 | fastjson2 | fastjson2-hutool=2.0.x | 2.0.62 |
 | hutool-all | fastjson2-hutool=5.8.x | 5.8.46 |
+| redisson（核心包，可选数据源） | 钉查证 3.13.x | 3.13.6（java8 兼容，Boot2.7 实测） |
+| rocketmq-spring-boot-starter（可选数据源） | 钉查证 2.2.x | 2.2.3（针对 Boot 2.x，实测） |
+| mysql-connector-j（可选数据源） | 不钉，Boot parent 管理 | Boot2.7.18=8.0.33 / Boot3.5.x 同名新坐标 |
 
 > Spring AI 2.0.0 / Boot 4.1.0 已 GA，但 P0 选稳定线（1.0.9 / 3.5.16 / 2.7.18）。升最新栈前需官方确认 Spring AI 2.0.0↔Boot 4.x 兼容性。
+>
+> redisson / rocketmq-spring 为可选数据源 mixin 的钉查证值（注释注明来源 + 查证日期 2026-08-08），未走 compat-table/version-check 实时解析（后续可加 compat-table 条目改为 series + version-check）。两者均 voucher-ledger 项目（java8/Boot2.7.18）实测全绿。已知运行兼容性见第 15 节。
 
 ## 11. 实施方案文档解析的边界
 
@@ -234,7 +242,12 @@ finalName         = ${core.module.name}     # 供 Dockerfile ADD 稳定引用
 18. docker 凭据 id        :
 19. git 仓库 url          : 例 https://gitee.com/your-org/your-repo.git
 20. deploy.root           [默认=/opt/app]           :  部署根目录，须与实际服务器目录一致（run.sh/rollback.sh 的 CONFIG_DIR/LOG_DIR 前缀）
+21. include.mysql         [默认=y]                  :  mysql 数据源（HikariCP），填 n 不生成
+22. include.redis         [默认=y]                  :  redis 数据源（redisson 单机），填 n 不生成
+23. include.rocketmq      [默认=y]                  :  rocketmq 数据源，填 n 不生成
 ```
+
+> **可选数据源（21-23）**：默认全启用，填 `n` 关闭对应 mixin（不加载=零文件零依赖）。启用后自动生成依赖 + 配置块 + 健康检查 Checker（redis 额外生成 `RedissonConfig`）。内置本地默认值（仅本地开发）：mysql=127.0.0.1:3306/appdb root/pwd123456；redis=127.0.0.1:6379 密码 zx123456；rocketmq name-server=127.0.0.1:9876。配置值以 `${ENV:本地默认}` 形式注入环境文件——local 用默认，test/prod 用环境变量（`MYSQL_*`/`REDIS_*`/`ROCKETMQ_*`）覆盖。敏感值在 yml 中以 `${ENV:默认}` 占位，默认值仅本地开发，生产用环境变量覆盖（P0 红线）。
 
 最简触发：`初始化 java 项目，type=java-mcp`（其余全默认/占位直接生成）。
 
@@ -259,6 +272,50 @@ python3 lib/merge.py --project-dir /path/to/existing-project \
 `templates/java-mcp` 是独立模板（java21），**不继承 java-web 的任何文件**，其自有文件（RequestIdFilter(jakarta) / ExampleTools 等）可用 java21 语法。java-maven-base 的共享件（Application/ApplicationTests 等）被 java-mcp 复用时仍需 java8 兼容——这是 mixin 复用的唯一代价，可接受。
 
 第三方依赖版本按 template 的 java/logback 选：logstash-logback-encoder java-web=6.x（logback 1.2.x / java8），java-mcp=8.x（logback 1.5.x / java21）；7.0+ 需 logback 1.3+，与 Boot2.7 不兼容（启动报 NoSuchMethodError getInstant）。Spring AI 仅 java17+，java-web 不可用。
+
+数据源 mixin 的 java 代码（`HealthChecker` 接口、`MysqlHealthChecker`/`RedisHealthChecker`/`RocketmqHealthChecker`、`RedissonConfig`）置于 base/数据源 mixin，被 java-web(java8) 复用，须 java8 兼容——已遵循（无 Map.of/var/record，`@Value` 用编译期常量拼接，`@Autowired(required=false)` 兼容空 bean）。
+
+## 15. 可选数据源与健康检查（条件性 + SPI 聚合）
+
+### 15.1 可选数据源（mysql / redis / rocketmq）
+
+三个独立 mixin，各自可勾选（表单 21-23，默认全启用，`n` 关闭）。禁用则 mixin 不加载——`provides.files` 与 pom 片段均不进入生成图（零副作用，非「生成后删除」）。
+
+- **mysql**：`spring-boot-starter-jdbc`（HikariCP + JdbcTemplate 自动配置）+ `com.mysql:mysql-connector-j`（runtime，版本由 Boot parent 管理）。配置经 `extra-config` 注入环境文件的 `spring:` 块。
+- **redis**：`org.redisson:redisson` 核心包 3.13.6（**非** starter，无自动配置），由 mixin 提供 `RedissonConfig.java`（单机 `SingleServerConfig`，`@Bean RedissonClient`，`destroyMethod=shutdown`）。无密码时不调 `setPassword`，避免对无密码 Redis 发 AUTH 报错。配置（`redis.*`）经 `top-config` 注入环境文件顶层。
+- **rocketmq**：`rocketmq-spring-boot-starter` 2.2.3（Boot2 定制）。配置（`rocketmq.*`）经 `top-config` 注入顶层；`producer.group` 用 `${spring.profiles.active}` 占位，运行时按 active profile 解析。
+
+### 15.2 健康检查 SPI（/health 聚合数据源诊断）
+
+`HealthController`（java-web template）注入 `List<HealthChecker>` 自动聚合——**天然条件性**：选了对应数据源才有 Checker bean（`@Component`），未选则该项缺省（Spring 收集为空/不含该项），`List` 为空时整体仍 UP。
+
+三原则：① 有数据源才检查；② 单项异常不影响其他（Checker 内部 try-catch 返回 DOWN 不抛出，HealthController 外层再兜底）；③ 响应完整诊断（每项 `name/status/rootCause`）。整体 `status`：全 UP/SKIPPED 为 UP，否则 DEGRADED（不报 DOWN，部分失败不代表整体不可用）。
+
+各检查方案：
+- **mysql**：`SELECT COUNT(*) FROM t_health_check`（验库连通 + 表存在，只读）。表 DDL + 种子随 mysql mixin 生成到 `docs/sql/health-check.sql`，须提前建表并 INSERT；未建表则检查 DOWN（表不存在）。
+- **redis**：检查预留键 `health:check`（可配 `health.redis.key`）是否存在。连通即 UP；键缺失给 warning（仍 UP）；连不上才 DOWN。预留键初始化命令见 `application-*.yml` 注释（`redis-cli -a "$REDIS_PASSWORD" SET health:check "1"`，一次性）。
+- **rocketmq**：`RocketMQTemplate.getProducer().fetchPublishMessageQueues("health-check")`（查 topic 路由，无副作用不产消息）。查到路由→UP；任何异常→DOWN。**API 限制（偏离原评审的异常分类方案）**：`fetchPublishMessageQueues` 只声明抛 `MQClientException`——nameserver 不可达与 topic 无路由均以 "No route info" 的 `MQClientException` 出现，无法按异常类型区分，故失败统一 DOWN（查不到路由=无法发布=rocketmq 未就绪，保守降级）；rootCause 引导运维核对 nameserver 可达性 + `health-check` topic 路由。
+
+> java-mcp template 无 `HealthController`（是 MCP streamable server，无 web `/health`）。启用数据源时 Checker 仍生成（`@Component`，可被 MCP tools 调用），但不聚合到 /health。后续可为其加 HealthController 或 MCP tool 暴露。
+
+### 15.3 已知运行兼容性（编译通过 ≠ 运行连通）
+
+- **rocketmq-spring-boot-starter 2.2.3 基于 Boot2/javax**：在 java-mcp（Boot3.5/jakarta/java21）下**编译通过**，但其 autoconfigure 在运行时可能因 jakarta 命名空间变化报错。java-mcp 启用 rocketmq 后需启动冒烟，必要时换 Boot3 兼容版本（版本未定，避免臆测）。
+- **redisson 3.13.6 偏老**（2020，3.13 系列最后）：对 java21 偏旧，java-mcp 启用 redis 后需冒烟，必要时升 3.2x+（具体 series 待查证）。
+- **运行连通性**：编译通过不代表运行连通；生产部署后须实际 `GET /health` 验证各数据源 UP（尤其 rocketmq nameserver 可达、mysql 表已建+INSERT、redis 预留键已 SET）。
+- **version-check 未集成 redisson/rocketmq**：本次钉查证 GA 值（注释注明来源 + 查证日期），未走 compat-table/version-check 实时解析。后续可加 compat-table 条目改为 series + version-check 实时解析最新 GA（更符合「版本不入库硬编码」哲学）。
+
+## 16. 配置环境分层（local + 核心极简）
+
+`application.yml` = 全局通用（所有环境共享）：`spring.profiles.active=local`（本地开发默认）+ `spring.application.name` + `spring.config.import: log-router` + `server.port`。环境文件 = 环境特定（env 标识 / 日志级别 / 数据源值）。
+
+- `application-local.yml`：`env=local` + 日志 DEBUG（写死本地值，本地起服务无需环境变量）。
+- `application-test.yml`：`env=test` + 日志 DEBUG。
+- `application-prod.yml`：`env=prod` + 日志 `logging.file.path=/opt/app/logs` + INFO。
+- 数据源与业务配置（与代码绑定）经 mixin 的 `extra-config`（`spring:` 子级，如 mysql `datasource`）或 `top-config`（顶层，如 `redis:`/`rocketmq:`）注入环境文件的占位——**三环境文件都注入同一数据源块**，值用 `${ENV:本地默认}`：local 用默认，test/prod 用环境变量覆盖。
+- `logback-spring.xml` 的 `<springProfile name="test | local">` 让 local 复用 test 日志配置（CONSOLE + APP_FILE + 包级 DEBUG）；prod/default 仍走 ASYNC_APP_FILE + INFO。
+
+**避免 YAML DuplicateKey**：环境文件顶层无 `spring:`（已移到 `application.yml`），故 mixin 注入的 `spring:`（mysql）唯一；`redis:`/`rocketmq:` 顶层键与 `{{project.name}}:`/`logging:` 不冲突。同一文件多 mixin 共享 `spring:` 顶层时（如 mysql `datasource` + java-mcp `ai`），二者为 `spring:` 下不同子键，无 DuplicateKey。项目侧手写业务配置须注意：同前缀的配置项（如 `myapp.reconcile` 与 `myapp.env`）合并到**一个**顶层键下，不可写成两个同名顶层键。
 
 ## Agent 适配
 

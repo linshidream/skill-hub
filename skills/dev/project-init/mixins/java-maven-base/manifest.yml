@@ -12,6 +12,7 @@ provides:
     - {from: pom-server.xml.tmpl,                       to: "{{core.module.name}}/pom.xml"}
     - {from: logback-spring.xml,                        to: "{{core.module.name}}/src/main/resources/logback-spring.xml"}
     - {from: application.yml,                           to: "{{core.module.name}}/src/main/resources/application.yml"}
+    - {from: application-local.yml.tmpl,                to: "{{core.module.name}}/src/main/resources/application-local.yml"}
     - {from: application-test.yml.tmpl,                 to: "{{core.module.name}}/src/main/resources/application-test.yml"}
     - {from: application-prod.yml.tmpl,                 to: "{{core.module.name}}/src/main/resources/application-prod.yml"}
     - {from: README.md.tmpl,                            to: "README.md"}
@@ -24,6 +25,7 @@ provides:
     - {from: docs/api/README.md.tmpl,                   to: "docs/api/README.md"}
     - {from: scripts/README.md.tmpl,                   to: "scripts/README.md"}
     - {from: docs/checklist/build-readiness.md.tmpl,    to: "docs/checklist/build-readiness.md"}
+    - {from: HealthChecker.java.tmpl,                   to: "{{core.module.name}}/src/main/java/{{package.path}}/health/HealthChecker.java"}
 
 # base 提供的 pom 片段（注入 pom-server.xml.tmpl 的占位标记）
 pom:

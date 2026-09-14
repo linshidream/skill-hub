@@ -1,3 +1,12 @@
+# 全局通用配置（所有环境共享）：profile 默认 local、应用名、日志路由、服务端口。
+# 环境特定项（env 标识、日志级别、数据源值）在 application-{local,test,prod}.yml。
 spring:
   profiles:
-    active: test
+    active: local
+  application:
+    name: {{project.name}}
+  config:
+    import:
+      - optional:classpath:log-router.yml
+server:
+  port: {{server.port}}

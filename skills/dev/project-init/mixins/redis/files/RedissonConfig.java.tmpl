@@ -1,0 +1,58 @@
+package {{package}}.config;
+
+import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
+import org.redisson.config.Config;
+import org.redisson.config.SingleServerConfig;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * Redisson 单机客户端（核心包 org.redisson:redisson，非 starter，无自动配置）。
+ *
+ * 连接参数从 redis.* 读取（application-{local,test,prod}.yml 经 top-config 注入）：
+ * local 用默认值（127.0.0.1 / zx123456），test/prod 用环境变量 REDIS_* 覆盖。
+ * 无密码（password 为空）时不调 setPassword，避免对无密码 Redis 发 AUTH 报错。
+ *
+ * java8 兼容（被 java-web(java8) 复用；java-mcp(java21) 亦兼容）。
+ */
+@Configuration
+public class RedissonConfig {
+
+    private static final int DEFAULT_DATABASE = 0;
+    private static final int CONNECTION_POOL_SIZE = 64;
+    private static final int MIN_IDLE_SIZE = 10;
+    private static final int IDLE_TIMEOUT_MS = 10_000;
+    private static final int CONNECT_TIMEOUT_MS = 10_000;
+    private static final int TIMEOUT_MS = 3_000;
+
+    @Value("${redis.host:127.0.0.1}")
+    private String host;
+
+    @Value("${redis.port:6379}")
+    private int port;
+
+    @Value("${redis.password:}")
+    private String password;
+
+    @Value("${redis.database:0}")
+    private int database;
+
+    @Bean(destroyMethod = "shutdown")
+    public RedissonClient redissonClient() {
+        Config config = new Config();
+        SingleServerConfig single = config.useSingleServer()
+                .setAddress("redis://" + host + ":" + port)
+                .setDatabase(database)
+                .setConnectionPoolSize(CONNECTION_POOL_SIZE)
+                .setConnectionMinimumIdleSize(MIN_IDLE_SIZE)
+                .setIdleConnectionTimeout(IDLE_TIMEOUT_MS)
+                .setConnectTimeout(CONNECT_TIMEOUT_MS)
+                .setTimeout(TIMEOUT_MS);
+        if (password != null && !password.isEmpty()) {
+            single.setPassword(password);
+        }
+        return Redisson.create(config);
+    }
+}
