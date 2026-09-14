@@ -1,8 +1,8 @@
 {
   "name": "product-lifecycle",
   "title": "产品侧签字生命周期",
-  "version": "0.1.1",
-  "description": "将客户人话需求转成可签字演示物和需求签字记录，包含轻量澄清、演示物生成、设计自检 gate、有限轮次评审、签字冻结与交接。Product-side lifecycle for signed-off prototype and dev-spec handoff.",
+  "version": "0.2.0",
+  "description": "将客户人话需求转成可签字演示物（还原参照契约）和需求签字记录，含轻量澄清（含品牌资产清单）、演示物生成、设计自检 gate、有限轮次评审、签字冻结与三类 handoff 材料（演示原型/需求记录/DESIGN.md）交接。Product-side lifecycle for signed-off prototype and three-type dev handoff.",
   "category": "product",
   "license": "MIT",
   "entry": "SKILL.md",

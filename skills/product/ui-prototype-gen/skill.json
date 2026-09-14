@@ -1,8 +1,8 @@
 {
   "name": "ui-prototype-gen",
   "title": "UI 演示原型生成",
-  "version": "0.1.1",
-  "description": "生成客户可评审签字的 UI 演示物，默认产出可点击静态 HTML 原型档，内置设计策展层四层选型与 tokens preset，并为团队模式预留 open-design 生成档。Generate clickable static HTML prototypes for product-lifecycle sign-off.",
+  "version": "0.2.0",
+  "description": "生成客户可评审签字的 UI 演示物，默认产出 antd5 真实 build 高保真原型档（预构建全量 CSS + 组件片段库 + cssVar tokens 覆盖 + Lucide 图标），内置设计策展层四层选型与 tokens preset，作为 product→dev 的还原参照契约；为团队模式预留 open-design 生成档。Generate antd5 high-fidelity prototypes as a product→dev restoration-reference contract for product-lifecycle sign-off.",
   "category": "product",
   "license": "MIT",
   "entry": "SKILL.md",

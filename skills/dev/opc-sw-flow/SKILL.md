@@ -57,7 +57,7 @@ P1 product-lifecycle -> P2 dev-spec -> P3 dev-lifecycle -> released
 | `dev_projects` | 代码项目 map，支持一个 engagement 对多个项目 |
 | `handoff.requirements_doc_path` | `product-lifecycle` 输出的 `需求签字记录.md` 路径 |
 | `handoff.prototype_path` | `product-lifecycle` 输出的演示原型目录路径 |
-| `handoff.design_md` | `product-lifecycle` 输出的 `DESIGN.md` 路径（可选；P2 复制到各 dev 项目根） |
+| `handoff.design_md` | `product-lifecycle` 输出的 `DESIGN.md` 路径（可选；P2 复制到各 dev 项目根）。注：上游 `product-lifecycle` state 字段名为 `design_md_path`，写入本字段时需做字段名转换（或用兼容别名 `handoff.design_md_path`，见下文） |
 
 各 dev 代码项目仍在自身根目录维护 `.dev-flow.yml`、`.dev-flow-state.json` 和 `docs/specs/`。
 
@@ -73,7 +73,7 @@ P1 product-lifecycle -> P2 dev-spec -> P3 dev-lifecycle -> released
 }
 ```
 
-读取旧状态或临时状态时，也允许 `"frontend-react": "/repo/crm-web"` 这种简写；继续写回时应规范化为对象。`handoff.requirements_doc` 和 `handoff.prototype_dir` 是兼容别名；新状态使用 `requirements_doc_path` 和 `prototype_path`。
+读取旧状态或临时状态时，也允许 `"frontend-react": "/repo/crm-web"` 这种简写；继续写回时应规范化为对象。`handoff.requirements_doc` 和 `handoff.prototype_dir` 是兼容别名；`handoff.design_md_path` 是 `handoff.design_md` 的兼容别名（对齐上游 `product-lifecycle` 的 `design_md_path` 字段名，避免映射时丢路径）；新状态使用 `requirements_doc_path`、`prototype_path` 和 `design_md`。
 
 ## Phase 规则
 
