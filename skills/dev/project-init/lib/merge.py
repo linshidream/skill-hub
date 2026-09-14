@@ -52,7 +52,7 @@ except ImportError:
     sys.exit("ERROR: 需要 PyYAML：pip3 install pyyaml")
 
 RESOLVED_MARK = "RESOLVED_BY_VERSION_CHECK"
-SKILL_VERSION = "0.4.0"   # 与 skill.json / registry.json / SKILL_RELEASES.md 同步，generated-by 标记用
+SKILL_VERSION = "0.4.1"   # 与 skill.json / registry.json / SKILL_RELEASES.md 同步，generated-by 标记用
 
 # 可选数据源默认开关：include.{mysql,redis,rocketmq} 默认 y（全启用），--var include.<ds>=n 关闭
 # 关闭的 mixin 不加载——其 provides.files 与 pom 片段均不进入生成图（零副作用，非"生成后删除"）
@@ -447,11 +447,14 @@ def generate_dev_flow(variables, developers, project_type, ci_type, tech_pref, o
             "initialized-at": datetime.now(tz).isoformat(timespec="seconds"),
             "generated-by": f"project-init@{SKILL_VERSION}",
         }
-        # 前端关键依赖版本（version-check 实时解析后入 scaffold，供下游感知）
+        # 前端关键依赖版本快照（version-check 实时解析后入 scaffold.versions，供下游感知）
+        versions = {}
         for vk in ("taro.version", "nutui.version", "react.version", "antd.version",
                    "vite.version", "tailwind.version", "typescript.version"):
             if variables.get(vk):
-                scaffold[vk] = variables[vk]
+                versions[vk] = variables[vk]
+        if versions:
+            scaffold["versions"] = versions
         doc["scaffold"] = scaffold
 
     # 轻量校验：必填顶层字段
@@ -464,13 +467,12 @@ def generate_dev_flow(variables, developers, project_type, ci_type, tech_pref, o
     print("  .dev-flow.yml 种子已生成（含 scaffold 块 + build-credentials）")
 
     # ---- 写项目级状态 .dev-flow/project.json（调 dev-lifecycle resolver）----
-    write_project_state(variables, project_type, os.path.dirname(out_path))
+    write_project_state(variables, project_type, os.path.dirname(out_path), lang, build_tool)
 
 
-def write_project_state(variables, project_type, project_dir):
+def write_project_state(variables, project_type, project_dir, lang="java", build_tool="maven"):
     """调 dev-lifecycle resolver 写 .dev-flow/project.json（phase=scaffold:done）。不建 feature 状态。
-    Java 路径严格（失败即 exit）；前端 V1 复用 java schema（F4 留口子，二期建独立 taro-frontend.yml），
-    resolver 对前端 template 字段可能不认——best-effort WARN 不阻塞生成。"""
+    Java/前端均严格走 resolver（P2 后前端 template 已被 schema/resolver 正式接纳）。"""
     if not os.path.isfile(RESOLVER):
         print(f"  WARN: dev-lifecycle resolver 不存在({RESOLVER})，跳过 project.json 写入")
         return
@@ -484,15 +486,6 @@ def write_project_state(variables, project_type, project_dir):
             sys.exit(f"ERROR: resolver 写项目级状态失败\nstderr: {r.stderr}")
         return r.stdout
 
-    def run_best_effort(*a):
-        r = subprocess.run(["python3", RESOLVER, "--config", dev_flow_path, *a],
-                           capture_output=True, text=True)
-        if r.returncode != 0:
-            print(f"  WARN: resolver 对前端 template 暂不兼容（F4 二期建 taro-frontend.yml），"
-                  f"跳过 project.json 写入\n  stderr: {r.stderr.strip()}")
-            return False
-        return True
-
     if family == "java":
         run_strict("--scope", "project", "init-scaffold", "--template", project_type)
         run_strict("--scope", "project", "set-scaffold-phase",
@@ -504,14 +497,15 @@ def write_project_state(variables, project_type, project_dir):
                    "--generated-by", f"project-init@{SKILL_VERSION}")
         print("  .dev-flow/project.json 已写入（phase=scaffold:done）")
     else:
-        if not run_best_effort("--scope", "project", "init-scaffold", "--template", project_type):
-            return
-        run_best_effort("--scope", "project", "set-scaffold-phase",
-                        "--phase", "scaffold:done",
-                        "--template", project_type,
-                        "--ready", "true",
-                        "--generated-by", f"project-init@{SKILL_VERSION}")
-        print("  .dev-flow/project.json 已写入（前端 V1 复用 java schema，phase=scaffold:done）")
+        run_strict("--scope", "project", "init-scaffold", "--template", project_type)
+        run_strict("--scope", "project", "set-scaffold-phase",
+                   "--phase", "scaffold:done",
+                   "--template", project_type,
+                   "--ready", "true",
+                   "--language", lang,
+                   "--build-tool", build_tool,
+                   "--generated-by", f"project-init@{SKILL_VERSION}")
+        print("  .dev-flow/project.json 已写入（前端 phase=scaffold:done）")
 
 
 # ============================ git_config 派生 developers ============================

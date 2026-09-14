@@ -573,6 +573,10 @@ def cmd_set_scaffold_phase(args: argparse.Namespace) -> int:
         sc["java-version"] = args.java_version
     if args.boot_version is not None:
         sc["boot-version"] = args.boot_version
+    if args.language is not None:
+        sc["language"] = args.language
+    if args.build_tool is not None:
+        sc["build-tool"] = args.build_tool
     if args.generated_by:
         sc["generated-by"] = args.generated_by
     if args.phase == "scaffold:done":
@@ -617,7 +621,8 @@ def main() -> int:
 
     p_init = sub.add_parser("init-scaffold",
                             help="(project) Create .dev-flow/project.json skeleton (phase=scaffold:planning).")
-    p_init.add_argument("--template", required=True, choices=["java-web", "java-mcp"])
+    p_init.add_argument("--template", required=True,
+                        choices=["java-web", "java-mcp", "web-pc", "taro-mobile"])
     p_init.set_defaults(func=cmd_init_scaffold)
 
     p_ssp = sub.add_parser("set-scaffold-phase",
@@ -627,6 +632,10 @@ def main() -> int:
     p_ssp.add_argument("--ready", default=None, help="true|false")
     p_ssp.add_argument("--java-version", type=int, default=None)
     p_ssp.add_argument("--boot-version", default=None)
+    p_ssp.add_argument("--language", default=None,
+                        help="前端工程语言（web-pc/taro-mobile=typescript）")
+    p_ssp.add_argument("--build-tool", default=None,
+                        help="前端构建工具（web-pc/taro-mobile=pnpm）")
     p_ssp.add_argument("--generated-by", default=None)
     p_ssp.set_defaults(func=cmd_set_scaffold_phase)
 
