@@ -1,0 +1,30 @@
+# 构建就绪人工质检清单（前端）
+
+> 项目: {{project.name}} | 机器自检: `scripts/check-build-ready.sh` | 本清单: 机器验不了的项
+> CI 边界：本 mixin 只交付能跑的脚本与文件；触发时机/流水线 phase 归 ci-trigger/dev-lifecycle。
+
+## A. Jenkins 侧（人工在 Jenkins UI 配置）
+- [ ] 创建 gitee 凭据(PAT)，id 填入 `.dev-flow.yml` 的 `ci.jenkins.build-credentials.gitee-id` 【人工】
+- [ ] 创建小程序上传私钥凭据，id 填入 `weapp-upload-key-id`（私钥文件用 Secret file 类型）【人工】
+- [ ] 创建 pipeline job（指向仓库 `deploy/jenkins/Jenkinsfile`），job 名 = `{{jenkins.job}}` 【人工】
+- [ ] Jenkins 构建节点：Node 20+、pnpm、rsync、miniprogram-cli 就位 【人工】
+
+## B. 小程序侧（人工·后端没有的人肉环节）
+- [ ] 微信公众平台注册小程序，appid 填入 `.dev-flow.yml` 的 `weapp-appid`（绝不入库，托管 Jenkins）【人工】
+- [ ] 生成小程序代码上传私钥，上传到 Jenkins credentials（Secret file）【人工】
+- [ ] 小程序后台配置服务器域名（request 合法域名）【人工】
+- [ ] **提审**：miniprogram-ci 上传后须人工在小程序后台提交审核（后端没有的人肉环节）【人工】
+
+## C. H5 静态服务器侧（人工）
+- [ ] 静态服务器就位，host 填入 `static-host-test` / `static-host-prod` 【人工】
+- [ ] Nginx/静态服务器目录就绪（rsync 目标可写）【人工】
+- [ ] 回滚机制：保留历史静态版本目录/tag（切版本回滚，不进 V1 cascade，人手动）【人工】
+
+## D. 首次推送远程 + 规约同源
+- [ ] 本机 gitee SSH key 就位 【人工·一次性】
+- [ ] gitee 新建私有仓库（不勾选初始化）【人工·一次性】
+- [ ] `scripts/check-spec-sync.js` 绿（规约双轨同源，eslint↔frontend-spec 编号一致）【机器·L0】
+
+## E. 首次构建验证
+- [ ] 手动触发 jenkins job，确认 install→lint→check:spec→build→deploy/upload 全链路通 【人工】
+- [ ] 小程序首次上传后，微信开发者工具扫码预览确认 【人工·冒烟】

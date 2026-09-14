@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# check-build-ready.sh —— 前端构建前全景体检。不取任何凭据值，只验引用就位 + appid 占位已填 + 规约同源。
+# 三层：L1 复用 ci-trigger / L2 jenkins credentials API 验引用存在 + appid 占位已填 / L3 静态服务器可达
+# 另：L0 规约同源校验（check-spec-sync）。全绿才让 ci-trigger 触发构建。输出统一 JSON。
+set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$(cd "$SCRIPT_DIR/.." && pwd)"
+PASS=0; FAIL=0
+report() { printf '{"status":"%s","layer":"%s",%s}\n' "$1" "$2" "$3"; }
+
+# ---------- L0: 规约双轨同源（check-spec-sync，漂移即红） ----------
+if node scripts/check-spec-sync.js >/dev/null 2>&1; then
+  report ok L0 '"message":"规约双轨同源(eslint↔frontend-spec)一致"'; PASS=$((PASS+1))
+else
+  report error L0 '"message":"规约双轨漂移(check-spec-sync 失败)"'; FAIL=$((FAIL+1))
+fi
+
+# ---------- L1: agent 触发层（复用 ci-trigger） ----------
+CI_TRIGGER="$(ls ~/.claude/skills/ci-trigger/scripts/trigger.sh 2>/dev/null || echo '')"
+if [[ -n "$CI_TRIGGER" ]]; then
+  if bash "$CI_TRIGGER" --check-env --system jenkins >/dev/null 2>&1; then
+    report ok L1 '"message":"jenkins env (JENKINS_URL/USER/TOKEN) set"'; PASS=$((PASS+1))
+  else
+    report error L1 '"message":"jenkins env missing"'; FAIL=$((FAIL+1))
+  fi
+  if bash "$CI_TRIGGER" --validate-config >/dev/null 2>&1; then
+    report ok L1 '"message":"dev-flow.yml ci config ok"'; PASS=$((PASS+1))
+  else
+    report error L1 '"message":"dev-flow.yml ci config invalid"'; FAIL=$((FAIL+1))
+  fi
+else
+  report warn L1 '"message":"ci-trigger skill not found"'; FAIL=$((FAIL+1))
+fi
+
+[[ -z "${JENKINS_URL:-}" || -z "${JENKINS_USER:-}" || -z "${JENKINS_TOKEN:-}" ]] && { echo '{"status":"error","summary":"L1 failed, abort L2/L3"}'; exit 1; }
+
+# ---------- L2: 构建凭据层 + appid 占位 ----------
+read_bc() { python3 -c "import yaml; d=yaml.safe_load(open('.dev-flow.yml')); print(d['ci']['jenkins']['build-credentials']['$1'])" 2>/dev/null; }
+
+CREDS_JSON=$(curl -g -sS --max-time 15 -u "${JENKINS_USER}:${JENKINS_TOKEN}" \
+  "${JENKINS_URL}/credentials/store/system/domain/_/api/json?tree=credentials[id]" 2>/dev/null || echo '{}')
+existing_ids=$(echo "$CREDS_JSON" | python3 -c 'import sys,json
+try: d=json.load(sys.stdin); print("\n".join(c["id"] for c in d.get("credentials",[])))
+except: print("")')
+
+check_cred() {
+  local label="$1" id="$2"
+  if [[ -z "$id" || "$id" == REPLACE_WITH_* ]]; then
+    report warn L2 "\"message\":\"${label} 未配置(占位未填)\""; FAIL=$((FAIL+1))
+  elif echo "$existing_ids" | grep -qx "$id"; then
+    report ok L2 "\"message\":\"${label}(${id}) 存在\""; PASS=$((PASS+1))
+  else
+    report error L2 "\"message\":\"${label}(${id}) 在 jenkins 不存在\""; FAIL=$((FAIL+1))
+  fi
+}
+check_cred "gitee-id" "$(read_bc gitee-id)"
+check_cred "weapp-upload-key-id" "$(read_bc weapp-upload-key-id)"
+
+# appid 占位校验：appid 须已填（非 REPLACE_WITH_*），同 Java 凭据红线
+APPID=$(read_bc weapp-appid)
+if [[ -z "$APPID" || "$APPID" == REPLACE_WITH_* ]]; then
+  report warn L2 '"message":"weapp appid 未配置(占位未填)"'; FAIL=$((FAIL+1))
+else
+  report ok L2 "\"message\":\"weapp appid 已填(${APPID})\""; PASS=$((PASS+1))
+fi
+
+# ---------- L3: H5 静态服务器可达 ----------
+check_host() {
+  local label="$1" host="$2"
+  if [[ -z "$host" || "$host" == REPLACE_WITH_* ]]; then
+    report warn L3 "\"message\":\"${label} 未配置(占位未填)\""; FAIL=$((FAIL+1))
+    return
+  fi
+  code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 "https://${host}" 2>/dev/null || echo 000)
+  case "$code" in
+    200|301|302|401|403) report ok L3 "\"message\":\"${label} ${host} 可达(http ${code})\""; PASS=$((PASS+1));;
+    *) report error L3 "\"message\":\"${label} ${host} 不可达(http ${code})\""; FAIL=$((FAIL+1));;
+  esac
+}
+check_host "static-host-test" "$(read_bc static-host-test)"
+
+echo "---"
+printf '{"summary":"pass=%d fail=%d","status":"%s"}\n' "$PASS" "$FAIL" "$([[ $FAIL -eq 0 ]] && echo ok || echo error)"
+[[ $FAIL -eq 0 ]]

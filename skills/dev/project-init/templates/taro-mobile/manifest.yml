@@ -1,0 +1,62 @@
+# taro-mobile template —— Taro3.6 多端工程模板：H5 + 微信小程序（NutUI3.0 + weapp-tailwindcss）
+# 自包含版本敏感件，不 extends 任何模板，叠加 frontend-common 公共层。
+# @tarojs/* 全系共享 3.6.x（一条 series 解析，{{taro.version}} 复用），NutUI 共享 {{nutui.version}}。
+# 适用：ToC 商城 H5/小程序、外勤 H5。UI 仅 nutui-react-taro（规约18，禁 antd）。
+name: taro-mobile
+description: Taro 多端模板（H5 + 微信小程序，NutUI）
+
+variables:
+  taro.version: "RESOLVED_BY_VERSION_CHECK"
+  nutui.version: "RESOLVED_BY_VERSION_CHECK"
+  react.version: "RESOLVED_BY_VERSION_CHECK"
+  tailwind.version: "RESOLVED_BY_VERSION_CHECK"
+  typescript.version: "RESOLVED_BY_VERSION_CHECK"
+  weapp-tailwindcss.version: "RESOLVED_BY_VERSION_CHECK"
+  babel-core.version: "RESOLVED_BY_VERSION_CHECK"
+
+# Taro3.6 全系 @tarojs/* 共享 {{taro.version}}；NutUI 共享 {{nutui.version}}（一条 series，防版本错配）
+npm:
+  dependencies:
+    - {name: "@tarojs/taro", version: "{{taro.version}}"}
+    - {name: "@tarojs/components", version: "{{taro.version}}"}
+    - {name: "@tarojs/runtime", version: "{{taro.version}}"}
+    - {name: "@tarojs/react", version: "{{taro.version}}"}
+    - {name: "@tarojs/plugin-framework-react", version: "{{taro.version}}"}
+    - {name: "@tarojs/plugin-platform-h5", version: "{{taro.version}}"}
+    - {name: "@tarojs/plugin-platform-weapp", version: "{{taro.version}}"}
+    - {name: "@tarojs/webpack5-runner", version: "{{taro.version}}"}
+    - {name: react, version: "{{react.version}}"}
+    - {name: "@nutui/nutui-react-taro", version: "{{nutui.version}}"}
+  devDependencies:
+    - {name: "@tarojs/cli", version: "{{taro.version}}"}
+    - {name: "@tarojs/helper", version: "{{taro.version}}"}
+    - {name: "@tarojs/service", version: "{{taro.version}}"}
+    - {name: "@tarojs/taro", version: "{{taro.version}}"}
+    - {name: babel-preset-taro, version: "{{taro.version}}"}
+    - {name: "@babel/core", version: "{{babel-core.version}}"}
+    - {name: weapp-tailwindcss, version: "{{weapp-tailwindcss.version}}"}
+  scripts:
+    "build:h5": "taro build --type h5"
+    "build:weapp": "taro build --type weapp"
+    "dev:h5": "taro build --type h5 --watch"
+    "dev:weapp": "taro build --type weapp --watch"
+
+provides:
+  files:
+    - {from: babel.config.js, to: "babel.config.js"}
+    - {from: config/index.ts, to: "config/index.ts"}
+    - {from: config/dev.ts, to: "config/dev.ts"}
+    - {from: config/prod.ts, to: "config/prod.ts"}
+    - {from: tsconfig.json, to: "tsconfig.json"}
+    - {from: tailwind.config.ts, to: "tailwind.config.ts"}
+    - {from: src/app.config.ts, to: "src/app.config.ts"}
+    - {from: src/app.ts, to: "src/app.ts"}
+    - {from: src/index.html, to: "src/index.html"}
+    - {from: src/app.css, to: "src/app.css"}
+    - {from: src/pages/index/index.tsx, to: "src/pages/index/index.tsx"}
+    - {from: src/pages/index/index.config.ts, to: "src/pages/index/index.config.ts"}
+    - {from: src/pages/index/index.css, to: "src/pages/index/index.css"}
+    - {from: src/components/platform/h5/.gitkeep, to: "src/components/platform/h5/.gitkeep"}
+    - {from: src/components/platform/weapp/.gitkeep, to: "src/components/platform/weapp/.gitkeep"}
+    - {from: src/pages/platform/h5/.gitkeep, to: "src/pages/platform/h5/.gitkeep"}
+    - {from: src/pages/platform/weapp/.gitkeep, to: "src/pages/platform/weapp/.gitkeep"}

@@ -1,0 +1,24 @@
+# 依赖（对标后端 target/ 不入库）
+node_modules/
+.pnpm-store/
+
+# 构建产物（对标后端 *.class/jar 不入库）
+dist/
+.taro/
+.weapp/
+
+# 编辑器/系统
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log
+npm-debug.log*
+
+# 环境与凭据（绝不入库，同后端 application-prod 凭据红线）
+.env
+.env.local
+.env.*.local
+
+# 锁文件必须入库（规约16：pnpm-lock.yaml 对标 package-lock）
+# 故 pnpm-lock.yaml 不在此忽略

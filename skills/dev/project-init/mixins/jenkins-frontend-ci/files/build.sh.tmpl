@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# build.sh —— 前端构建（无镜像）。用法: build.sh <h5|weapp>
+# 流程：install -> lint -> check:spec(规约同源校验) -> build:<target> -> dist 产物就位
+set -euo pipefail
+TARGET="${1:-h5}"
+cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+echo "== pnpm install（frozen-lockfile，对标 maven -o 依赖锁定） =="
+pnpm install --frozen-lockfile
+
+echo "== lint（eslint 可执行规约源） =="
+pnpm run lint
+
+echo "== check:spec（规约双轨同源校验，漂移即红） =="
+pnpm run check:spec
+
+case "$TARGET" in
+  h5)
+    echo "== build:h5 =="
+    pnpm run build:h5
+    [[ -d dist ]] || { echo "ERROR: dist 未生成"; exit 1; }
+    echo "== H5 产物就位: dist/ =="
+    ;;
+  weapp)
+    echo "== build:weapp =="
+    pnpm run build:weapp
+    [[ -d dist ]] || { echo "ERROR: dist 未生成"; exit 1; }
+    echo "== 小程序产物就位: dist/（待 miniprogram-ci 上传） =="
+    ;;
+  *)
+    echo "ERROR: 未知 target '$TARGET'，须 h5|weapp"; exit 1
+    ;;
+esac

@@ -1,9 +1,9 @@
 ---
 name: project-init
-description: Initialize a Java Maven Spring Boot project scaffold into an empty directory (or add a new child module to an existing one). Generates parent/child POM, logback, layered application config (application.yml core + local/test/prod env files), README, docs/ skeleton, test skeleton, Dockerfile/build.sh/run.sh/rollback.sh, Jenkinsfile, build-readiness checklist, and a .dev-flow.yml seed (with scaffold block + build-credentials) plus project-level state .dev-flow/project.json wired into dev-lifecycle as the project-level cascade-0 node. Template + mixin architecture: each project type (java-web / java-mcp) is a self-contained independent template with zero inheritance, eliminating javax/jakarta version residue. Optional data-source mixins (mysql HikariCP / redis redisson single-node / rocketmq) are conditionally loaded via include.{mysql,redis,rocketmq} form flags (default all-on, n to disable — zero side effects when disabled), injecting datasource config into env files via ${ENV:local-default} placeholders. HealthChecker SPI aggregates per-datasource diagnostics into /health (conditional + isolated + aggregated). Triggered when the current project folder is empty OR the user explicitly asks to create a child module; when uncertain, ask first.
+description: Initialize a project scaffold into an empty directory (or add a new child module to an existing Java project). Two engineering families: Java (java-web / java-mcp → maven + Docker image) and frontend (web-pc = vite+React+antd PC web / taro-mobile = Taro3.6+NutUI3.0 multi-end H5+WeChat miniprogram → pnpm exact-version + H5 static deploy / miniprogram-ci). Template + mixin non-inheritance architecture: each project type is a self-contained independent template, base-mixin routed by family (java→java-maven-base, frontend→frontend-common), version-sensitive deps resolved by compat-table + version-check (maven-metadata.xml for maven, registry.npmjs.org for npm, latest stable GA per series, no hardcoded patch). Java side: parent/child POM, logback, layered application config (application.yml core + local/test/prod env files), Dockerfile/build.sh/run.sh/rollback.sh, optional data-source mixins (mysql HikariCP / redis redisson / rocketmq) conditionally loaded via include.{...} form flags, HealthChecker SPI aggregating datasource diagnostics into /health. Frontend side: frontend-common provides end-agnostic skeleton + tsconfig strict + eslint flat config (import-boundary two-layer lock) + prettier + tailwind preset + design-token + spec double-track (eslint machine-readable as source + docs/frontend-spec.md human-readable mirror, check-spec-sync.js validates same-source no drift); optional state-business mixin (TanStack Query + Zustand dual-layer state, default off); jenkins-frontend-ci delivers H5 rsync + miniprogram-ci pipeline (no images, credentials/appid as REPLACE_WITH_* placeholders). --mode project generates a multi-app orchestration shell (parent README only, each sub-project independent package.json/stack, no monorepo/workspace/shared by default). Generates a .dev-flow.yml seed (scaffold block + build-credentials) plus project-level state .dev-flow/project.json wired into dev-lifecycle as the cascade-0 node (frontend V1 reuses java schema best-effort; phase-2 builds taro-frontend.yml). Triggered when the current project folder is empty OR the user explicitly asks to create a child module; when uncertain, ask first.
 ---
 
-# project-init — Java 项目脚手架生成器
+# project-init — 项目脚手架生成器（Java + 前端）
 
 > ## ⚠️ 强制前置规则（最高优先级，不可跳过）
 >
@@ -84,13 +84,17 @@ finalName         = ${core.module.name}     # 供 Dockerfile ADD 稳定引用
 3. 从确认文档按模式抽取结构字段（正则匹配 `groupId`/`artifactId`/`version`/`module` 等）。
 4. 抽不到的字段 → 回退 prompt → 回退 default。**抽取失败不阻断**，只降级到手动输入。
 
-## 4. 扩展机制：template + mixin（非继承）
+## 4. 扩展机制：template + mixin（非继承，按族路由）
 
 ```
-产物 = java-maven-base mixin ∪ [可选数据源 mixin] ∪ fastjson2-hutool mixin ∪ template ∪ jenkins-docker-ci mixin
+产物 = base-mixin(按族路由) ∪ [可选 mixin] ∪ [tech-pref] ∪ template ∪ ci-type
+  Java  : java-maven-base ∪ [mysql/redis/rocketmq] ∪ fastjson2-hutool ∪ {java-web|java-mcp} ∪ jenkins-docker-ci
+  前端  : frontend-common ∪ [state-business] ∪ {web-pc|taro-mobile} ∪ jenkins-frontend-ci
 ```
 
-可选数据源 mixin（mysql / redis / rocketmq）：初始化表单按 `include.{mysql,redis,rocketmq}` 勾选（默认全启用，填 `n` 关闭），启用则自动生成对应依赖、配置块与（redis 的）配置类，禁用则 mixin 不加载——`provides.files` 与 pom 片段均不进入生成图，**零副作用**（不是「生成后删除」）。叠加顺序：`base-mixin ∪ [可选数据源] ∪ tech-pref ∪ template ∪ ci-type`，data-source mixin 插在 base 之后、tech-pref 之前。
+`base_mixin_dir(project_type)` 按工程族路由 base-mixin：`java-*`→`java-maven-base`，`web-/taro-/rn-`→`frontend-common`。前端无 tech-pref（UI 库随 template 定，tailwind 基础在 frontend-common）。
+
+可选数据源 mixin（mysql / redis / rocketmq，仅 Java）：初始化表单按 `include.{mysql,redis,rocketmq}` 勾选（默认全启用，填 `n` 关闭），启用则自动生成对应依赖、配置块与（redis 的）配置类，禁用则 mixin 不加载——`provides.files` 与 pom 片段均不进入生成图，**零副作用**（不是「生成后删除」）。data-source mixin 插在 base 之后、tech-pref 之前。前端可选 mixin 走同类开关：`include.state-business`（默认 `n`，关闭则不加载）。
 
 每个项目类型是一个**独立模板**（`templates/<name>/`），自包含全部版本敏感件，不 extends 任何模板，零 exclude、零覆盖。共享件通过可挂载的 mixin 复用，而非继承。
 
@@ -100,9 +104,19 @@ finalName         = ${core.module.name}     # 供 Dockerfile ADD 稳定引用
 - `templates/<name>/`：项目类型，独立模板。P0 两型：
   - `java-web`（java8 + Boot2.7 + SpringMVC + **javax**）：自包含 javax 版 RequestIdFilter + HealthController。
   - `java-mcp`（java21 + Boot3.5 + Spring AI 1.0.x + **jakarta**）：自包含 jakarta 版 RequestIdFilter + ExampleTools，自带 web/validation/actuator 依赖（不继承 java-web）。
-- `mixins/jenkins-docker-ci/`：CI 类型。P0 仅此。未来 `k8s-ci` 作为扩展（替换 deploy 段，不碰 template 层）。
+- `mixins/jenkins-docker-ci/`：Java CI 类型。未来 `k8s-ci` 作为扩展（替换 deploy 段，不碰 template 层）。
 
-叠加优先级（冲突时后者覆盖前者，文件级 `to` 路径覆盖）：`java-maven-base < fastjson2-hutool < template < jenkins-docker-ci`。
+**前端族**（0.4.0 新增）：
+
+- `mixins/frontend-common/`：前端公共层，**端无关**（不引 antd/nutui/taro 框架 API）。tsconfig strict + eslint flat config（import-boundary 两层锁）+ prettier + tailwind.preset + postcss/autoprefixer + design-token（中性色零业务名）+ 横切分层骨架（api/service/types/utils/hooks/components/pages 各分 business/platform 叶子层）+ 规约双轨（`eslint.config.js` 机器可读为源 + `docs/frontend-spec.md` 人读镜像，`scripts/check-spec-sync.js` 校验【E】规约编号同源不漂移）+ `.npmrc`(`save-exact=true` 精确锁) + `package.json.tmpl`。两 template 都叠加，优先级最低。
+- `mixins/state-business/`：可选前端 mixin（`include.state-business=y` 开启，默认关）。TanStack Query（服务端态）+ Zustand（客户端态）双层，禁用则不加载零副作用。
+- `templates/web-pc/`：纯 PC web（非 Taro）。vite5 + React18 + antd5.22 + tailwind3.4。自带 `pc` 叶子层（`src/components/platform/pc`、`src/pages/platform/pc-admin`）。
+- `templates/taro-mobile/`：多端（H5 + 微信小程序）。Taro3.6 + NutUI3.0.20 + weapp-tailwindcss 3.x。全系 `@tarojs/*` 共享 `{{taro.version}}` 防错配。`build.targets` 默认 `h5,weapp`。
+- `mixins/jenkins-frontend-ci/`：前端 CI 类型。H5 静态 rsync 部署 + 小程序 miniprogram-ci 上传，**无镜像无 docker**。凭据/appid/私钥全 `REPLACE_WITH_*` 占位不进仓库（同 Java 凭据红线）。触发时机/流水线 phase 归 ci-trigger/dev-lifecycle（本 mixin 只交付能跑的脚本 + Jenkinsfile）。
+
+叠加优先级（冲突时后者覆盖前者，文件级 `to` 路径覆盖）：
+- Java：`java-maven-base < fastjson2-hutool < template < jenkins-docker-ci`
+- 前端：`frontend-common < [state-business] < template < jenkins-frontend-ci`
 
 ### 为何非继承：消除 javax/jakarta 残留
 
@@ -110,9 +124,9 @@ finalName         = ${core.module.name}     # 供 Dockerfile ADD 稳定引用
 
 新模型下 java-mcp 不 extends java-web，它的 RequestIdFilter 是 jakarta 版，由自己提供，没有"继承来的 javax 版需要覆盖"这回事。**零 exclude、零覆盖、零残留**。代价是 web/validation/actuator 依赖在 java-mcp 显式声明（原靠继承），这是有价值的重复——换来了独立性与可扩展性。
 
-### 扩展新模板（未来）
+### 扩展新模板
 
-加微信小程序 / H5 / Vue 后台等非 Java 类型：在 `templates/` 下新建独立目录，自带全套 files + manifest，按需 import 现有 mixin 或新增 mixin。新 template 不卷入 Java 的依赖耦合。这才是本 skill 的最终设计形态。
+`web-pc` / `taro-mobile` 已落地（0.4.0），印证"在 `templates/` 下新建独立目录、自带全套 files + manifest、按需挂载 mixin、不卷入 Java 依赖耦合"的设计形态。继续扩展（如 `rn-app` React Native、未来 Vue 后台）：同样新建 `templates/<name>/` 独立目录 + 自持 manifest，`base_mixin_dir` 按族前缀路由（`rn-`→frontend-common，或新增 rn 专属 base）。`rn-app` 为二期占位（未实现）。
 
 ### pom 片段合并（占位标记 + 文本替换，不引 XML 解析依赖）
 
@@ -188,7 +202,7 @@ finalName         = ${core.module.name}     # 供 Dockerfile ADD 稳定引用
 
 回滚不进 dev-lifecycle V1 cascade（V1 到 `deployed-test` 停），由人手动触发。`.deploy-history` 不入 `.dev-flow/` 状态。
 
-## 10. 版本基线（2026-08-08 查证，仅参考，落地以 version-check 实时解析为准）
+## 10. 版本基线（Java 2026-08-08 / 前端 2026-08-18 查证，仅参考，落地以 version-check 实时解析为准）
 
 | 依赖 | P0 选用系列 | 实测最新 GA |
 |---|---|---|
@@ -200,10 +214,22 @@ finalName         = ${core.module.name}     # 供 Dockerfile ADD 稳定引用
 | redisson（核心包，可选数据源） | 钉查证 3.13.x | 3.13.6（java8 兼容，Boot2.7 实测） |
 | rocketmq-spring-boot-starter（可选数据源） | 钉查证 2.2.x | 2.2.3（针对 Boot 2.x，实测） |
 | mysql-connector-j（可选数据源） | 不钉，Boot parent 管理 | Boot2.7.18=8.0.33 / Boot3.5.x 同名新坐标 |
+| **@tarojs/\***（taro-mobile，全系共享 taro.version） | **3.6.x** | **3.6.40**（Taro3.6 基线 LOCKED） |
+| **@nutui/nutui-react-taro**（taro-mobile） | **3.0.x** | **3.0.20**（NutUI3.0 基线 LOCKED） |
+| **weapp-tailwindcss**（taro-mobile） | **3.x** | **3.7.0** |
+| react / react-dom（前端共享） | 18.x | 18.3.1 |
+| antd（web-pc） | 5.22.x | 5.22.7 |
+| vite / @vitejs/plugin-react（web-pc） | 5.x / 4.x | 5.4.21 / 4.7.0 |
+| typescript（前端共享） | 5.5.x | 5.5.4 |
+| tailwindcss（前端共享） | 3.4.x | 3.4.19 |
+| eslint / typescript-eslint（前端共享） | 9.x / 8.x | 9.39.5 / 8.67.0 |
+| @babel/core（taro-mobile） | 7.x | 7.29.7 |
 
 > Spring AI 2.0.0 / Boot 4.1.0 已 GA，但 P0 选稳定线（1.0.9 / 3.5.16 / 2.7.18）。升最新栈前需官方确认 Spring AI 2.0.0↔Boot 4.x 兼容性。
 >
 > redisson / rocketmq-spring 为可选数据源 mixin 的钉查证值（注释注明来源 + 查证日期 2026-08-08），未走 compat-table/version-check 实时解析（后续可加 compat-table 条目改为 series + version-check）。两者均 voucher-ledger 项目（java8/Boot2.7.18）实测全绿。已知运行兼容性见第 15 节。
+>
+> 前端版本全部走 compat-table + version-check-npm.sh 实时解析（registry.npmjs.org JSON，按 series 筛最新稳定 GA，过滤含 `-` 的预发布），**禁硬编码 patch**。Taro3.6 + NutUI3.0.20 为基线 LOCKED（推翻手稿 D4 的 Taro4.2.1——Taro4 React 多端 UI 生态未成熟）。npm 包精确锁无 `^` 前缀（`.npmrc` `save-exact=true`）。
 
 ## 11. 实施方案文档解析的边界
 
@@ -222,14 +248,14 @@ finalName         = ${core.module.name}     # 供 Dockerfile ADD 稳定引用
 
 ```
 ==== project-init 初始化表单 ====
-1.  template (二选一)    : [ ] java-web   [ ] java-mcp
+1.  template (四选一)    : [ ] java-web   [ ] java-mcp   [ ] web-pc   [ ] taro-mobile
 2.  project.name          [默认=目录名]            :
 3.  project.groupId       [默认=com.own.<简写>]    :
 4.  core.module.name      [默认=<name>-server]     :
 5.  developers            [默认=git config user]   :  例 zx:张三
 6.  branch.production     [默认=master]            :
 7.  branch.test           [默认=test]              :
-8.  ci-type               [默认=jenkins-docker-ci] :
+8.  ci-type               [默认=jenkins-docker-ci(java)/jenkins-frontend-ci(前端)] :
 9.  tech-pref             [默认=fastjson2-hutool]  :
 10. server.port          [默认=8080(web)/8700(mcp)]:  服务启动端口，须与目标环境不冲突
 11. spec-doc (实施方案md路径，可选)                :
@@ -247,6 +273,8 @@ finalName         = ${core.module.name}     # 供 Dockerfile ADD 稳定引用
 23. include.rocketmq      [默认=y]                  :  rocketmq 数据源，填 n 不生成
 ```
 
+> **前端工程（web-pc / taro-mobile）字段精简**：仅填 1(template)/2(project.name)/5(developers)/6-7(分支)/8(ci-type，默认 jenkins-frontend-ci) + `package.scope`（可选 npm scope，`--var package.scope=@org`）+ `weapp.appid`（taro-mobile，默认 `REPLACE_WITH_APPID` 占位，绝不硬编码真实 appid）+ `static.host.test`/`static.host.prod`（H5 静态服务器）。3-4(Java maven 坐标)/9(tech-pref，前端无)/10-11(server.port/spec-doc)/12-20(docker/maven 凭据/deploy.root)/21-23(数据源) 均不适用。`include.state-business` 可选（默认 `n`，`--var include.state-business=y` 开启 TanStack Query+Zustand 双层态）。凭据/appid/私钥全 `REPLACE_WITH_*` 占位不进仓库（同 Java 凭据红线）。
+>
 > **可选数据源（21-23）**：默认全启用，填 `n` 关闭对应 mixin（不加载=零文件零依赖）。启用后自动生成依赖 + 配置块 + 健康检查 Checker（redis 额外生成 `RedissonConfig`）。内置本地默认值（仅本地开发）：mysql=127.0.0.1:3306/appdb root/pwd123456；redis=127.0.0.1:6379 密码 zx123456；rocketmq name-server=127.0.0.1:9876。配置值以 `${ENV:本地默认}` 形式注入环境文件——local 用默认，test/prod 用环境变量（`MYSQL_*`/`REDIS_*`/`ROCKETMQ_*`）覆盖。敏感值在 yml 中以 `${ENV:默认}` 占位，默认值仅本地开发，生产用环境变量覆盖（P0 红线）。
 
 最简触发：`初始化 java 项目，type=java-mcp`（其余全默认/占位直接生成）。

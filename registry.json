@@ -28,7 +28,7 @@
     {
       "name": "dev-lifecycle",
       "title": "开发全流程编排",
-      "version": "0.1.6",
+      "version": "0.1.7",
       "category": "dev",
       "path": "skills/dev/dev-lifecycle",
       "description": "编排 project-init、dev-spec、git-flow、ci-trigger 四个 skill，实现项目级 scaffold → feature 级 spec/code/ci 的可中断恢复开发流程；状态分两层：项目级 .dev-flow/project.json（scaffold phase）与 feature 级 .dev-flow/states/<feature>.json（per-feature 并行，活动指针以当前分支为准同步）；GUI merge 是默认关闭的可选辅助能力。Orchestrate project-level scaffold and feature-level spec/code/ci with two-layer state, per-feature parallel state, branch-authoritative active pointer, and optional GUI merge fallback.",
@@ -37,11 +37,11 @@
     },
     {
       "name": "project-init",
-      "title": "Java 项目脚手架生成器",
-      "version": "0.3.0",
+      "title": "项目脚手架生成器（Java + 前端）",
+      "version": "0.4.1",
       "category": "dev",
       "path": "skills/dev/project-init",
-      "description": "把空目录变成可立即 mvn package + 可构建镜像 + 可被 dev-lifecycle 接管的 Java Spring Boot 项目骨架（java-web 传统 Web 服务 / java-mcp Spring AI MCP Server）。采用 template + mixin 独立模板架构，template 不继承、零 exclude，从根上消除 javax/jakarta 版本残留；生成 .dev-flow.yml（含 scaffold 块 + build-credentials）并写入项目级状态 .dev-flow/project.json，作为 dev-lifecycle 协议的第 0 个 cascade 节点（项目级 scaffold 阶段）。可选数据源 mixin（mysql HikariCP / redis redisson 单机 / rocketmq）经 include.{mysql,redis,rocketmq} 表单开关条件加载（默认全启用，n 关闭=零副作用），配置经 ${ENV:本地默认} 注入环境文件；HealthChecker SPI 聚合各数据源诊断到 /health（条件性+隔离+聚合）。Generate a ready-to-build Java Spring Boot scaffold; template+mixin architecture with zero inheritance, optional data-source mixins (mysql/redis/rocketmq) conditionally loaded, HealthChecker SPI aggregating datasource diagnostics, scaffold-phase woven into dev-lifecycle protocol.",
+      "description": "把空目录变成可立即构建 + 可被 dev-lifecycle 接管的项目骨架。Java 侧（java-web / java-mcp）走 maven + Docker 镜像；前端侧（web-pc = vite+React+antd / taro-mobile = Taro3.6+NutUI3.0 多端 H5+微信小程序）走 pnpm 精确锁版 + H5 静态部署 / 小程序 miniprogram-ci。template + mixin 非继承架构，base-mixin 按族路由（java→java-maven-base，frontend→frontend-common）；版本敏感件由 compat-table + version-check（maven-metadata.xml / registry.npmjs.org）按系列筛最新稳定 GA 填充，禁硬编码 patch。生成 .dev-flow.yml（scaffold 块 + build-credentials）+ 项目级状态 .dev-flow/project.json 作为 dev-lifecycle cascade-0 节点。Java 可选数据源 mixin（mysql/redis/rocketmq）+ HealthChecker SPI；前端 frontend-common 端无关骨架 + eslint flat config（import-boundary 两层锁）+ 规约双轨（eslint 源 + frontend-spec.md 镜像，check-spec-sync 同源校验）+ design-token；可选 state-business（TanStack Query+Zustand 双层态，默认关）；jenkins-frontend-ci H5 rsync + 小程序 miniprogram-ci（无镜像）；--mode project 多工程组织壳（父仅 README，子工程独立，默认无 monorepo/workspace/shared）。Generate ready-to-build scaffolds for Java (maven/docker) and frontend (pnpm, web-pc/taro-mobile); template+mixin non-inheritance, family-routed base-mixin, version-check resolving latest stable GA per series, frontend spec double-track, optional state-business mixin, project-mode multi-app shell.",
       "supportedAgents": ["claude-code", "codex", "generic"],
       "sideEffects": ["filesystem-read", "filesystem-write", "shell", "network"]
     },

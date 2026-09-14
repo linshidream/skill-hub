@@ -1,0 +1,13 @@
+{
+  "extends": "@tarojs/taro/tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "jsx": "react-jsx",
+    "paths": { "@/*": ["src/*"] },
+    "baseUrl": "."
+  },
+  "include": ["src", "config", "scripts"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,0 +1,23 @@
+# jenkins-frontend-ci mixin —— CI 类型：Jenkins + 前端静态部署（无镜像）
+# 与 jenkins-docker-ci 异质：前端无 Dockerfile/run.sh/rollback.sh/registry。
+# 两条线：H5 静态部署（rsync/scp）+ 小程序 miniprogram-ci 上传（appid/私钥托管 Jenkins credentials）。
+# 边界（P2）：本 mixin 只交付能跑的脚本与文件；CI 触发时机/流水线编排/phase 状态机归 ci-trigger/dev-lifecycle。
+name: jenkins-frontend-ci
+description: Jenkins + 前端静态部署（H5 + 小程序 miniprogram-ci，无镜像）
+
+# ci profile 占位变量：绝不存明文，只存 REPLACE_WITH_*。check-build-ready.sh 据此验引用就位。
+variables:
+  jenkins.job: "REPLACE_WITH_JENKINS_JOB"
+  gitee.credential.id: "REPLACE_WITH_GITEE_CREDENTIAL_ID"
+  git.repo.url: "REPLACE_WITH_GIT_REPO_URL"
+  weapp.appid: "REPLACE_WITH_APPID"               # 小程序 appid（不进代码/agent 上下文，托管 Jenkins）
+  weapp.upload.key.id: "REPLACE_WITH_WEAPP_UPLOAD_KEY_ID"  # 小程序上传私钥 Jenkins credential id
+  static.host.test: "REPLACE_WITH_STATIC_HOST_TEST"  # H5 静态服务器（test）
+  static.host.prod: "REPLACE_WITH_STATIC_HOST_PROD"  # H5 静态服务器（prod）
+
+provides:
+  files:
+    - {from: files/build.sh.tmpl, to: "scripts/build.sh"}
+    - {from: files/scripts/check-build-ready.sh.tmpl, to: "scripts/check-build-ready.sh"}
+    - {from: files/Jenkinsfile.tmpl, to: "deploy/jenkins/Jenkinsfile"}
+    - {from: files/docs/checklist/build-readiness.md.tmpl, to: "docs/checklist/build-readiness.md"}
